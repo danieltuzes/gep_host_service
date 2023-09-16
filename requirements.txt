@@ -1,0 +1,4 @@
+flask
+pandas
+sphinx
+autopep8

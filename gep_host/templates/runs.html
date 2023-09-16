@@ -1,0 +1,212 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-3">
+    <h2>Runs</h2>
+    {% if program_name is not none %}
+    <div class="card">
+        <div class="card-header" id="headingAddProgram">
+            <h5>Setup and run {{program_name}}</h5>
+        </div>
+        <div class="card-body">
+            <form action="{{ url_for('runs') }}" method="post" enctype="multipart/form-data">
+                <div class="row">
+                    <div class="mb-3 col-md-6">
+                        <label for="program_name">Program Name:</label>
+                        <input type="text" name="program_name" class="form-control" disabled value="{{ program_name }}">
+                        <input type="hidden" name="program_name" value="{{ program_name }}">
+                    </div>
+                    <div class="mb-3 col-md-6">
+                        <label for="purpose">Unique Purpose:</label>
+                        <input type="text" name="purpose" class="form-control" required>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="args">
+                        Python call's argument string
+                        <span class="tooltip-text" data-bs-toggle="tooltip" data-bs-placement="top"
+                            title="Enter the string that follows python -m. It can contain only alphanumeric chars and &quot;-&#039;_\^/(,)[.]">(info)</span>
+                    </label>
+                    <input type="text" name="args" class="form-control" value="{{ program_name }}">
+                </div>
+                <fieldset>
+                    <legend>Input files</legend>
+                    {% for input in inputs %}
+                    {% if input[1] is not none %}
+                    <div class="mb-3 row">
+                        <label for="{{ input[0] }}" class="col-sm-2 col-form-label">{{ input[0] }}:</label>
+                        <div class="col-sm-6">
+                            <input type="file" class="form-control" id="{{ input[0] }}" disabled name="{{ input[0] }}">
+                        </div>
+                        <div class="col-form-label col-sm-4">
+                            <input class="form-check-input" type="checkbox" name="check{{ input[0] }}"
+                                id="check{{ input[0] }}" checked>
+                            <label class="form-check-label" for="check{{ input[0] }}">Inherit
+                                <a
+                                    href="{{ url_for('get_program_input', program_name=program_name, input_value=input[1]) }}">{{input[1]}}</a></label>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="mb-3 row">
+                        <label for="{{ input[0] }}" class="col-sm-2 col-form-label">{{ input[0] }}:</label>
+                        <div class="col-sm-6">
+                            <input type="file" class="form-control" id="{{ input[0] }}" name="{{ input[0] }}">
+                        </div>
+                        <div class="col-sm-4 col-form-label"><small>Not found in package</small></div>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                </fieldset>
+                <div class="mb-3">
+                    <label for="notifications">
+                        Comment:
+                    </label>
+                    <input type="text" name="comment" class="form-control">
+                </div>
+                <div class="mb-3">
+                    <label for="notifications">
+                        Notify in email:
+                    </label>
+                    <input type="text" name="notifications" class="form-control">
+                </div>
+                <button type="submit" class="btn btn-primary">Start run</button>
+            </form>
+        </div>
+
+    </div>
+    {% endif %}
+
+
+    <div class="container my-4">
+        <div class="row mb-2">
+            <div class="col">
+                {% if program_name is not none %}Program Name{% else %}
+                <a
+                    href="{{ url_for('runs', column='program_name', program_name=program_name, direction='desc' if direction == 'asc' and column == 'program_name' else 'asc') }}">
+                    Program Name
+                    {{'↑' if direction == 'asc' and column == 'program_name'}}
+                    {{'↓' if direction == 'desc' and column == 'program_name'}}
+                </a>
+                {% endif %}
+            </div>
+            <div class="col">
+                <a
+                    href="{{ url_for('runs', column='purpose', program_name=program_name, direction='desc' if direction == 'asc' and column == 'purpose' else 'asc') }}">
+                    Purpose
+                    {{'↑' if direction == 'asc' and column == 'purpose'}}
+                    {{'↓' if direction == 'desc' and column == 'purpose'}}
+                </a>
+            </div>
+            <div class="col">
+                <a
+                    href="{{ url_for('runs', column='setup_date', program_name=program_name, direction='desc' if direction == 'asc' and column == 'setup_date' else 'asc') }}">
+                    Setup Date
+                    {{'↑' if direction == 'asc' and column == 'setup_date'}}
+                    {{'↓' if direction == 'desc' and column == 'setup_date'}}
+                </a>
+            </div>
+            <div class="col">
+                <a
+                    href="{{ url_for('runs', column='status', program_name=program_name, direction='desc' if direction == 'asc' and column == 'status' else 'asc') }}">
+                    Status
+                    {{'↑' if direction == 'asc' and column == 'status'}}
+                    {{'↓' if direction == 'desc' and column == 'status'}}
+                </a>
+            </div>
+            <div class="col">Actions</div>
+        </div>
+        {% for run in runs.itertuples() %}
+        <div class="row">
+            <div class="col">{{ run.program_name}}</div>
+            <div class="col">{{ run.purpose }}</div>
+            <div class="col">{{ run.setup_date }}</div>
+            <div class="col">{{ run.status }}{% if run.status == "running" %}, PID={{ run.pid }}{% endif %}</div>
+            <div class="col">
+                <a href="{{ url_for('run_log', program_name=run.program_name, purpose=run.purpose) }}">log</a> |
+                {% if run.status == "running" %}Stop | {% endif %}
+                <a href="{{ url_for('del_run', program_name=run.program_name, purpose=run.purpose) }}">Delete</a> |
+                <a href="#" onclick="toggleRow(this)">Show more</a>
+            </div>
+        </div>
+        <div class="row additional" style="display: none;">
+            <div class="col-12"><strong>Python call:</strong>
+                <code>python -m {{ run.python_args }}</code>
+            </div>
+            <div class="row">
+                <div class="col-6"><strong>Uploaded files:</strong><br>
+                    {% set uploads = run.uploaded_files|parse_json %}
+                    {% for input_name, input_value in uploads %}
+                    {{ input_name }}: <a
+                        href="{{ url_for('get_run_file', program_name=run.program_name, purpose=run.purpose, file=input_value) }}">
+                        {{ input_value }}</a>
+                    <br>
+                    {% endfor %}
+                </div>
+                <div class="col-6"><strong>Inherited files:</strong><br>
+                    {% set inherits = run.inherited_files|parse_json %}
+                    {% for input_name, input_value in inherits %}
+                    {{ input_name }}: <a
+                        href="{{ url_for('get_run_file', program_name=run.program_name, purpose=run.purpose, file=input_value) }}">
+                        {{ input_value }}</a>
+                    <br>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="col-12"><strong>Expected output files:</strong><br>
+                {% set outputs = run.outputs|parse_json %}
+                {% if outputs == [] %}<span class='text-muted'>(None)</span>
+                {% else %}
+                {% for output_name, output_path in outputs %}
+                {{ output_name }}: <a
+                    href="{{ url_for('get_run_file', program_name=run.program_name, purpose=run.purpose, file=output_path) }}">{{output_path}}</a><br>
+                {% endfor %}
+                {% endif %}
+            </div>
+            <div class="col-12"><strong>Comment:</strong>
+                {% if run.comment == "" %}<span class='text-muted'>(None)</span>
+                {% else %}
+                {{ run.comment }}
+                {% endif %}
+            </div>
+            <div class="col-12"><strong>Notifications:</strong>
+                {% if run.notifications == "" %}<span class='text-muted'>(None)</span>
+                {% else %}
+                {{ run.notifications }}
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if runs.empty %}
+    No runs {% if program_name is not none%}with program name {{ program_name }}{% endif %}
+    {% endif %}
+</div>
+
+
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Handle checkbox toggles for all inputs
+        {% for input in inputs %}
+        {% if input[1] is not none %}
+        document.getElementById('check{{ input[0] }}').addEventListener('change', function () {
+            handleCheckboxToggle('{{ input[0] }}', 'check{{ input[0] }}');
+        });
+        {% endif %}
+        {% endfor %}
+
+        function handleCheckboxToggle(inputId, checkId) {
+            const input = document.getElementById(inputId);
+            const checkbox = document.getElementById(checkId);
+
+            if (checkbox.checked) {
+                input.value = ''; // Clear the file input
+                input.setAttribute('disabled', true); // Disable the file input
+            } else {
+                input.removeAttribute('disabled'); // Enable the file input
+            }
+        }
+    });
+</script>
+{% endblock %}
