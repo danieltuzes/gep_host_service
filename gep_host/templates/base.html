@@ -70,7 +70,9 @@
                 buttonElement.innerHTML = "Show";
             }
         }
-        function toggleRow(buttonElement) {
+        function toggleRow(event, buttonElement) {
+            event.preventDefault();
+
             let currentRow = buttonElement.closest('.row');
             let nextRow = currentRow.nextElementSibling;
 

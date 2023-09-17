@@ -125,7 +125,7 @@
                 <a href="{{ url_for('run_log', program_name=run.program_name, purpose=run.purpose) }}">log</a> |
                 {% if run.status == "running" %}Stop | {% endif %}
                 <a href="{{ url_for('del_run', program_name=run.program_name, purpose=run.purpose) }}">Delete</a> |
-                <a href="#" onclick="toggleRow(this)">Show more</a>
+                <a href="#" onclick="toggleRow(event,this)">Show more</a>
             </div>
         </div>
         <div class="row additional" style="display: none;">
