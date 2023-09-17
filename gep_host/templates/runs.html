@@ -120,11 +120,19 @@
             <div class="col">{{ run.program_name}}</div>
             <div class="col">{{ run.purpose }}</div>
             <div class="col">{{ run.setup_date }}</div>
-            <div class="col">{{ run.status }}{% if run.status == "running" %}, PID={{ run.pid }}{% endif %}</div>
+            <div class="col">
+                {% if "Completed" in run.status %}
+                <a
+                    href="{{ url_for('get_run_file', program_name=run.program_name, purpose=run.purpose, file=run.program_name + '__' + run.purpose + '.zip') }}">{{
+                    run.status }}</a>
+                {% else %}
+                {{ run.status }}{% if run.status=="running" %}, PID={{ run.pid }}{% endif %}{% endif %}
+            </div>
             <div class="col">
                 <a href="{{ url_for('run_log', program_name=run.program_name, purpose=run.purpose) }}">log</a> |
                 {% if run.status == "running" %}Stop | {% endif %}
-                <a href="{{ url_for('del_run', program_name=run.program_name, purpose=run.purpose) }}">Delete</a> |
+                <a href="{{ url_for('del_run', program_name=run.program_name, purpose=run.purpose) }}">Delete</a>
+                |
                 <a href="#" onclick="toggleRow(event,this)">Show more</a>
             </div>
         </div>
@@ -136,10 +144,15 @@
                 <div class="col-6"><strong>Uploaded files:</strong><br>
                     {% set uploads = run.uploaded_files|parse_json %}
                     {% for input_name, input_value in uploads %}
-                    {{ input_name }}: <a
+                    {{ input_name }}:
+                    {% if input_value is not none %}
+                    <a
                         href="{{ url_for('get_run_file', program_name=run.program_name, purpose=run.purpose, file=input_value) }}">
                         {{ input_value }}</a>
                     <br>
+                    {% else %}
+                    <span class='text-muted'>(None)</span>
+                    {% endif %}
                     {% endfor %}
                 </div>
                 <div class="col-6"><strong>Inherited files:</strong><br>
@@ -152,7 +165,11 @@
                     {% endfor %}
                 </div>
             </div>
-            <div class="col-12"><strong>Expected output files:</strong><br>
+            <div class="col-12"><strong>Expected output files</strong>
+                <a
+                    href="{{ url_for('get_run_file', program_name=run.program_name, purpose=run.purpose, file=run.program_name + '__' + run.purpose) }}">(zipped
+                    run folder)</a>:
+                <br>
                 {% set outputs = run.outputs|parse_json %}
                 {% if outputs == [] %}<span class='text-muted'>(None)</span>
                 {% else %}
@@ -162,6 +179,8 @@
                 {% endfor %}
                 {% endif %}
             </div>
+
+
             <div class="col-12"><strong>Comment:</strong>
                 {% if run.comment == "" %}<span class='text-muted'>(None)</span>
                 {% else %}

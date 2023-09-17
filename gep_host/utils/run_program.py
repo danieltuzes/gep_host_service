@@ -3,11 +3,21 @@ import subprocess
 import sys
 from pathlib import Path
 import traceback
+import zipfile
 
 import pandas as pd
 
 PROJ_ROOT = Path(os.path.dirname(__file__)).parent.parent.parent
 RUN_DETAILS_CSV = os.path.join(PROJ_ROOT, 'runs', 'run_details.csv')
+
+
+def zipdir(path, zip_filename):
+    with zipfile.ZipFile(zip_filename, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        for root, _, files in os.walk(path):
+            for file in files:
+                zipf.write(os.path.join(root, file),
+                           os.path.relpath(os.path.join(root, file),
+                                           os.path.join(path, '..')))
 
 
 def id_row(df, program_name, purpose):
@@ -29,18 +39,31 @@ def init_run(program_name, purpose):
 def run_program(prg_name, purpose):
     code = 0
     try:
-        # 1. Update status in program_details.csv
+        # 1. Update status in run_details.csv
         df = pd.read_csv(RUN_DETAILS_CSV, dtype=str).fillna("")
         df.loc[id_row(df, prg_name, purpose), 'status'] = 'running'
         df.to_csv(RUN_DETAILS_CSV, index=False)
 
-        # 2. Activate the conda environment and run the program
+        # 2. clean up the log created during installation
+        prg_install_log = os.path.join(PROJ_ROOT,
+                                       "programs",
+                                       prg_name,
+                                       "output_and_error.log")
+        if os.path.isfile(prg_install_log):
+            os.remove(prg_install_log)
+
+        # 3.. Activate the conda environment and run the program
         activate_env_command = f'conda activate {prg_name}'
         args = df.loc[id_row(df, prg_name, purpose), 'python_args'].iloc[0]
         i_cmd = f'{activate_env_command} && python -m {args}'
         setup_folder = os.path.join(PROJ_ROOT, 'runs', prg_name, purpose)
         proc = subprocess.run(i_cmd, shell=True, cwd=setup_folder, text=True,
                               stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+        # 4. compress the whole folder to offer for download
+        zip_file = os.path.join(setup_folder,
+                                f"{program_name}__{purpose}.zip")
+        zipdir(setup_folder, zip_file)
 
         # 5. Update status in program_details.csv to installed
         if proc.returncode != 0:

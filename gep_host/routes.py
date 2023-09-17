@@ -146,11 +146,10 @@ def runs():
             # skip if not provided
             file = request.files[input[0]]
             fname = secure_filename(file.filename)
-            if fname == "":
-                continue
+            if fname != "":
+                file.save(os.path.join(input_folder, fname))
+                input[1] = os.path.join("inputs", fname)
 
-            file.save(os.path.join(input_folder, fname))
-            input[1] = os.path.join("inputs", fname)
             uploads.append(input)
 
         # update the config
@@ -162,8 +161,9 @@ def runs():
             config.set('Root', 'RootDir', setup_folder)
             config["DEFAULT"] = {}
         for upload in uploads:
-            uploaded_path = os.path.join(setup_folder, upload[1])
-            config.set('inputs', upload[0], uploaded_path)
+            if upload[1] is not None:
+                uploaded_path = os.path.join(setup_folder, upload[1])
+                config.set('inputs', upload[0], uploaded_path)
         outputs = []
         for ofile in config.options("outputs"):
             ofilepath = os.path.relpath(config.get("outputs", ofile),
