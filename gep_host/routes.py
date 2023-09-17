@@ -4,17 +4,23 @@ import datetime
 import os
 import shutil
 from configparser import ConfigParser, ExtendedInterpolation
+import traceback
+import zipfile
+import platform
+import multiprocessing
 
-from flask import render_template, request, redirect, flash, url_for, send_from_directory
+from flask import render_template, request, redirect, flash, url_for, send_from_directory, send_file
 import pandas as pd
 from werkzeug.utils import secure_filename
 
 from gep_host import app, install_program, delete_program, delete_run, run_program
+from .utils.helpers import zipdir
 
 PROJ_ROOT = Path(os.path.dirname(__file__)).parent.parent
 PROGRAM_DETAILS_CSV = os.path.join(PROJ_ROOT,
                                    'programs/program_details.csv')
 RUN_DETAILS_CSV = os.path.join(PROJ_ROOT, 'runs/run_details.csv')
+LIB_DETAILS_CSV = os.path.join(PROJ_ROOT, 'libs/lib_details.csv')
 
 
 def allowed_file(filename):
@@ -31,7 +37,28 @@ def safer_call(name):
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    data = {
+        'System': platform.system(),
+        'Node': platform.node(),
+        'Release': platform.release(),
+        'Version': platform.version(),
+        'Machine': platform.machine(),
+        'Architecture': platform.architecture()[0],
+        'Processor': platform.processor(),
+        'Number of Cores': multiprocessing.cpu_count()
+    }
+
+    # If on Linux, you can get more detailed info with:
+    if platform.system() == "Linux":
+        # You only get the first element for the version
+        data['Libc version'] = platform.libc_ver()[0]
+        try:
+            # Deprecated since Python 3.5
+            data['Distribution'] = platform.linux_distribution()
+        except AttributeError:
+            data['Distribution'] = "N/A"
+
+    return render_template('index.html', data=data)
 
 
 @app.route('/programs', methods=['GET', 'POST'])
@@ -185,10 +212,10 @@ def runs():
             'notifications': request.form["notifications"]
         })
 
+        runs = pd.DataFrame({})
         if os.path.isfile(RUN_DETAILS_CSV):
             runs = pd.read_csv(RUN_DETAILS_CSV)
-        else:
-            runs = pd.DataFrame({})
+
         runs = pd.concat([runs, new_entry], ignore_index=True)
         runs.to_csv(RUN_DETAILS_CSV, index=False)
 
@@ -198,8 +225,7 @@ def runs():
     # Read the content of run_details.csv, filter and order it
 
     if os.path.exists(RUN_DETAILS_CSV):
-        runs = pd.read_csv(RUN_DETAILS_CSV, dtype=str)
-        runs.fillna("", inplace=True)
+        runs = pd.read_csv(RUN_DETAILS_CSV, dtype=str).fillna("")
 
         # order
         ascending = True if direction == "asc" else False
@@ -263,16 +289,147 @@ def del_run(program_name: str, purpose: str):
     return runs()
 
 
-def parse_json(json_str):
-    if isinstance(json_str, str) and json_str != "":
-        return json.loads(json_str)
-    return []
-
-
 @app.route('/run_log/<program_name>/<purpose>')
 def run_log(program_name: str, purpose: str):
     log_path = os.path.join(PROJ_ROOT, "runs", program_name, purpose)
     return send_from_directory(log_path, "output_and_error.log")
+
+
+@app.route('/libraries', methods=['GET', 'POST'])
+def libraries():
+    column = request.args.get('column', 'upload_date')
+    direction = request.args.get('direction', 'desc')
+    ascending = True if direction == "asc" else False
+
+    if request.method == 'POST':
+        # Logic for handling the file upload
+        file = request.files['library_package']
+        if file.filename == '':
+            flash('No selected file', 'warning')
+            return redirect(request.url)
+        if not allowed_file(file.filename):
+            flash('Not allowed filetype', 'warning')
+            return redirect(request.url)
+
+        # Program details
+        library_name = alnum(request.form['unique_library_name'])
+        path_to_exec = request.form['path_to_exec']
+
+        # Check uniqueness of library name
+        masterfolder = os.path.join(PROJ_ROOT, "libs", library_name)
+        if os.path.isdir(masterfolder):
+            flash('Library upload is unsuccessful due to its non-unique name.', 'warning')
+            return redirect(request.url)
+
+        # save the file
+        filename = secure_filename(file.filename)
+        base, ext = os.path.splitext(filename)
+        nowstr = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+        t_filename = f"{base}_{nowstr}{ext}"
+        program_zip_path = os.path.join(PROJ_ROOT, "libs", t_filename)
+        file.save(program_zip_path)
+
+        # extract the file
+        try:
+            os.makedirs(masterfolder)
+            with zipfile.ZipFile(program_zip_path, 'r') as zip_ref:
+                zip_ref.extractall(masterfolder)
+        except Exception as err:
+            msg = f"Error in unzipping the library: {err}"
+            msg += f"Details:<br><pre>{traceback.format_exc()}</pre>"
+            flash(msg, "warning")
+            return render_template("libraries.html", libs=libs, column=column)
+
+        nowstr = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        file_size = os.stat(program_zip_path).st_size
+        file_size_str = f"{file_size:.0f} B"
+        if file_size > 2000:
+            file_size_str = f"{file_size/1024:.0f} KB"
+        if file_size > 2000000:
+            file_size_str = f"{file_size/1024/1024:.0f} MB"
+
+        new_entry = pd.DataFrame({
+            'library_name': [library_name],
+            'path_to_exec': [path_to_exec],
+            'upload_date': [nowstr],
+            'zip_path': [os.path.relpath(program_zip_path, PROJ_ROOT)],
+            'orig_filename': [filename],
+            'status': ["installed"],
+            'size': [file_size_str],
+            'comment': request.form["comment"],
+            'used_in': [json.dumps([])]
+        })
+
+        libs = pd.DataFrame()
+        if os.path.isfile(LIB_DETAILS_CSV):
+            libs = pd.read_csv(LIB_DETAILS_CSV)
+        libs = pd.concat([libs, new_entry], ignore_index=True)
+        libs.to_csv(LIB_DETAILS_CSV, index=False)
+        flash(f"Library {library_name} is successfully uploaded.", "success")
+
+    libs = pd.DataFrame()
+    if os.path.isfile(LIB_DETAILS_CSV):
+        libs = pd.read_csv(LIB_DETAILS_CSV).fillna("")
+        libs.sort_values(by=column, ascending=ascending, inplace=True)
+
+    return render_template("libraries.html", libs=libs, column=column, direction=direction)
+
+
+@app.route('/del_lib/<library_name>')
+def del_library(library_name: str):
+    path = os.path.join(PROJ_ROOT, "libs", library_name)
+    try:
+        shutil.rmtree(path)
+        flash(f"Library {library_name} is successfully deleted.", "success")
+        libs = pd.read_csv(LIB_DETAILS_CSV)
+        used_in_raw = libs.loc[libs["library_name"]
+                               == library_name, "used_in"].iloc[0]
+        used_in = json.loads(used_in_raw)
+        if used_in != []:
+            flash(("Library is still required by the programs: "
+                   "f{', '.join(used_in)}."
+                   "To remove the entry from the libraries, "
+                   "uninstall all programs using it. "
+                   "Reinstalling is also possible."),
+                  "warning")
+            libs.loc[libs["library_name"] ==
+                     library_name, "status"] = "deleted"
+        else:
+            zip_loc = libs.loc[libs["library_name"] ==
+                               library_name, "zip_path"].iloc[0]
+            os.remove(zip_loc)
+            libs = libs[libs["library_name"] != library_name]
+        libs.to_csv(LIB_DETAILS_CSV, index=False)
+    except Exception as err:
+        msg = f"Error in deleting the library: {err}"
+        msg += f"Details:<br><pre>{traceback.format_exc()}</pre>"
+        flash(msg, "warning")
+    finally:
+        return libraries()
+
+
+@app.route('/lib/<library_name>')
+def get_lib(library_name):
+    libs = pd.read_csv(LIB_DETAILS_CSV)
+    zip_path = libs.loc[libs["library_name"]
+                        == library_name, "zip_path"].iloc[0]
+    path_to_zip = os.path.join(PROJ_ROOT, zip_path)
+
+    orig_filename = libs.loc[libs["library_name"]
+                             == library_name, "orig_filename"].iloc[0]
+    f_path = os.path.join(PROJ_ROOT,
+                          "libs",
+                          path_to_zip)
+    return send_file(f_path,
+                     mimetype='application/zip',
+                     as_attachment=True,
+                     download_name=orig_filename)
+
+
+def parse_json(json_str):
+    if isinstance(json_str, str) and json_str != "":
+        return json.loads(json_str)
+    return []
 
 
 app.jinja_env.filters['parse_json'] = parse_json

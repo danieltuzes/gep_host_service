@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="container mt-3">
+    <h2>Libraries</h2>
+    <p>Libraries are python modules that are used in other programs.
+        Libraries can only be included in other calls by importing them,
+        and cannot be invoked directly. To use a library, the program must
+        import it. The library can be added to a program at install time,
+        which adds the path of the library to the conda environment dedicated to the program.
+    </p>
+    <p>
+        When installing a library, keep in mind the system specification from the
+        <a href="{{ url_for('index') }}">index page</a>.
+    </p>
+    <div class="card">
+        <div class="card-header" id="headingAddProgram">
+            <h5 class="mb-0">Add New Library</h5>
+        </div>
+
+        <div class="card-body">
+            <form action="{{ url_for('libraries') }}" method="post" enctype="multipart/form-data">
+                <div class="mb-3">
+                    <label for="library_package" class="form-label">Library Package:</label>
+                    <input type="file" name="library_package" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label for="unique_library_name" class="form-label">Unique Library Name:</label>
+                    <input type="text" name="unique_library_name" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label for="path_to_exec" class="form-label">Path to the executables:</label>
+                    <input type="text" name="path_to_exec" class="form-control" required value="bin64">
+                </div>
+                <div class="mb-3">
+                    <label for="comment" class="form-label">Comment:</label>
+                    <input type="text" name="comment" class="form-control">
+                </div>
+                <button type="submit" class="btn btn-primary">Upload</button>
+            </form>
+        </div>
+    </div>
+    <div class="container my-4">
+        <div class="row mb-2">
+            <div class="col">
+                <a
+                    href="{{ url_for('libraries', column='library_name', direction='desc' if direction == 'asc' and column == 'library_name' else 'asc') }}">
+                    Library Name
+                    {{'↑' if direction == 'asc' and column == 'library_name'}}
+                    {{'↓' if direction == 'desc' and column == 'library_name'}}
+                </a>
+            </div>
+            <div class="col">
+                <a
+                    href="{{ url_for('libraries', column='upload_date', direction='desc' if direction == 'asc' and column == 'upload_date' else 'asc') }}">
+                    Upload Date
+                    {{'↑' if direction == 'asc' and column == 'upload_date'}}
+                    {{'↓' if direction == 'desc' and column == 'upload_date'}}
+                </a>
+            </div>
+            <div class="col">Status</div>
+            <div class="col">Action</div>
+        </div>
+        {% for library in libs.itertuples() %}
+        <div class="row">
+            <div class="col">{{ library.library_name }}</div>
+            <div class="col">{{ library.upload_date }}</div>
+            <div class="col">{{ library.status }} </div>
+            <div class="col">
+                <a href="{{ url_for('del_library', library_name=library.library_name) }}">Delete</a> |
+                <a href="{{ url_for('get_lib', library_name=library.library_name) }}">Download
+                    ({{library.size}})</a> |
+                <a href="#" onclick="toggleRow(event,this)">Show more</a>
+            </div>
+        </div>
+        <div class="row additional" style="display: none;">
+            <div class="col-12">
+                <strong>Path to the executables: </strong>{{ library.path_to_exec }}
+            </div>
+            <div class="col-12">
+                <strong>Comment: </strong>{{ library.comment }}
+            </div>
+            <div class="col-12">
+                <strong>Original filename:</strong>{{ library.orig_filename }}
+            </div>
+            <div class="col-12">
+                <strong>Used in the programs:</strong>
+                {% set used_ins = library.used_in | parse_json %}
+                {% for used_in in used_ins %}
+                {{ library.used_in }},
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if libs.empty %}
+    No runs {% if program_name is not none%}with program name {{ program_name }}{% endif %}
+    {% endif %}
+</div>
+{% endblock %}

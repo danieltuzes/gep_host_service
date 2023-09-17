@@ -3,21 +3,12 @@ import subprocess
 import sys
 from pathlib import Path
 import traceback
-import zipfile
+from .helpers import zipdir
 
 import pandas as pd
 
 PROJ_ROOT = Path(os.path.dirname(__file__)).parent.parent.parent
 RUN_DETAILS_CSV = os.path.join(PROJ_ROOT, 'runs', 'run_details.csv')
-
-
-def zipdir(path, zip_filename):
-    with zipfile.ZipFile(zip_filename, 'w', zipfile.ZIP_DEFLATED) as zipf:
-        for root, _, files in os.walk(path):
-            for file in files:
-                zipf.write(os.path.join(root, file),
-                           os.path.relpath(os.path.join(root, file),
-                                           os.path.join(path, '..')))
 
 
 def id_row(df, program_name, purpose):

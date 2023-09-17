@@ -2,7 +2,10 @@ import os
 import re
 import subprocess
 from datetime import datetime
+import zipfile
+
 import pandas as pd
+
 
 def sanitize_name(name):
     """
@@ -11,12 +14,14 @@ def sanitize_name(name):
     sanitized_name = re.sub(r'[^a-zA-Z0-9_]', '_', name)
     return sanitized_name
 
+
 def check_unique_program_name(program_name):
     """
     Check if the program name is unique in program_details.csv
     """
     df = pd.read_csv('programs/program_details.csv')
     return program_name not in df['program_name'].values
+
 
 def update_program_details_csv(program_name, python_version, status='uploaded'):
     """
@@ -33,19 +38,21 @@ def update_program_details_csv(program_name, python_version, status='uploaded'):
     df = df.append(data, ignore_index=True)
     df.to_csv('programs/program_details.csv', index=False)
 
+
 def run_subprocess(command, cwd=None):
     """
     Run a subprocess with the provided command.
     """
     process = subprocess.Popen(
-        command, 
+        command,
         shell=True,
         cwd=cwd,
-        stdout=subprocess.PIPE, 
+        stdout=subprocess.PIPE,
         stderr=subprocess.PIPE
     )
     stdout, stderr = process.communicate()
     return process.returncode, stdout, stderr
+
 
 def append_to_filename(filename, append_string):
     """
@@ -54,14 +61,25 @@ def append_to_filename(filename, append_string):
     base, ext = os.path.splitext(filename)
     return f"{base}_{append_string}{ext}"
 
+
 def get_current_datetime_string():
     """
     Returns the current date and time as a string in the format 'YYYYMMDD_HHMMSS'.
     """
     return datetime.now().strftime('%Y%m%d_%H%M%S')
 
+
 def check_unique_run_name(setup_name):
     """
     Check if the run setup name is unique within the runs folder.
     """
     return not os.path.exists(os.path.join('runs', setup_name))
+
+
+def zipdir(path, zip_filename):
+    with zipfile.ZipFile(zip_filename, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        for root, _, files in os.walk(path):
+            for file in files:
+                zipf.write(os.path.join(root, file),
+                           os.path.relpath(os.path.join(root, file),
+                                           os.path.join(path, '..')))
