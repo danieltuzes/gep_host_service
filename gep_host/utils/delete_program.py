@@ -4,34 +4,61 @@ import shutil
 import sys
 import traceback
 from pathlib import Path
+import json
 
 import pandas as pd
 
 PROJ_ROOT = Path(os.path.dirname(__file__)).parent.parent.parent
+LIB_DETAILS_CSV = os.path.join(PROJ_ROOT, 'libs/lib_details.csv')
 
 
 def init_del(program_name: str):
     cmd = f"python {__file__} {program_name}"
-    proc = subprocess.run(cmd, shell=True,
-                          stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    proc = subprocess.run(cmd, shell=True, text=True,
+                          stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     return proc.returncode, proc.stdout
 
 
+def remove_val_from_json(json_str, val_2_remove):
+    mylist = json.loads(json_str)
+    new_list = [val for val in mylist if val != val_2_remove]
+    return json.dumps(new_list)
+
+
 def delete_program(program_name):
+    code = 0
     try:
-        # 1. remove program_details.csv
+
+        masterfolder = os.path.join(PROJ_ROOT, 'programs', program_name)
+        # 1. remove program_details.csv and get the zip_fname
         df = pd.read_csv('programs/program_details.csv', dtype=str)
+        zip_fname = df.loc[df['program_name'] ==
+                           program_name, "zip_fname"].iloc[0]
         df = df[df['program_name'] != program_name]
         df.to_csv('programs/program_details.csv', index=False)
 
         # 2. remove the folder recursively
-        masterfolder = os.path.join(PROJ_ROOT, 'programs', program_name)
-        shutil.rmtree(masterfolder)
+        zip_path = os.path.join(PROJ_ROOT, "programs", zip_fname)
+        if os.path.isfile(zip_path):
+            os.remove(zip_path)
+        else:
+            print("The package zip file has been already deleted.")
+
+        if os.path.isdir(masterfolder):
+            shutil.rmtree(masterfolder)
+        else:
+            print("The program folder has been already deleted.")
+            code = 2
 
         # 3. Remove the conda environment
         subprocess.run(f'conda env remove -n {program_name}',
                        shell=True, check=True)
-        return 0
+        libs = pd.read_csv(LIB_DETAILS_CSV)
+        libs["used_in"] = libs["used_in"].apply(remove_val_from_json,
+                                                val_2_remove=program_name)
+        libs.to_csv(LIB_DETAILS_CSV)
+
+        return code
 
     except Exception as e:
         # If there's any error, update status in program_details.csv
@@ -41,9 +68,13 @@ def delete_program(program_name):
                                  "status": ["program uninstall error"]})
         df = pd.concat([df, put_back])
         df.to_csv('programs/program_details.csv', index=False)
-        with open(os.path.join(masterfolder, "output_and_error.log"), 'w') as logf:
-            print(f"Error deleting program {program_name}: {e}", file=logf)
-            print(traceback.format_exc(), file=logf)
+        if os.path.isdir(masterfolder):
+            with open(os.path.join(masterfolder, "output_and_error.log"), 'w') as logf:
+                print(f"Error deleting program {program_name}: {e}", file=logf)
+                print(traceback.format_exc(), file=logf)
+        else:
+            print(f"masterfolder {masterfolder} has been already deleted,",
+                  "no log file is created.")
         return 1
 
 

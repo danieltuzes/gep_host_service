@@ -23,6 +23,14 @@
                     <label for="required_python_version" class="form-label">Required Python Version:</label>
                     <input type="text" name="required_python_version" class="form-control" required>
                 </div>
+                <div class="mb-3">
+                    <label for="selected_libs" class="form-label">Libraries needed to run this program:</label>
+                    <select multiple class="form-select" id="selected_libs" size="4" name="selected_libs">
+                        {% for lib_name in libs['library_name'] %}
+                        <option>{{ lib_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
                 <button type="submit" class="btn btn-primary">Upload</button>
             </form>
         </div>
@@ -48,7 +56,7 @@
                         {{'↓' if direction == 'desc' and column == 'upload_date'}}
                     </a>
                 </th>
-                <th>Python Version</th>
+                <th>Python Version, Libs</th>
                 <th>Status</th>
                 <th width="30%">Actions</th>
             </tr>
@@ -56,13 +64,18 @@
         <tbody>
             {% for program in programs.itertuples() %}
             <tr>
-                <td>{{ program.program_name }}</td>
+                <td><a href="{{ url_for('get_prg', program_name=program.program_name)}}">{{ program.program_name }}</a>
+                </td>
                 <td>{{ program.upload_date }}</td>
-                <td>{{ program.python_version }}</td>
+                <td>py={{ program.python_version }},
+                    {% if program.selected_libs == "" %}<span class='text-muted'>(None)</span>
+                    {% else %}
+                    {{ program.selected_libs }}
+                    {% endif %}</td>
                 <td>{{ program.status }}</td>
                 <td>
                     <a href="{{ url_for('del_program', program_name=program.program_name) }}">Delete</a>
-                    {% if "error" in program.status %}
+                    {% if program.status != "installed" %}
                     | <a href="{{ url_for('install_log', program_name=program.program_name) }}">Log</a>
                     {% elif "installed" in program.status %}
                     | <a href="{{ url_for('runs', program_name=program.program_name) }}">Run</a>

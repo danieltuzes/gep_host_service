@@ -79,17 +79,24 @@
                 <strong>Path to the executables: </strong>{{ library.path_to_exec }}
             </div>
             <div class="col-12">
-                <strong>Comment: </strong>{{ library.comment }}
+                <strong>Comment: </strong>
+                {% if library.comment == "" %}<span class='text-muted'>(None)</span>
+                {% else %}
+                {{ library.comment }}
+                {% endif %}
             </div>
             <div class="col-12">
-                <strong>Original filename:</strong>{{ library.orig_filename }}
+                <strong>Original filename:</strong> {{ library.orig_filename }}
             </div>
             <div class="col-12">
                 <strong>Used in the programs:</strong>
+                {% if library.used_in == "[]" %}<span class='text-muted'>(None)</span>
+                {% else %}<br>
                 {% set used_ins = library.used_in | parse_json %}
                 {% for used_in in used_ins %}
-                {{ library.used_in }},
+                {{ used_in }}<br>
                 {% endfor %}
+                {% endif %}
             </div>
         </div>
         {% endfor %}

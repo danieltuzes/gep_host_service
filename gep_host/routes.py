@@ -14,7 +14,7 @@ import pandas as pd
 from werkzeug.utils import secure_filename
 
 from gep_host import app, install_program, delete_program, delete_run, run_program
-from .utils.helpers import zipdir
+zipdir = run_program.zipdir
 
 PROJ_ROOT = Path(os.path.dirname(__file__)).parent.parent
 PROGRAM_DETAILS_CSV = os.path.join(PROJ_ROOT,
@@ -27,8 +27,8 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() == 'zip'
 
 
-def alnum(name):
-    return ''.join(e for e in name if e.isalnum() or e == '_')
+def alnum(name, extra_allowed="_"):
+    return ''.join(e for e in name if e.isalnum() or e in extra_allowed)
 
 
 def safer_call(name):
@@ -78,7 +78,10 @@ def programs():
 
         # Program details
         program_name = alnum(request.form['unique_program_name'])
-        python_version = request.form['required_python_version']
+        python_version_raw = request.form['required_python_version']
+        python_version = "".join(
+            char for char in python_version_raw if char.isdigit or char == ".")
+        selected_libs = request.form.getlist('selected_libs')
 
         # Check uniqueness of program name
         masterfolder = os.path.join(PROJ_ROOT, "programs", program_name)
@@ -97,8 +100,9 @@ def programs():
 
         # Execute install script in subprocess
         res = install_program.init_install(program_name,
-                                           program_zip_path,
-                                           python_version)
+                                           t_filename,
+                                           python_version,
+                                           selected_libs)
         if res != 0:
             flash(res, "warning")
         else:
@@ -109,18 +113,32 @@ def programs():
     column = request.args.get('column', 'upload_date')
     direction = request.args.get('direction', 'desc')
     if os.path.exists(PROGRAM_DETAILS_CSV):
-        df = pd.read_csv(PROGRAM_DETAILS_CSV)
+        df = pd.read_csv(PROGRAM_DETAILS_CSV, dtype=str).fillna("")
         ascending = True if direction == "asc" else False
         df.sort_values(by=column, ascending=ascending, inplace=True)
     else:
         df = pd.DataFrame()
-    return render_template('programs.html', programs=df, column=column, direction=direction)
+
+    libs = pd.DataFrame()
+    if os.path.isfile(LIB_DETAILS_CSV):
+        libs = pd.read_csv(LIB_DETAILS_CSV)
+
+    return render_template('programs.html',
+                           programs=df,
+                           libs=libs,
+                           column=column,
+                           direction=direction)
 
 
 @app.route('/install_log/<program_name>')
 def install_log(program_name: str):
     log_path = os.path.join(PROJ_ROOT, "programs", program_name)
-    return send_from_directory(log_path, "output_and_error.log")
+    if os.path.isfile(log_path):
+        return send_from_directory(log_path, "output_and_error.log")
+    else:
+        flash(("The log file has been already removed. "
+              "Service integritiy is compromised. Notify the admin."), "warning")
+        return programs()
 
 
 @app.route('/del_program/<program_name>')
@@ -132,6 +150,20 @@ def del_program(program_name: str):
     else:
         flash(f"Successfully deleted program: {program_name}", "success")
     return programs()
+
+
+@app.route('/program/<program_name>')
+def get_prg(program_name: str):
+    prgs = pd.read_csv(PROGRAM_DETAILS_CSV)
+    zip_fname = prgs.loc[prgs["program_name"]
+                         == program_name, "zip_fname"].iloc[0]
+    f_path = os.path.join(PROJ_ROOT, "programs", zip_fname)
+    orig_fname = zip_fname[:-19] + zip_fname[-4:]
+
+    return send_file(f_path,
+                     mimetype='application/zip',
+                     as_attachment=True,
+                     download_name=orig_fname)
 
 
 @app.route('/runs', methods=['GET', 'POST'])
@@ -263,7 +295,8 @@ def users_tokens():
 @app.route('/program/<program_name>/<input_value>')
 def get_program_input(program_name, input_value):
     f_path = os.path.join(PROJ_ROOT, "programs", program_name, input_value)
-    return send_from_directory(os.path.dirname(f_path), os.path.basename(f_path))
+    return send_from_directory(os.path.dirname(f_path),
+                               os.path.basename(f_path))
 
 
 @app.route('/run/<program_name>/<purpose>/<file>')
@@ -312,7 +345,7 @@ def libraries():
             return redirect(request.url)
 
         # Program details
-        library_name = alnum(request.form['unique_library_name'])
+        library_name = alnum(request.form['unique_library_name'], "_-.")
         path_to_exec = request.form['path_to_exec']
 
         # Check uniqueness of library name
@@ -379,15 +412,20 @@ def libraries():
 def del_library(library_name: str):
     path = os.path.join(PROJ_ROOT, "libs", library_name)
     try:
-        shutil.rmtree(path)
-        flash(f"Library {library_name} is successfully deleted.", "success")
+        if os.path.isdir(path):
+            shutil.rmtree(path, ignore_errors=True)
+            flash(
+                f"Library {library_name} is successfully deleted.", "success")
+        else:
+            flash(
+                f"Library {library_name} has been already deleted.", "warning")
         libs = pd.read_csv(LIB_DETAILS_CSV)
         used_in_raw = libs.loc[libs["library_name"]
                                == library_name, "used_in"].iloc[0]
         used_in = json.loads(used_in_raw)
         if used_in != []:
             flash(("Library is still required by the programs: "
-                   "f{', '.join(used_in)}."
+                   f"{', '.join(used_in)}. "
                    "To remove the entry from the libraries, "
                    "uninstall all programs using it. "
                    "Reinstalling is also possible."),
@@ -401,7 +439,7 @@ def del_library(library_name: str):
             libs = libs[libs["library_name"] != library_name]
         libs.to_csv(LIB_DETAILS_CSV, index=False)
     except Exception as err:
-        msg = f"Error in deleting the library: {err}"
+        msg = f"Error in deleting the library: {err}<br>"
         msg += f"Details:<br><pre>{traceback.format_exc()}</pre>"
         flash(msg, "warning")
     finally:

@@ -14,9 +14,13 @@ import pandas as pd
 PROJ_ROOT = Path(os.path.dirname(__file__)).parent.parent.parent
 PROGRAM_DETAILS_CSV = os.path.join(PROJ_ROOT,
                                    'programs/program_details.csv')
+LIB_DETAILS_CSV = os.path.join(PROJ_ROOT, 'libs/lib_details.csv')
 
 
-def init_install(program_name, program_zip_path, python_version) -> Union[int, str]:
+def init_install(program_name,
+                 program_zip_path,
+                 python_version,
+                 selected_libs) -> Union[int, str]:
     # Check uniqueness of program name
     if os.path.exists(PROGRAM_DETAILS_CSV):
         df = pd.read_csv(PROGRAM_DETAILS_CSV, dtype=str)
@@ -24,9 +28,12 @@ def init_install(program_name, program_zip_path, python_version) -> Union[int, s
             os.remove(program_zip_path)
             return 'Program upload unsuccessful due to non-unique name.'
 
+    # trigger the installation
+    selected_libs_str = ", ".join(selected_libs)
     masterfolder = os.path.join(PROJ_ROOT, 'programs', program_name)
     os.makedirs(masterfolder)
-    cmd = f"python {__file__} {program_name} {program_zip_path} {python_version}"
+    cmd = (f"python {__file__} {program_name} {program_zip_path} "
+           f'{python_version} "{selected_libs_str}"')
     with open(os.path.join(masterfolder, "output_and_error.log"), 'w') as logf:
         proc = subprocess.Popen(cmd, shell=True,  stdout=logf, stderr=logf)
 
@@ -37,7 +44,8 @@ def init_install(program_name, program_zip_path, python_version) -> Union[int, s
         'python_version': [python_version],
         'status': ['installing'],
         'PID': [proc.pid],
-        'zip_fname': program_zip_path,
+        'zip_fname': [program_zip_path],
+        'selected_libs': [selected_libs_str]
     })
     if os.path.exists(PROGRAM_DETAILS_CSV):
         df = pd.concat([df, new_entry], ignore_index=True)
@@ -48,7 +56,10 @@ def init_install(program_name, program_zip_path, python_version) -> Union[int, s
     return 0
 
 
-def install_program(program_name, program_zip_path, required_python_version):
+def install_program(program_name,
+                    program_zip_name,
+                    required_python_version,
+                    required_libs_raw: str):
     code = 0
     try:
         # 1. Update status in program_details.csv
@@ -57,11 +68,10 @@ def install_program(program_name, program_zip_path, required_python_version):
         df.to_csv(PROGRAM_DETAILS_CSV, index=False)
 
         # 2. Extract zip to the masterfolder
-        zipf = os.path.join(PROJ_ROOT, 'programs', program_zip_path)
+        zipf = os.path.join(PROJ_ROOT, 'programs', program_zip_name)
         masterfolder = os.path.join(PROJ_ROOT, 'programs', program_name)
         with zipfile.ZipFile(zipf, 'r') as zip_ref:
             zip_ref.extractall(masterfolder)
-        os.remove(zipf)
 
         # 3. Read and update the MasterConfig.cfg file
         config_file = os.path.join(masterfolder, 'config', 'MasterConfig.cfg')
@@ -104,13 +114,15 @@ def install_program(program_name, program_zip_path, required_python_version):
         df.loc[df['program_name'] == program_name,
                'outputs'] = json.dumps(outputs)
 
+        procs = []
         # 4. Create a new conda environment with the provided python version
         df.loc[df['program_name'] == program_name,
                'status'] = 'creating conda env'
         df.to_csv(PROGRAM_DETAILS_CSV, index=False)
         c_cmd = f'conda create -y -n {program_name} python={required_python_version} conda-build'
-        subprocess.run(c_cmd, capture_output=True,
-                       shell=True, check=True)
+        procs.append(subprocess.run(c_cmd, shell=True, text=True,
+                                    stdout=subprocess.PIPE,
+                                    stderr=subprocess.STDOUT))
 
         # 4. Activate the new conda environment and install the program using pip
         df.loc[df['program_name'] == program_name,
@@ -119,12 +131,45 @@ def install_program(program_name, program_zip_path, required_python_version):
         activate_env_command = f'conda activate {program_name}'
         pip_install_command = 'pip install .'
         i_cmd = f'{activate_env_command} && {pip_install_command}'
-        subprocess.run(i_cmd, capture_output=True,
-                       shell=True, cwd=masterfolder)
+        procs.append(subprocess.run(i_cmd, cwd=masterfolder,
+                                    shell=True, text=True,
+                                    stdout=subprocess.PIPE,
+                                    stderr=subprocess.STDOUT))
 
-        # 5. Update status in program_details.csv to installed
+        # 5. add the libraries
+        required_libs = required_libs_raw.split(", ")
+        if len(required_libs) > 0 and os.path.isfile(LIB_DETAILS_CSV):
+            libs = pd.read_csv(LIB_DETAILS_CSV)
+            conda_devs = [f'conda activate {program_name}']
+            for lib in libs.itertuples():
+                if lib.library_name not in required_libs:
+                    continue
+                path = os.path.join(PROJ_ROOT,
+                                    "libs",
+                                    lib.library_name,
+                                    lib.path_to_exec)
+                conda_devs.append(f"conda develop {path}")
+
+                used_in_raw = lib.used_in
+                used_in = json.loads(used_in_raw)
+                used_in.append(program_name)
+                used_in_raw = json.dumps(used_in)
+                libs.loc[libs["library_name"] ==
+                         lib.library_name, "used_in"] = used_in_raw
+            libs.to_csv(LIB_DETAILS_CSV, index=False)
+            cmd = " && ".join(conda_devs)
+            procs.append(subprocess.run(cmd, shell=True, text=True,
+                                        stdout=subprocess.PIPE,
+                                        stderr=subprocess.STDOUT))
+
+        # 6. Update status in program_details.csv to installed
         df.loc[df['program_name'] == program_name, 'status'] = 'installed'
         df.loc[df['program_name'] == program_name, 'PID'] = ''
+
+        for proc in procs:
+            if proc.returncode != 0:
+                print(f"Error in executing {proc.args}")
+                print(f"Details:\n{proc.stdout}")
 
     except subprocess.CalledProcessError as err:
         code = 1
@@ -144,15 +189,23 @@ def install_program(program_name, program_zip_path, required_python_version):
 
 
 if __name__ == '__main__':
-    # The script expects 3 command-line arguments: program_name, path_to_zip, python_version
-    if len(sys.argv) != 4:
-        print(
-            "Usage: python install_program.py <program_name> <path_to_zip> <python_version>")
+    if len(sys.argv) not in [4, 5]:
+        print("Usage: python install_program.py",
+              "<program_name> <zip_filename>",
+              "<python_version> ['<required_lib1>, <required_lib2>']")
+        print("While program is called as:\n", sys.argv)
         sys.exit(1)
 
     program_name = sys.argv[1]
-    program_zip_path = sys.argv[2]
+    program_zip_name = sys.argv[2]
     required_python_version = sys.argv[3]
 
-    install_program(program_name, program_zip_path, required_python_version)
+    required_libs_str = "''"
+    if len(sys.argv) == 5:
+        required_libs_str = sys.argv[4]
+
+    install_program(program_name,
+                    program_zip_name,
+                    required_python_version,
+                    required_libs_str)
     sys.exit(0)

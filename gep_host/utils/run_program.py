@@ -3,12 +3,21 @@ import subprocess
 import sys
 from pathlib import Path
 import traceback
-from .helpers import zipdir
+import zipfile
 
 import pandas as pd
 
 PROJ_ROOT = Path(os.path.dirname(__file__)).parent.parent.parent
 RUN_DETAILS_CSV = os.path.join(PROJ_ROOT, 'runs', 'run_details.csv')
+
+
+def zipdir(path, zip_filename):
+    with zipfile.ZipFile(zip_filename, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        for root, _, files in os.walk(path):
+            for file in files:
+                zipf.write(os.path.join(root, file),
+                           os.path.relpath(os.path.join(root, file),
+                                           os.path.join(path, '..')))
 
 
 def id_row(df, program_name, purpose):
@@ -19,7 +28,9 @@ def init_run(program_name, purpose):
     setup_folder = os.path.join(PROJ_ROOT, 'runs', program_name, purpose)
     cmd = f"python {__file__} {program_name} {purpose}"
     with open(os.path.join(setup_folder, "output_and_error.log"), 'w') as logf:
-        proc = subprocess.Popen(cmd, shell=True,  stdout=logf, stderr=logf)
+        proc = subprocess.Popen(cmd, shell=True,
+                                cwd=os.path.dirname(__file__),
+                                stdout=logf, stderr=logf)
 
     df = pd.read_csv(RUN_DETAILS_CSV, dtype=str)
     id_row = ((df['program_name'] == program_name) &
@@ -43,7 +54,7 @@ def run_program(prg_name, purpose):
         if os.path.isfile(prg_install_log):
             os.remove(prg_install_log)
 
-        # 3.. Activate the conda environment and run the program
+        # 3. Activate the conda environment and run the program
         activate_env_command = f'conda activate {prg_name}'
         args = df.loc[id_row(df, prg_name, purpose), 'python_args'].iloc[0]
         i_cmd = f'{activate_env_command} && python -m {args}'

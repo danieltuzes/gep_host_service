@@ -74,12 +74,3 @@ def check_unique_run_name(setup_name):
     Check if the run setup name is unique within the runs folder.
     """
     return not os.path.exists(os.path.join('runs', setup_name))
-
-
-def zipdir(path, zip_filename):
-    with zipfile.ZipFile(zip_filename, 'w', zipfile.ZIP_DEFLATED) as zipf:
-        for root, _, files in os.walk(path):
-            for file in files:
-                zipf.write(os.path.join(root, file),
-                           os.path.relpath(os.path.join(root, file),
-                                           os.path.join(path, '..')))
