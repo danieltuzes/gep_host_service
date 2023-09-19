@@ -8,8 +8,9 @@ import traceback
 import zipfile
 import platform
 import multiprocessing
+from io import StringIO
 
-from flask import render_template, request, redirect, flash, url_for, send_from_directory, send_file
+from flask import render_template, request, redirect, flash, url_for, send_from_directory, send_file, Response
 import pandas as pd
 from werkzeug.utils import secure_filename
 
@@ -328,6 +329,36 @@ def run_log(program_name: str, purpose: str):
     return send_from_directory(log_path, "output_and_error.log")
 
 
+@app.route('/template/<program_name>/')
+def get_template(program_name: str):
+    conf_path = os.path.join(PROJ_ROOT,
+                             "programs",
+                             program_name,
+                             "config",
+                             "MasterConfig.cfg")
+    prg_config = ConfigParser(os.environ,
+                              interpolation=ExtendedInterpolation())
+    if os.path.isfile(conf_path):
+        prg_config.read(conf_path)
+        prg_config["DEFAULT"] = {}
+
+    new_conf = ConfigParser()
+    if 'inputs' in prg_config:
+        new_conf.add_section('inputs')
+        for option, path in prg_config.items('inputs'):
+            fname = os.path.basename(path)
+            new_conf.set('inputs', option, fname)
+
+    string_buffer = StringIO()
+    new_conf.write(string_buffer)
+    config_string = string_buffer.getvalue()
+
+    response = Response(config_string, content_type="text/plain")
+    response.headers["Content-Disposition"] = "attachment; filename=masterinput.cfg"
+
+    return response
+
+
 @app.route('/libraries', methods=['GET', 'POST'])
 def libraries():
     column = request.args.get('column', 'upload_date')
@@ -417,8 +448,8 @@ def del_library(library_name: str):
             flash(
                 f"Library {library_name} is successfully deleted.", "success")
         else:
-            flash(
-                f"Library {library_name} has been already deleted.", "warning")
+            flash(("Library {library_name} has been already deleted. "
+                  "Only the entry is removed now."), "success")
         libs = pd.read_csv(LIB_DETAILS_CSV)
         used_in_raw = libs.loc[libs["library_name"]
                                == library_name, "used_in"].iloc[0]
