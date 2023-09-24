@@ -133,9 +133,10 @@ def programs():
 
 @app.route('/install_log/<program_name>')
 def install_log(program_name: str):
-    log_path = os.path.join(PROJ_ROOT, "programs", program_name)
+    log_path = os.path.join(PROJ_ROOT, "programs",
+                            program_name, "output_and_error.log")
     if os.path.isfile(log_path):
-        return send_from_directory(log_path, "output_and_error.log")
+        return send_file(log_path)
     else:
         flash(("The log file has been already removed. "
               "Service integritiy is compromised. Notify the admin."), "warning")
