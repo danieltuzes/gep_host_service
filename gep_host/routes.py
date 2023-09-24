@@ -78,7 +78,7 @@ def programs():
             return redirect(request.url)
 
         # Program details
-        program_name = alnum(request.form['unique_program_name'])
+        program_name = alnum(request.form['unique_program_name'], "_-.")
         python_version_raw = request.form['required_python_version']
         python_version = "".join(
             char for char in python_version_raw if char.isdigit or char == ".")
