@@ -89,11 +89,30 @@
                 }
             }
         }
-        document.addEventListener("DOMContentLoaded", function () {
+        document.addEventListener('DOMContentLoaded', function () {
             var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
             var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
                 return new bootstrap.Tooltip(tooltipTriggerEl)
             })
+
+            let requiredInputs = document.querySelectorAll('input[required]');
+            let submitButton = document.getElementById('submitButton');
+
+            function checkInputs() {
+                let allFilled = true;
+                requiredInputs.forEach(input => {
+                    if (input.value.trim() === "") {
+                        allFilled = false;
+                    }
+                });
+                submitButton.disabled = !allFilled;
+            }
+
+            // Attach event listeners to the inputs
+            requiredInputs.forEach(input => {
+                input.addEventListener('keyup', checkInputs);
+                input.addEventListener('input', checkInputs);
+            });
         });
     </script>
 </body>

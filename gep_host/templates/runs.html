@@ -17,8 +17,9 @@
                         <input type="hidden" name="program_name" value="{{ program_name }}">
                     </div>
                     <div class="mb-3 col-md-6">
-                        <label for="purpose">Unique Purpose:</label>
-                        <input type="text" name="purpose" class="form-control" required>
+                        <label for="purpose">Purpose:</label>
+                        <input type="text" name="purpose" class="form-control" required
+                            placeholder="Enter a unique name for the run">
                     </div>
                 </div>
                 <div class="mb-3">
@@ -27,7 +28,7 @@
                         <span class="tooltip-text" data-bs-toggle="tooltip" data-bs-placement="top"
                             title="Enter the string that follows python -m. It can contain only alphanumeric chars and &quot;-&#039;_\^/(,)[.]">(info)</span>
                     </label>
-                    <input type="text" name="args" class="form-control" value="{{ program_name }}">
+                    <input type="text" name="args" class="form-control" placeholder="my_lib" required>
                 </div>
                 <div class="accordion mb-3" id="accordionExample">
                     <div class="accordion-item">
@@ -119,7 +120,7 @@
                     </label>
                     <input type="text" name="notifications" class="form-control">
                 </div>
-                <button type="submit" class="btn btn-primary">Start run</button>
+                <button type="submit" class="btn btn-primary" id="submitButton" disabled>Start run</button>
             </form>
         </div>
 
