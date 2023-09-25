@@ -123,7 +123,8 @@
                     <label for="notifications">
                         Notify in email:
                     </label>
-                    <input type="text" name="notifications" class="form-control">
+                    <input type="text" name="notifications" class="form-control" id="emailInput"
+                        placeholder="developer_ID@company.com, manager@company.com">
                 </div>
                 <button type="submit" class="btn btn-primary" id="submitButton" disabled>Start run</button>
             </form>
@@ -263,7 +264,8 @@
             <div class="col-12"><strong>Notifications:</strong>
                 {% if run.notifications == "[]" %}<span class='text-muted'>(None)</span>
                 {% else %}
-                {{ run.notifications }}
+                {% set notifications = run.notifications|parse_json %}
+                {{ notifications|join(", ")}}
                 {% endif %}
             </div>
         </div>
@@ -275,8 +277,25 @@
     {% endif %}
 </div>
 
+{% if program_name is not none %}
+<div class="modal fade" id="errorModal" tabindex="-1" aria-labelledby="errorModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="errorModalLabel">Validation Error</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Invalid email(s) entered.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">OK</button>
+            </div>
+        </div>
+    </div>
+</div>
 
-
+{% endif %}
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         // Handle checkbox toggles for all inputs

@@ -10,8 +10,9 @@ import json
 import traceback
 import zipfile
 import shutil
-from typing import Union, Dict
+from typing import Union, Dict, List
 import io
+import re
 
 import pandas as pd
 from werkzeug.utils import secure_filename
@@ -27,6 +28,11 @@ def id_row(details: pd.DataFrame, prg_name: str, purp: str):
     """Shorten to select a row."""
     return ((details['program_name'] == prg_name) &
             (details['purpose'] == purp))
+
+
+def extract_emails(emails_input: str) -> List[str]:
+    email_pattern = r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'
+    return re.findall(email_pattern, emails_input)
 
 
 def init_run(request: flask.Request) -> Union[int, str]:
@@ -131,6 +137,7 @@ def init_run(request: flask.Request) -> Union[int, str]:
         config.write(configfile)
 
     python_args = safer_call(request.form["args"])
+    notifications = extract_emails(request.form["notifications"])
     new_entry = pd.DataFrame({
         'program_name': [prg_name],
         'purpose': [purp],
@@ -142,7 +149,7 @@ def init_run(request: flask.Request) -> Union[int, str]:
         'undefineds': [json.dumps(undefineds)],
         'outputs': [json.dumps(outputs)],
         'comment': request.form["comment"],
-        'notifications': request.form["notifications"]
+        'notifications': [json.dumps(notifications)]
     })
     concat_to(new_entry, RUN_DETAILS_CSV)
 

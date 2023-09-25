@@ -114,6 +114,36 @@
                 input.addEventListener('input', checkInputs);
             });
         });
+
+        document.addEventListener('submit', function (e) {
+            var emailInput = e.target.querySelector('#emailInput');
+            if (emailInput) {
+                if (!areValidEmails(emailInput.value)) {
+                    e.preventDefault(); // Prevent form submission
+                    // Apply Bootstrap validation error styling
+                    emailInput.classList.add('is-invalid');
+
+                    // Show the modal
+                    var errorModal = new bootstrap.Modal(document.getElementById('errorModal'));
+                    errorModal.show();
+                } else {
+                    // If the email is valid, remove the error styling if it exists
+                    emailInput.classList.remove('is-invalid');
+                }
+            }
+        });
+
+        function areValidEmails(input) {
+            var emails = input.split(/[,;\s]+/);  // Split by comma, semicolon, or whitespace
+            var emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+            for (var i = 0; i < emails.length; i++) {
+                if (!emailPattern.test(emails[i])) {
+                    return false;
+                }
+            }
+            return true;
+        }
     </script>
 </body>
 
