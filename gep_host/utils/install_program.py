@@ -56,6 +56,15 @@ def init_install(program_name,
     return 0
 
 
+def run_and_verify(cmd: str, cwd=None):
+    proc = subprocess.run(cmd, cwd=cwd, shell=True, text=True,
+                          stdout=subprocess.PIPE,
+                          stderr=subprocess.STDOUT)
+    if proc.returncode != 0:
+        raise subprocess.CalledProcessError(returncode=proc.returncode,
+                                            cmd=cmd, stderr=proc.stdout)
+
+
 def install_program(program_name,
                     program_zip_name,
                     required_python_version,
@@ -75,11 +84,11 @@ def install_program(program_name,
 
         # 3. Read and update the MasterConfig.cfg file
         config_file = os.path.join(masterfolder, 'config', 'MasterConfig.cfg')
-        inputs = []
-        outputs = []
+        inputs = {}
+        outputs = {}
         if os.path.isfile(config_file):
-            config = ConfigParser(os.environ,
-                                  interpolation=ExtendedInterpolation())
+            config = ConfigParser(
+                interpolation=ExtendedInterpolation())
             config.read(config_file)
             if 'Root' in config and 'RootDir' in config['Root']:
                 config.set('Root', 'RootDir', masterfolder)
@@ -93,9 +102,9 @@ def install_program(program_name,
                     ifile = config.get("inputs", option)
                     if os.path.isfile(ifile):
                         rel_ifile = os.path.relpath(ifile, masterfolder)
-                        inputs.append((option, rel_ifile))
+                        inputs[option] = rel_ifile
                     else:
-                        inputs.append((option, None))
+                        inputs[option] = None
 
             # get the expected outputs
             if config.has_section("outputs"):
@@ -107,22 +116,19 @@ def install_program(program_name,
                               "above package level."
                               "Please delete the package and re-upload it.")
                         code = 3
-                    outputs.append((option, rel_ofile))
+                    outputs[option] = rel_ofile
 
         df.loc[df['program_name'] == program_name,
                'inputs'] = json.dumps(inputs)
         df.loc[df['program_name'] == program_name,
                'outputs'] = json.dumps(outputs)
 
-        procs = []
         # 4. Create a new conda environment with the provided python version
         df.loc[df['program_name'] == program_name,
                'status'] = 'creating conda env'
         df.to_csv(PROGRAM_DETAILS_CSV, index=False)
         c_cmd = f'conda create -y -n {program_name} python={required_python_version} conda-build'
-        procs.append(subprocess.run(c_cmd, shell=True, text=True,
-                                    stdout=subprocess.PIPE,
-                                    stderr=subprocess.STDOUT))
+        run_and_verify(c_cmd)
 
         # 4. Activate the new conda environment and install the program using pip
         df.loc[df['program_name'] == program_name,
@@ -131,10 +137,7 @@ def install_program(program_name,
         activate_env_command = f'conda activate {program_name}'
         pip_install_command = 'pip install .'
         i_cmd = f'{activate_env_command} && {pip_install_command}'
-        procs.append(subprocess.run(i_cmd, cwd=masterfolder,
-                                    shell=True, text=True,
-                                    stdout=subprocess.PIPE,
-                                    stderr=subprocess.STDOUT))
+        run_and_verify(i_cmd, cwd=masterfolder)
 
         # 5. add the libraries
         required_libs = required_libs_raw.split(", ")
@@ -148,7 +151,7 @@ def install_program(program_name,
                                     "libs",
                                     lib.library_name,
                                     lib.path_to_exec)
-                conda_devs.append(f"conda develop {path}")
+                conda_devs.append(f'conda develop "{path}"')
 
                 used_in_raw = lib.used_in
                 used_in = json.loads(used_in_raw)
@@ -158,34 +161,24 @@ def install_program(program_name,
                          lib.library_name, "used_in"] = used_in_raw
             libs.to_csv(LIB_DETAILS_CSV, index=False)
             cmd = " && ".join(conda_devs)
-            procs.append(subprocess.run(cmd, shell=True, text=True,
-                                        stdout=subprocess.PIPE,
-                                        stderr=subprocess.STDOUT))
+            run_and_verify(cmd, cwd=masterfolder)
 
         # 6. Update status in program_details.csv to installed
         df.loc[df['program_name'] == program_name, 'status'] = 'installed'
         df.loc[df['program_name'] == program_name, 'PID'] = ''
 
-        for proc in procs:
-            if proc.returncode != 0:
-                print(f"Error in executing {proc.args}")
-                print(f"Details:\n{proc.stdout}")
-
     except subprocess.CalledProcessError as err:
         code = 1
-        print(f"Error calling subprocess: {err}")
-        print(traceback.format_exc())
-    except Exception as err:
+        print(f"Error calling subprocess:", traceback.format_exc(), sep="\n")
+        print(f"Standard error:", err.stderr, sep="\n")
+    except Exception:
         code = 2
-        print(f"Error in python script: {err}")
-        print(traceback.format_exc())
+        print(f"Error in python script.", traceback.format_exc(), sep="\n")
     finally:
         if code != 0:
             df.loc[df['program_name'] == program_name, 'status'] =\
                 f'install error code {code}'
         df.to_csv(PROGRAM_DETAILS_CSV, index=False)
-
-    sys.exit(code)
 
 
 if __name__ == '__main__':

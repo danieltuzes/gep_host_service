@@ -16,9 +16,9 @@
                     <input type="file" name="program_package" class="form-control" required>
                 </div>
                 <div class="mb-3">
-                    <label for="unique_program_name" class="form-label">Program Name: <span class="tooltip-text"
+                    <label for="unique_program_name" class="form-label">Program Name <span class="tooltip-text"
                             data-bs-toggle="tooltip" data-bs-placement="top"
-                            title="It can contain only alphanumeric chars and _.- Space is not allowed.">(info)</span></label>
+                            title="It can contain only alphanumeric chars and _.- Space is not allowed.">(info)</span>:</label>
                     <input type="text" name="unique_program_name" class="form-control" required
                         placeholder="My_Unique_Program-Name_v1.0.0">
                 </div>
@@ -85,7 +85,7 @@
                         role="button" onclick="toggleButtonText(this)">Show</a> inputs
                     <div class="collapse" id="inheritable{{ program.program_name }}">
                         {% set inputs = program.inputs|parse_json %}
-                        {% for input_name, input_value in inputs %}
+                        {% for input_name, input_value in inputs.items() %}
                         {% if input_value is not none %}
                         {{ input_name }}: <a
                             href="{{ url_for('get_program_input', program_name=program.program_name, input_value=input_value) }}">{{

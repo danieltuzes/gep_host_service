@@ -1,6 +1,6 @@
 from pathlib import Path
 import json
-import datetime
+from datetime import datetime
 import os
 import shutil
 from configparser import ConfigParser, ExtendedInterpolation
@@ -15,7 +15,7 @@ import pandas as pd
 from werkzeug.utils import secure_filename
 
 from gep_host import app, install_program, delete_program, delete_run, run_program
-zipdir = run_program.zipdir
+from .utils.helpers import *
 
 PROJ_ROOT = Path(os.path.dirname(__file__)).parent.parent
 PROGRAM_DETAILS_CSV = os.path.join(PROJ_ROOT,
@@ -26,14 +26,6 @@ LIB_DETAILS_CSV = os.path.join(PROJ_ROOT, 'libs/lib_details.csv')
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() == 'zip'
-
-
-def alnum(name, extra_allowed="_"):
-    return ''.join(e for e in name if e.isalnum() or e in extra_allowed)
-
-
-def safer_call(name):
-    return ''.join(e for e in name if e.isalnum() or e in """ '"-_/\\^()[],.""")
 
 
 @app.route('/')
@@ -93,7 +85,7 @@ def programs():
         # save the file
         filename = secure_filename(file.filename)
         base, ext = os.path.splitext(filename)
-        nowstr = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+        nowstr = datetime.now().strftime('%Y%m%d%H%M%S')
         t_filename = f"{base}_{nowstr}{ext}"
         program_zip_path = os.path.join(
             app.config['UPLOAD_FOLDER'], t_filename)
@@ -175,89 +167,16 @@ def runs():
     program_name = request.args.get('program_name')
 
     if request.method == 'POST':
-        # check if the purpose is unique
-        program_name = request.form["program_name"]
-        purpose = alnum(request.form["purpose"])
-        python_args = safer_call(request.form["args"])
-        setup_folder = os.path.join(PROJ_ROOT, "runs", program_name, purpose)
-        if os.path.isdir(setup_folder):
-            flash('Run setup is unsuccessful due to its non-unique purpose.', 'warning')
+        ret = run_program.init_run(request)
+        if ret != 0:
+            flash(ret, "warning")
             return redirect(request.url)
-
-        # copy the program to a new location
-        masterfolder = os.path.join(PROJ_ROOT, "programs", program_name)
-        shutil.copytree(masterfolder, setup_folder)
-
-        # save all the inputs
-        prgs = pd.read_csv(PROGRAM_DETAILS_CSV, dtype=str)
-        inputs = json.loads(prgs.loc[prgs.program_name == program_name,
-                                     "inputs"].iloc[0])
-        input_folder = os.path.join(setup_folder, "inputs")
-        os.makedirs(input_folder, exist_ok=True)
-        inherits = []
-        uploads = []
-        for input in inputs:
-            # skip if inherited
-            if input[1] is not None:
-                checkbox_value = request.form.get(f'check{input[0]}')
-                if checkbox_value:
-                    inherits.append(input)
-                    continue
-
-            # skip if not provided
-            file = request.files[input[0]]
-            fname = secure_filename(file.filename)
-            if fname != "":
-                file.save(os.path.join(input_folder, fname))
-                input[1] = os.path.join("inputs", fname)
-
-            uploads.append(input)
-
-        # update the config
-        config_file = os.path.join(setup_folder, 'config', 'MasterConfig.cfg')
-        config = ConfigParser(os.environ,
-                              interpolation=ExtendedInterpolation())
-        config.read(config_file)
-        if 'Root' in config and 'RootDir' in config['Root']:
-            config.set('Root', 'RootDir', setup_folder)
-            config["DEFAULT"] = {}
-        for upload in uploads:
-            if upload[1] is not None:
-                uploaded_path = os.path.join(setup_folder, upload[1])
-                config.set('inputs', upload[0], uploaded_path)
-        outputs = []
-        for ofile in config.options("outputs"):
-            ofilepath = os.path.relpath(config.get("outputs", ofile),
-                                        setup_folder)
-            outputs.append([ofile, ofilepath])
-        with open(config_file, 'w') as configfile:
-            config.write(configfile)
-
-        new_entry = pd.DataFrame({
-            'program_name': [program_name],
-            'purpose': [purpose],
-            'python_args': [python_args],
-            'setup_date': [datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')],
-            'status': ['set up'],
-            'uploaded_files': [json.dumps(uploads)],
-            'inherited_files': [json.dumps(inherits)],
-            'outputs': [json.dumps(outputs)],
-            'comment': request.form["comment"],
-            'notifications': request.form["notifications"]
-        })
-
-        runs = pd.DataFrame({})
-        if os.path.isfile(RUN_DETAILS_CSV):
-            runs = pd.read_csv(RUN_DETAILS_CSV)
-
-        runs = pd.concat([runs, new_entry], ignore_index=True)
-        runs.to_csv(RUN_DETAILS_CSV, index=False)
-
-        run_program.init_run(program_name, purpose)
-        flash("Program set up and run initiated successfully.", "success")
+        else:
+            flash("Program set up and run initiated successfully.", "success")
 
     # Read the content of run_details.csv, filter and order it
 
+    runs = pd.DataFrame()
     if os.path.exists(RUN_DETAILS_CSV):
         runs = pd.read_csv(RUN_DETAILS_CSV, dtype=str).fillna("")
 
@@ -268,15 +187,12 @@ def runs():
         # filter
         if program_name is not None:
             runs = runs[runs["program_name"] == program_name]
-    else:
-        runs = pd.DataFrame()
 
+    prgs = pd.DataFrame()
     if os.path.exists(PROGRAM_DETAILS_CSV):
         prgs = pd.read_csv(PROGRAM_DETAILS_CSV, dtype=str)
-    else:
-        prgs = pd.DataFrame()
 
-    inputs = []
+    inputs = {}
     if program_name is not None:
         inputs = prgs.loc[prgs.program_name == program_name, "inputs"].iloc[0]
         inputs = json.loads(inputs)
@@ -337,8 +253,8 @@ def get_template(program_name: str):
                              program_name,
                              "config",
                              "MasterConfig.cfg")
-    prg_config = ConfigParser(os.environ,
-                              interpolation=ExtendedInterpolation())
+    prg_config = ConfigParser(
+        interpolation=ExtendedInterpolation())
     if os.path.isfile(conf_path):
         prg_config.read(conf_path)
         prg_config["DEFAULT"] = {}
@@ -355,7 +271,7 @@ def get_template(program_name: str):
     config_string = string_buffer.getvalue()
 
     response = Response(config_string, content_type="text/plain")
-    response.headers["Content-Disposition"] = "attachment; filename=masterinput.cfg"
+    response.headers["Content-Disposition"] = "attachment; filename=MasterInput.cfg"
 
     return response
 
@@ -378,7 +294,7 @@ def libraries():
 
         # Program details
         library_name = alnum(request.form['unique_library_name'], "_-.")
-        path_to_exec = request.form['path_to_exec']
+        path_to_exec = alnum(request.form['path_to_exec'], "_-. (-)/,+~!#")
 
         # Check uniqueness of library name
         masterfolder = os.path.join(PROJ_ROOT, "libs", library_name)

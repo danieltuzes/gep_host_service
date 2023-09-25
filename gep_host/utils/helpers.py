@@ -74,3 +74,30 @@ def check_unique_run_name(setup_name):
     Check if the run setup name is unique within the runs folder.
     """
     return not os.path.exists(os.path.join('runs', setup_name))
+
+
+def alnum(name, extra_allowed="_"):
+    return ''.join(e for e in name if e.isalnum() or e in extra_allowed)
+
+
+def safer_call(name):
+    return ''.join(e for e in name if e.isalnum() or e in """ '"-_/\\^()[],.""")
+
+
+def zipdir(path, zip_filename):
+    with zipfile.ZipFile(zip_filename, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        for root, _, files in os.walk(path):
+            for file in files:
+                zipf.write(os.path.join(root, file),
+                           os.path.relpath(os.path.join(root, file),
+                                           os.path.join(path, '..')))
+
+
+def concat_to(new_entry: pd.DataFrame, filename: pd.DataFrame) -> None:
+    """Add new entry/entries to file, create if doesn't exist."""
+    old_entries = pd.DataFrame()
+    if os.path.isfile(filename):
+        old_entries = pd.read_csv(filename)
+
+    runs = pd.concat([old_entries, new_entry], ignore_index=True)
+    runs.to_csv(filename, index=False)

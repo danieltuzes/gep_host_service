@@ -12,6 +12,15 @@ PROJ_ROOT = Path(os.path.dirname(__file__)).parent.parent.parent
 LIB_DETAILS_CSV = os.path.join(PROJ_ROOT, 'libs/lib_details.csv')
 
 
+def run_and_verify(cmd: str, cwd=None):
+    proc = subprocess.run(cmd, cwd=cwd, shell=True, text=True,
+                          stdout=subprocess.PIPE,
+                          stderr=subprocess.STDOUT)
+    if proc.returncode != 0:
+        raise subprocess.CalledProcessError(returncode=proc.returncode,
+                                            cmd=cmd, stderr=proc.stdout)
+
+
 def init_del(program_name: str):
     cmd = f"python {__file__} {program_name}"
     proc = subprocess.run(cmd, shell=True, text=True,
@@ -38,11 +47,14 @@ def delete_program(program_name):
         df.to_csv('programs/program_details.csv', index=False)
 
         # 2. remove the folder recursively
-        zip_path = os.path.join(PROJ_ROOT, "programs", zip_fname)
-        if os.path.isfile(zip_path):
-            os.remove(zip_path)
+        if zip_fname != zip_fname:
+            print("Program package file is not associated with the program.")
         else:
-            print("The package zip file has been already deleted.")
+            zip_path = os.path.join(PROJ_ROOT, "programs", zip_fname)
+            if os.path.isfile(zip_path):
+                os.remove(zip_path)
+            else:
+                print("The package zip file has been already deleted.")
 
         if os.path.isdir(masterfolder):
             shutil.rmtree(masterfolder)
@@ -51,8 +63,9 @@ def delete_program(program_name):
             code = 2
 
         # 3. Remove the conda environment
-        subprocess.run(f'conda env remove -n {program_name}',
-                       shell=True, check=True)
+        cmd = f'conda env remove -n {program_name}'
+        run_and_verify(cmd)
+
         libs = pd.read_csv(LIB_DETAILS_CSV)
         libs["used_in"] = libs["used_in"].apply(remove_val_from_json,
                                                 val_2_remove=program_name)
@@ -60,7 +73,13 @@ def delete_program(program_name):
 
         return code
 
+    except subprocess.CalledProcessError as err:
+        code = 1
+
+        print(f"Error deleting program:", traceback.format_exc(), sep="\n")
+        print(f"Standard error:", err.stderr, sep="\n")
     except Exception as e:
+        code = 2
         # If there's any error, update status in program_details.csv
         print(f"Error deleting program {program_name}: {e}")
         print(traceback.format_exc())
