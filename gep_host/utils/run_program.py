@@ -13,10 +13,13 @@ import shutil
 from typing import Union, Dict, List
 import io
 import re
+import smtplib
+import socket
 
 import pandas as pd
 from werkzeug.utils import secure_filename
 import flask
+from unidecode import unidecode
 
 PROJ_ROOT = Path(os.path.dirname(__file__)).parent.parent.parent
 RUN_DETAILS_CSV = os.path.join(PROJ_ROOT, 'runs', 'run_details.csv')
@@ -33,6 +36,26 @@ def id_row(details: pd.DataFrame, prg_name: str, purp: str):
 def extract_emails(emails_input: str) -> List[str]:
     email_pattern = r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'
     return re.findall(email_pattern, emails_input)
+
+
+def send_email(subject: str, body: str, receiver_emails: List[str]) -> None:
+    """Send an email with the message body to the recipients."""
+    hostname = socket.gethostname()
+    sender_email = f"gep_host_service@{hostname}"
+
+    # Construct the email content
+    message = unidecode(f"Subject: {subject}\n\n{body}")
+
+    ret = 0
+    for receiver_email in receiver_emails:
+        try:
+            # Use a context manager to ensure the session is properly closed
+            with smtplib.SMTP("localhost") as server:
+                server.sendmail(sender_email, receiver_email, message)
+        except smtplib.SMTPException as e:
+            ret = e
+
+    return ret
 
 
 def init_run(request: flask.Request) -> Union[int, str]:
@@ -164,21 +187,27 @@ def init_run(request: flask.Request) -> Union[int, str]:
     runs.loc[(runs['program_name'] == prg_name) &
              (runs['purpose'] == purp), 'PID'] = proc.pid
 
+    body = (f"A run of program {prg_name} with purpose {purp} "
+            "is successfully triggered. Emails regardless of the outcome "
+            "will be sent. Visit <a href='localhost:5000/runs'>the run page</a> "
+            "for further details.")
+    send_email("gep_host run trigger", body, notifications)
     return 0
 
 
 def run_program(prg_name, purp):
     from helpers import zipdir
     code = 0
+    body = f"The program {prg_name} with purpose {purp} "
     try:
         # Update status in run_details.csv
-        df = pd.read_csv(RUN_DETAILS_CSV, dtype=str).fillna("")
-        df.loc[id_row(df, prg_name, purp), 'status'] = 'running'
-        df.to_csv(RUN_DETAILS_CSV, index=False)
+        runs = pd.read_csv(RUN_DETAILS_CSV, dtype=str).fillna("")
+        runs.loc[id_row(runs, prg_name, purp), 'status'] = 'running'
+        runs.to_csv(RUN_DETAILS_CSV, index=False)
 
         # Activate the conda environment and run the program
         activate_env_command = f'conda activate {prg_name}'
-        args = df.loc[id_row(df, prg_name, purp), 'python_args'].iloc[0]
+        args = runs.loc[id_row(runs, prg_name, purp), 'python_args'].iloc[0]
         i_cmd = f'{activate_env_command} && python -m {args}'
         setup_folder = os.path.join(PROJ_ROOT, 'runs', prg_name, purp)
         proc = subprocess.run(i_cmd, shell=True, cwd=setup_folder, text=True,
@@ -191,33 +220,40 @@ def run_program(prg_name, purp):
         zipdir(setup_folder, zip_file)
 
         # Update status in run_details.csv to completed
-        df.loc[id_row(df, prg_name, purp), 'status'] = 'Completed'
-        df.loc[id_row(df, prg_name, purp) == prg_name,
-               'PID'] = ''
+        runs.loc[id_row(runs, prg_name, purp), 'status'] = 'Completed'
+        runs.loc[id_row(runs, prg_name, purp) == prg_name,
+                 'PID'] = ''
         print(proc.stdout)
+        body += f"is successfully completed."
 
     except subprocess.CalledProcessError as err:
         code = 1
         print(f"Error calling subprocess: {err}")
         print(traceback.format_exc())
         print("Standard error:", err.stdout, sep="\n")
-        df.loc[id_row(df, prg_name, purp), 'status'] = \
+        runs.loc[id_row(runs, prg_name, purp), 'status'] = \
             f'run error, code 1'
-        sys.exit(1)
+        body += "had an error upon calling the program."
     except Exception as err:
+        code = 2
         print(f"Error in python script: {err}")
         print(traceback.format_exc())
-        df.loc[id_row(df, prg_name, purp), 'status'] = \
+        runs.loc[id_row(runs, prg_name, purp), 'status'] = \
             f'run error, code 2'
-        sys.exit(2)
+        body += "had an error upon trying to call the program."
     finally:
-        df.to_csv(RUN_DETAILS_CSV, index=False)
-
-    sys.exit(code)
+        runs.to_csv(RUN_DETAILS_CSV, index=False)
+        body += (" See more details on "
+                 f"<a href='{socket.gethostname()}'>the run page.</a>")
+        notifs = runs.loc[id_row(runs, prg_name, purp),
+                          'notifications'].iloc[0]
+        receiver_emails = json.loads(notifs)
+        send_email("gep_host run trigger", body, receiver_emails)
+        if code != 0:
+            sys.exit(code)
 
 
 if __name__ == '__main__':
-    # The script expects 3 command-line arguments: program_name, path_to_zip, python_version
     if len(sys.argv) != 3:
         print("Usage: python run_program.py <program_name> <purpose>")
         sys.exit(1)

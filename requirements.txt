@@ -3,3 +3,4 @@ pandas
 sphinx
 autopep8
 pylint
+unidecode
