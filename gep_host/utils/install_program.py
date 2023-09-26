@@ -164,7 +164,7 @@ def install_program(program_name,
             run_and_verify(cmd, cwd=masterfolder)
 
         # 6. Update status in program_details.csv to installed
-        df.loc[df['program_name'] == program_name, 'status'] = 'installed'
+        df.loc[df['program_name'] == program_name, 'status'] = 'Installed'
         df.loc[df['program_name'] == program_name, 'PID'] = ''
 
     except subprocess.CalledProcessError as err:
@@ -177,7 +177,7 @@ def install_program(program_name,
     finally:
         if code != 0:
             df.loc[df['program_name'] == program_name, 'status'] =\
-                f'install error code {code}'
+                f'Installed with error ({code})'
         df.to_csv(PROGRAM_DETAILS_CSV, index=False)
 
 

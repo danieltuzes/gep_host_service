@@ -10,7 +10,8 @@ import platform
 import multiprocessing
 from io import StringIO
 
-from flask import render_template, request, redirect, flash, url_for, send_from_directory, send_file, Response
+from flask import render_template, request, redirect, flash, \
+    url_for, send_from_directory, send_file, Response, jsonify
 import pandas as pd
 from werkzeug.utils import secure_filename
 
@@ -22,6 +23,26 @@ PROGRAM_DETAILS_CSV = os.path.join(PROJ_ROOT,
                                    'programs/program_details.csv')
 RUN_DETAILS_CSV = os.path.join(PROJ_ROOT, 'runs/run_details.csv')
 LIB_DETAILS_CSV = os.path.join(PROJ_ROOT, 'libs/lib_details.csv')
+
+
+def count_not(data: pd.DataFrame, status: str) -> int:
+    """Count how many times the col status doesn't start with status."""
+    starts_with = len(data[data.status.str.startswith(status)])
+    different = len(data) - starts_with
+    return different
+
+
+def activity(data: pd.DataFrame, type: str) -> str:
+    """Generate the message to be displayed."""
+    if type == "programs":
+        active = count_not(data, "Installed")
+        active = active
+        ret = f"{active} program installation(s) "
+    if type == "runs":
+        active = count_not(data, "Completed")
+        ret = f"{active} runs(s) "
+    ret += "are in progress."
+    return ret
 
 
 def allowed_file(filename):
@@ -106,21 +127,22 @@ def programs():
     column = request.args.get('column', 'upload_date')
     direction = request.args.get('direction', 'desc')
     if os.path.exists(PROGRAM_DETAILS_CSV):
-        df = pd.read_csv(PROGRAM_DETAILS_CSV, dtype=str).fillna("")
+        prgs = pd.read_csv(PROGRAM_DETAILS_CSV, dtype=str).fillna("")
         ascending = True if direction == "asc" else False
-        df.sort_values(by=column, ascending=ascending, inplace=True)
+        prgs.sort_values(by=column, ascending=ascending, inplace=True)
     else:
-        df = pd.DataFrame()
+        prgs = pd.DataFrame()
 
     libs = pd.DataFrame()
     if os.path.isfile(LIB_DETAILS_CSV):
         libs = pd.read_csv(LIB_DETAILS_CSV)
 
     return render_template('programs.html',
-                           programs=df,
+                           programs=prgs,
                            libs=libs,
                            column=column,
-                           direction=direction)
+                           direction=direction,
+                           activity=activity(prgs, "programs"))
 
 
 @app.route('/install_log/<program_name>')
@@ -202,7 +224,8 @@ def runs():
                            program_name=program_name,
                            inputs=inputs,
                            direction=direction,
-                           column=column)
+                           column=column,
+                           activity=activity(runs, "runs"))
 
 
 @app.route('/users_tokens')
@@ -410,6 +433,29 @@ def get_lib(library_name):
                      mimetype='application/zip',
                      as_attachment=True,
                      download_name=orig_filename)
+
+
+@app.route('/check_status', methods=['POST'])
+def check_status():
+    # Get the current status sent by the client
+    data_received = request.json
+    activity_msg = data_received.get('status', ' ')
+    prev_count = activity_msg.split()[0]
+    # You can log or use this as required
+    if "program" in activity_msg:
+        data = pd.read_csv(PROGRAM_DETAILS_CSV)
+        msg = activity(data, "programs")
+    elif "run" in activity_msg:
+        data = pd.read_csv(RUN_DETAILS_CSV)
+        msg = activity(data, "runs")
+    else:
+        return jsonify({'to_reload': False})
+
+    curr_count = msg.split()[0]
+    if prev_count == curr_count:
+        return jsonify({'to_reload': False})
+
+    return jsonify({'to_reload': True, "active_msg": msg})
 
 
 def parse_json(json_str):

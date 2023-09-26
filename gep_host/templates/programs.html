@@ -79,7 +79,7 @@
                 </td>
                 <td>
                     <a href="{{ url_for('del_program', program_name=program.program_name) }}">Delete</a>
-                    {% if "installed" in program.status %}
+                    {% if program.status == "Installed" %}
                     | <a href="{{ url_for('runs', program_name=program.program_name) }}">Run</a>
                     | <a href="#" data-bs-toggle="collapse" data-bs-target="#inheritable{{ program.program_name }}"
                         role="button" onclick="toggleButtonText(this)">Show</a> inputs
@@ -103,4 +103,5 @@
         </tbody>
     </table>
 </div>
+
 {% endblock %}

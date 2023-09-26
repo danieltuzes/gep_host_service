@@ -31,21 +31,35 @@
         .container>.row:first-child {
             font-weight: bolder;
         }
+
+        .sticky-navbar {
+            position: sticky;
+            top: 0;
+            z-index: 1030;
+            /* to ensure navbar stays on top */
+        }
     </style>
 </head>
 
 <body>
-    <nav class="navbar navbar-expand-lg navbar-light bg-light">
-        <a class="navbar-brand ps-3" href="/"> GEP Host Service</a>
-        <div class="collapse navbar-collapse">
-            <ul class="navbar-nav">
-                <li class="nav-item"><a class="nav-link" href="/programs">Programs</a></li>
-                <li class="nav-item"><a class="nav-link" href="/runs">Runs</a></li>
-                <li class="nav-item"><a class="nav-link" href="/libraries">Libraries</a></li>
-                <li class="nav-item"><a class="nav-link" href="/users_tokens">Users, Tokens</a></li>
-            </ul>
-        </div>
-    </nav>
+    <div class="sticky-navbar">
+        <nav class="navbar navbar-expand-lg navbar-light bg-light">
+            <div class="container-fluid">
+                <a class="navbar-brand ps-3" href="/"> GEP Host Service</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbar">
+                    <ul class="navbar-nav">
+                        <li class="nav-item"><a class="nav-link" href="/programs">Programs</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/runs">Runs</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/libraries">Libraries</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/users_tokens">Users, Tokens</a></li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </div>
     {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
     {% for category, message in messages %}
@@ -61,90 +75,162 @@
         {% block content %}
         {% endblock %}
     </div>
-    <script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
-    <script>
-        function toggleButtonText(buttonElement) {
-            if (buttonElement.innerHTML === "Show") {
-                buttonElement.innerHTML = "Hide";
-            } else {
-                buttonElement.innerHTML = "Show";
-            }
-        }
-        function toggleRow(event, buttonElement) {
-            event.preventDefault();
 
-            let currentRow = buttonElement.closest('.row');
-            let nextRow = currentRow.nextElementSibling;
 
-            // Check if the next row exists and has the "additional" class
-            if (nextRow && nextRow.classList.contains('additional')) {
-                // Toggle visibility and button text
-                if (nextRow.style.display === 'none') {
-                    nextRow.style.display = '';
-                    buttonElement.textContent = 'Hide details';
-                } else {
-                    nextRow.style.display = 'none';
-                    buttonElement.textContent = 'Show more';
-                }
-            }
-        }
-        document.addEventListener('DOMContentLoaded', function () {
-            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-                return new bootstrap.Tooltip(tooltipTriggerEl)
-            })
+    {% if activity is defined %}
+    <div class="position-fixed top-0 end-0 p-3" style="z-index: 1031; top:70px">
+        <div id="toaster" class="toast align-items-center text-white bg-success border-0" role="alert"
+            data-bs-autohide="false">
+            <div class="d-flex">
+                <div class="toast-body">
+                    A task is completed! Click <a href="#" id="reload-link">here</a> to reload.
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"
+                    aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
 
-            let requiredInputs = document.querySelectorAll('input[required]');
-            let submitButton = document.getElementById('submitButton');
-
-            function checkInputs() {
-                let allFilled = true;
-                requiredInputs.forEach(input => {
-                    if (input.value.trim() === "") {
-                        allFilled = false;
-                    }
-                });
-                submitButton.disabled = !allFilled;
-            }
-
-            // Attach event listeners to the inputs
-            requiredInputs.forEach(input => {
-                input.addEventListener('keyup', checkInputs);
-                input.addEventListener('input', checkInputs);
-            });
-        });
-
-        document.addEventListener('submit', function (e) {
-            var emailInput = e.target.querySelector('#emailInput');
-            if (emailInput) {
-                if (!areValidEmails(emailInput.value)) {
-                    e.preventDefault(); // Prevent form submission
-                    // Apply Bootstrap validation error styling
-                    emailInput.classList.add('is-invalid');
-
-                    // Show the modal
-                    var errorModal = new bootstrap.Modal(document.getElementById('errorModal'));
-                    errorModal.show();
-                } else {
-                    // If the email is valid, remove the error styling if it exists
-                    emailInput.classList.remove('is-invalid');
-                }
-            }
-        });
-
-        function areValidEmails(input) {
-            var emails = input.split(/[,;\s]+/);  // Split by comma, semicolon, or whitespace
-            var emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-
-            for (var i = 0; i < emails.length; i++) {
-                if (!emailPattern.test(emails[i])) {
-                    return false;
-                }
-            }
-            return true;
-        }
-    </script>
+    <div class="mt-5 pt-3">
+        <div class="container-fluid">
+            <p id="status">{{ activity }}</p>
+        </div>
+    </div>
+    {% endif %}
 </body>
+
+<script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+<script>
+    // show/hide on the prgorams, TODO: remove this and use the additional row formatting
+    function toggleButtonText(buttonElement) {
+        if (buttonElement.innerHTML === "Show") {
+            buttonElement.innerHTML = "Hide";
+        } else {
+            buttonElement.innerHTML = "Show";
+        }
+    }
+
+    // show/hide the additional row
+    function toggleRow(event, buttonElement) {
+        event.preventDefault();
+
+        let currentRow = buttonElement.closest('.row');
+        let nextRow = currentRow.nextElementSibling;
+
+        // Check if the next row exists and has the "additional" class
+        if (nextRow && nextRow.classList.contains('additional')) {
+            // Toggle visibility and button text
+            if (nextRow.style.display === 'none') {
+                nextRow.style.display = '';
+                buttonElement.textContent = 'Hide details';
+            } else {
+                nextRow.style.display = 'none';
+                buttonElement.textContent = 'Show more';
+            }
+        }
+    }
+
+    // don't allow submitting forms without filling required fields
+    document.addEventListener('DOMContentLoaded', function () {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        })
+
+        let requiredInputs = document.querySelectorAll('input[required]');
+        let submitButton = document.getElementById('submitButton');
+
+        function checkInputs() {
+            let allFilled = true;
+            requiredInputs.forEach(input => {
+                if (input.value.trim() === "") {
+                    allFilled = false;
+                }
+            });
+            submitButton.disabled = !allFilled;
+        }
+
+        // Attach event listeners to the inputs
+        requiredInputs.forEach(input => {
+            input.addEventListener('keyup', checkInputs);
+            input.addEventListener('input', checkInputs);
+        });
+    });
+
+    // if email field is invalid, disallow sending
+    document.addEventListener('submit', function (e) {
+        var emailInput = e.target.querySelector('#emailInput');
+        if (emailInput) {
+            if (!areValidEmails(emailInput.value)) {
+                e.preventDefault(); // Prevent form submission
+                // Apply Bootstrap validation error styling
+                emailInput.classList.add('is-invalid');
+
+                // Show the modal
+                var errorModal = new bootstrap.Modal(document.getElementById('errorModal'));
+                errorModal.show();
+            } else {
+                // If the email is valid, remove the error styling if it exists
+                emailInput.classList.remove('is-invalid');
+            }
+        }
+    });
+
+    // how to verify emails
+    function areValidEmails(input) {
+        var emails = input.split(/[,;\s]+/);  // Split by comma, semicolon, or whitespace
+        var emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+        for (var i = 0; i < emails.length; i++) {
+            if (!emailPattern.test(emails[i])) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    {% if activity is defined %}
+    function checkStatus() {
+        const statusElement = document.getElementById('status');
+        const currentStatus = statusElement.innerText.trim();
+
+        if (currentStatus[0] !== '0') {
+            fetch('/check_status', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    status: currentStatus // Sending the inner text of status element
+                })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.to_reload) {
+                        statusElement.innerText = data.active_msg;
+                        const toaster = new bootstrap.Toast(document.getElementById('toaster'));
+                        toaster.show();
+                        document.getElementById('reload-link').addEventListener('click', function () {
+                            location.reload();
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error("Error fetching data: ", error);
+                });
+        }
+    }
+
+    // Fetch the status immediately upon page load
+    checkStatus();
+
+    // Set the function to recur every second
+    setInterval(checkStatus, 1000);
+
+
+
+    {% endif %}
+</script>
 
 </html>

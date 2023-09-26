@@ -232,14 +232,14 @@ def run_program(prg_name, purp):
         print(traceback.format_exc())
         print("Standard error:", err.stdout, sep="\n")
         runs.loc[id_row(runs, prg_name, purp), 'status'] = \
-            f'run error, code 1'
+            f'Completed with error 1'
         body += "had an error upon calling the program."
     except Exception as err:
         code = 2
         print(f"Error in python script: {err}")
         print(traceback.format_exc())
         runs.loc[id_row(runs, prg_name, purp), 'status'] = \
-            f'run error, code 2'
+            f'Completed with error 2'
         body += "had an error upon trying to call the program."
     finally:
         runs.to_csv(RUN_DETAILS_CSV, index=False)
