@@ -79,8 +79,7 @@
 
     {% if activity is defined %}
     <div class="position-fixed top-0 end-0 p-3" style="z-index: 1031; top:70px">
-        <div id="toaster" class="toast align-items-center text-white bg-success border-0" role="alert"
-            data-bs-autohide="false">
+        <div id="toaster" class="toast align-items-center border border-success" role="alert" data-bs-autohide="false">
             <div class="d-flex">
                 <div class="toast-body">
                     A task is completed! Click <a href="#" id="reload-link">here</a> to reload.
@@ -180,7 +179,7 @@
     // how to verify emails
     function areValidEmails(input) {
         var emails = input.split(/[,;\s]+/);  // Split by comma, semicolon, or whitespace
-        var emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+        var emailPattern = /(?:^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})?$/;
 
         for (var i = 0; i < emails.length; i++) {
             if (!emailPattern.test(emails[i])) {
