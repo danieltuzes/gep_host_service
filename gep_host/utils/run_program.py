@@ -54,8 +54,8 @@ def send_email(subject: str, body: str, receiver_emails: List[str]) -> None:
                 server.sendmail(sender_email, receiver_email, message)
         except smtplib.SMTPException as e:
             ret = e
-
-    return ret
+        finally:
+            return ret
 
 
 def init_run(request: flask.Request) -> Union[int, str]:
