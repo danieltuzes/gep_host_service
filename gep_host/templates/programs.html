@@ -10,7 +10,7 @@
         </div>
 
         <div class="card-body">
-            <form action="{{ url_for('programs') }}" method="post" enctype="multipart/form-data">
+            <form action="{{ url_for('program_install') }}" method="post" enctype="multipart/form-data">
                 <div class="mb-3">
                     <label for="program_package" class="form-label">Program Package:</label>
                     <input type="file" name="program_package" class="form-control" required>
@@ -24,7 +24,8 @@
                 </div>
                 <div class="mb-3">
                     <label for="required_python_version" class="form-label">Required Python Version:</label>
-                    <input type="text" name="required_python_version" class="form-control" required placeholder="3.8">
+                    <input type="text" name="required_python_version" class="form-control" required
+                        placeholder="explicit single value, e.g. 3.8">
                 </div>
                 <div class="mb-3">
                     <label for="selected_libs" class="form-label">Libraries needed to run this program:</label>

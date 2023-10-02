@@ -9,7 +9,7 @@
             <h5>Setup and run {{program_name}}</h5>
         </div>
         <div class="card-body">
-            <form action="{{ url_for('runs') }}" method="post" enctype="multipart/form-data">
+            <form action="{{ url_for('trigger_run') }}" method="post" enctype="multipart/form-data">
                 <div class="row">
                     <div class="mb-3 col-md-6">
                         <label for="program_name">Program Name:</label>

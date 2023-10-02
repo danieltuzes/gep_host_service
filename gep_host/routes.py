@@ -77,53 +77,7 @@ def index():
 
 @app.route('/programs', methods=['GET', 'POST'])
 def programs():
-    if request.method == 'POST':
-        # Logic for handling the file upload
-        if 'program_package' not in request.files:
-            flash('No file part', 'warning')
-            return redirect(request.url)
-        file = request.files['program_package']
-        if file.filename == '':
-            flash('No selected file', 'warning')
-            return redirect(request.url)
-        if not allowed_file(file.filename):
-            flash('Not allowed filetype', 'warning')
-            return redirect(request.url)
-
-        # Program details
-        program_name = alnum(request.form['unique_program_name'], "_-.")
-        python_version_raw = request.form['required_python_version']
-        python_version = "".join(
-            char for char in python_version_raw if char.isdigit or char == ".")
-        selected_libs = request.form.getlist('selected_libs')
-
-        # Check uniqueness of program name
-        masterfolder = os.path.join(PROJ_ROOT, "programs", program_name)
-        if os.path.isdir(masterfolder):
-            flash('Program upload is unsuccessful due to its non-unique name.', 'warning')
-            return redirect(request.url)
-
-        # save the file
-        filename = secure_filename(file.filename)
-        base, ext = os.path.splitext(filename)
-        nowstr = datetime.now().strftime('%Y%m%d%H%M%S')
-        t_filename = f"{base}_{nowstr}{ext}"
-        program_zip_path = os.path.join(
-            app.config['UPLOAD_FOLDER'], t_filename)
-        file.save(program_zip_path)
-
-        # Execute install script in subprocess
-        res = install_program.init_install(program_name,
-                                           t_filename,
-                                           python_version,
-                                           selected_libs)
-        if res != 0:
-            flash(res, "warning")
-        else:
-            flash('Program install started', 'success')
-
-        return redirect(url_for('programs'))
-
+    """Show programs, confirm successful installation."""
     column = request.args.get('column', 'upload_date')
     direction = request.args.get('direction', 'desc')
     if os.path.exists(PROGRAM_DETAILS_CSV):
@@ -143,6 +97,60 @@ def programs():
                            column=column,
                            direction=direction,
                            activity=activity(prgs, "programs"))
+
+
+@app.route('/program_install', methods=['POST'])
+def program_install():
+    """Receive POST data to install and redirect user."""
+    if request.method != 'POST':
+        flash("Program install requiested without post data", "warning")
+        return programs()
+
+    # Logic for handling the file upload
+    if 'program_package' not in request.files:
+        flash('No file part', 'warning')
+        return redirect(request.url)
+    file = request.files['program_package']
+    if file.filename == '':
+        flash('No selected file', 'warning')
+        return redirect(request.url)
+    if not allowed_file(file.filename):
+        flash('Not allowed filetype', 'warning')
+        return redirect(request.url)
+
+    # Program details
+    program_name = alnum(request.form['unique_program_name'], "_-.")
+    python_version_raw = request.form['required_python_version']
+    python_version = "".join(
+        char for char in python_version_raw if char.isdigit or char == ".")
+    selected_libs = request.form.getlist('selected_libs')
+
+    # Check uniqueness of program name
+    masterfolder = os.path.join(PROJ_ROOT, "programs", program_name)
+    if os.path.isdir(masterfolder):
+        flash('Program upload is unsuccessful due to its non-unique name.', 'warning')
+        return redirect(request.url)
+
+    # save the file
+    filename = secure_filename(file.filename)
+    base, ext = os.path.splitext(filename)
+    nowstr = datetime.now().strftime('%Y%m%d%H%M%S')
+    t_filename = f"{base}_{nowstr}{ext}"
+    program_zip_path = os.path.join(
+        app.config['UPLOAD_FOLDER'], t_filename)
+    file.save(program_zip_path)
+
+    # Execute install script in subprocess
+    res = install_program.init_install(program_name,
+                                       t_filename,
+                                       python_version,
+                                       selected_libs)
+    if res != 0:
+        flash(res, "warning")
+    else:
+        flash('Program install started', 'success')
+
+    return redirect(url_for("programs"))
 
 
 @app.route('/install_log/<program_name>')
@@ -182,22 +190,13 @@ def get_prg(program_name: str):
                      download_name=orig_fname)
 
 
-@app.route('/runs', methods=['GET', 'POST'])
+@app.route('/runs', methods=['GET'])
 def runs():
     column = request.args.get('column', 'setup_date')
     direction = request.args.get('direction', 'desc')
     program_name = request.args.get('program_name')
 
-    if request.method == 'POST':
-        ret = run_program.init_run(request)
-        if ret != 0:
-            flash(ret, "warning")
-            return redirect(request.url)
-        else:
-            flash("Program set up and run initiated successfully.", "success")
-
     # Read the content of run_details.csv, filter and order it
-
     runs = pd.DataFrame()
     if os.path.exists(RUN_DETAILS_CSV):
         runs = pd.read_csv(RUN_DETAILS_CSV, dtype=str).fillna("")
@@ -226,6 +225,22 @@ def runs():
                            direction=direction,
                            column=column,
                            activity=activity(runs, "runs"))
+
+
+@app.route('/trigger_run', methods=['POST'])
+def trigger_run():
+
+    if request.method != 'POST':
+        flash("Run requested without POST data.", "warning")
+        return redirect(url_for("runs"))
+
+    ret = run_program.init_run(request)
+    if ret != 0:
+        flash(ret, "warning")
+    else:
+        flash("Program set up and run initiated successfully.", "success")
+
+    return redirect(url_for("runs"))
 
 
 @app.route('/users_tokens')
