@@ -14,33 +14,39 @@
         When installing a library, keep in mind the system specification from the
         <a href="{{ url_for('index') }}">index page</a>.
     </p>
-    <div class="card">
-        <div class="card-header" id="headingAddProgram">
-            <h5 class="mb-0">Add New Library</h5>
-        </div>
-
-        <div class="card-body">
-            <form action="{{ url_for('libraries') }}" method="post" enctype="multipart/form-data">
-                <div class="mb-3">
-                    <label for="library_package" class="form-label">Library Package:</label>
-                    <input type="file" name="library_package" class="form-control" required>
+    <div class="accordion mb-3" id="addLibraryAccordion">
+        <div class="accordion-item">
+            <h5 class="accordion-header border-primary border" id="headingOne">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#collapseOne">
+                    Add a new library
+                </button>
+            </h5>
+            <div id="collapseOne" class="accordion-collapse collapse" data-bs-parent="#addLibraryAccordion">
+                <div class="accordion-body">
+                    <form action="{{ url_for('libraries') }}" method="post" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <label for="library_package" class="form-label">Library Package:</label>
+                            <input type="file" name="library_package" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="unique_library_name" class="form-label">Unique Library Name:</label>
+                            <input type="text" name="unique_library_name" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="path_to_exec" class="form-label">Path to the executables <span
+                                    class="tooltip-text" data-bs-toggle="tooltip" data-bs-placement="top"
+                                    title="It can contain only alphanumeric chars and _-.( -)/, +~!#">(info)</span>:</label>
+                            <input type="text" name="path_to_exec" class="form-control" required value="bin64">
+                        </div>
+                        <div class="mb-3">
+                            <label for="comment" class="form-label">Comment:</label>
+                            <input type="text" name="comment" class="form-control">
+                        </div>
+                        <button type="submit" class="btn btn-primary">Upload</button>
+                    </form>
                 </div>
-                <div class="mb-3">
-                    <label for="unique_library_name" class="form-label">Unique Library Name:</label>
-                    <input type="text" name="unique_library_name" class="form-control" required>
-                </div>
-                <div class="mb-3">
-                    <label for="path_to_exec" class="form-label">Path to the executables <span class="tooltip-text"
-                            data-bs-toggle="tooltip" data-bs-placement="top"
-                            title="It can contain only alphanumeric chars and _-.( -)/, +~!#">(info)</span>:</label>
-                    <input type="text" name="path_to_exec" class="form-control" required value="bin64">
-                </div>
-                <div class="mb-3">
-                    <label for="comment" class="form-label">Comment:</label>
-                    <input type="text" name="comment" class="form-control">
-                </div>
-                <button type="submit" class="btn btn-primary">Upload</button>
-            </form>
+            </div>
         </div>
     </div>
     <div class="container my-4">
