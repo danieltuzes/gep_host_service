@@ -276,7 +276,7 @@ def del_run(program_name: str, purpose: str):
     else:
         flash(
             f"Successfully deleted program {program_name} with purpose {purpose}", "success")
-    return runs()
+    return redirect(url_for("runs"))
 
 
 @app.route('/run_log/<program_name>/<purpose>')
