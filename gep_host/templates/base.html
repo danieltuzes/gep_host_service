@@ -101,15 +101,6 @@
 <script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
 <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
 <script>
-    // show/hide on the prgorams, TODO: remove this and use the additional row formatting
-    function toggleButtonText(buttonElement) {
-        if (buttonElement.innerHTML === "Show") {
-            buttonElement.innerHTML = "Hide";
-        } else {
-            buttonElement.innerHTML = "Show";
-        }
-    }
-
     // show/hide the additional row
     function toggleRow(event, buttonElement) {
         event.preventDefault();
@@ -122,10 +113,10 @@
             // Toggle visibility and button text
             if (nextRow.style.display === 'none') {
                 nextRow.style.display = '';
-                buttonElement.textContent = 'Hide details';
+                buttonElement.textContent = 'Hide';
             } else {
                 nextRow.style.display = 'none';
-                buttonElement.textContent = 'Show more';
+                buttonElement.textContent = 'More';
             }
         }
     }
@@ -189,6 +180,7 @@
         return true;
     }
 
+    // if there was activity, periodically check for updates
     {% if activity is defined %}
     function checkStatus() {
         const statusElement = document.getElementById('status');

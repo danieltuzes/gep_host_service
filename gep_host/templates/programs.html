@@ -4,105 +4,159 @@
 
 <div class="container mt-3">
     <h2>Programs</h2>
-    <div class="card">
-        <div class="card-header" id="headingAddProgram">
-            <h5 class="mb-0">Add New Program</h5>
+    <p>Programs are installed into their own conda environment, and their setup from their root is executed.<br>
+        A MasterConfig.cfg is searched for in the config folder with inputs and outputs sections.</p>
+    <div class="accordion mb-3" id="installProgramAccordion">
+        <div class="accordion-item">
+            <h5 class="accordion-header border-primary border" id="headingOne">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#collapseOne">
+                    Install a new program
+                </button>
+            </h5>
+            <div id="collapseOne" class="accordion-collapse collapse" data-bs-parent="#installProgramAccordion">
+                <div class="accordion-body">
+                    <form action="{{ url_for('program_install') }}" method="post" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <label for="program_package" class="form-label">Program Package:</label>
+                            <input type="file" name="program_package" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="unique_program_name" class="form-label">Program Name <span class="tooltip-text"
+                                    data-bs-toggle="tooltip" data-bs-placement="top"
+                                    title="It can contain only alphanumeric chars and _.- Space is not allowed.">(info)</span>:</label>
+                            <input type="text" name="unique_program_name" class="form-control" required
+                                placeholder="My_Unique_Program-Name_v1.0.0">
+                        </div>
+                        <div class="mb-3">
+                            <label for="required_python_version" class="form-label">Required Python Version:</label>
+                            <input type="text" name="required_python_version" class="form-control" required
+                                placeholder="explicit single value, e.g. 3.8">
+                        </div>
+                        <div class="mb-3">
+                            <label for="selected_libs" class="form-label">Libraries needed to run this program
+                                (multiple selection):</label>
+                            <select multiple class="form-select" id="selected_libs" size="4" name="selected_libs">
+                                {% for lib_name in libs['library_name'] %}
+                                <option>{{ lib_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="def_args">
+                                Python call's default argument string
+                                <span class="tooltip-text" data-bs-toggle="tooltip" data-bs-placement="top"
+                                    title="Enter the string that follows python -m. It can contain only alphanumeric chars and &quot;-&#039;_\^/(,)[.]">(info)</span>:
+                            </label>
+                            <input type="text" name="def_args" class="form-control" placeholder="my_lib" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary" id="submitButton" disabled>Upload</button>
+                    </form>
+                </div>
+            </div>
         </div>
-
-        <div class="card-body">
-            <form action="{{ url_for('program_install') }}" method="post" enctype="multipart/form-data">
-                <div class="mb-3">
-                    <label for="program_package" class="form-label">Program Package:</label>
-                    <input type="file" name="program_package" class="form-control" required>
-                </div>
-                <div class="mb-3">
-                    <label for="unique_program_name" class="form-label">Program Name <span class="tooltip-text"
-                            data-bs-toggle="tooltip" data-bs-placement="top"
-                            title="It can contain only alphanumeric chars and _.- Space is not allowed.">(info)</span>:</label>
-                    <input type="text" name="unique_program_name" class="form-control" required
-                        placeholder="My_Unique_Program-Name_v1.0.0">
-                </div>
-                <div class="mb-3">
-                    <label for="required_python_version" class="form-label">Required Python Version:</label>
-                    <input type="text" name="required_python_version" class="form-control" required
-                        placeholder="explicit single value, e.g. 3.8">
-                </div>
-                <div class="mb-3">
-                    <label for="selected_libs" class="form-label">Libraries needed to run this program:</label>
-                    <select multiple class="form-select" id="selected_libs" size="4" name="selected_libs">
-                        {% for lib_name in libs['library_name'] %}
-                        <option>{{ lib_name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <button type="submit" class="btn btn-primary" id="submitButton" disabled>Upload</button>
-            </form>
-        </div>
-
     </div>
 
-    <table class="table table-striped mt-3">
-        <thead>
-            <tr>
-                <th>
-                    <a
-                        href="{{ url_for('programs', column='program_name', direction='desc' if direction == 'asc' and column == 'program_name' else 'asc') }}">
-                        Program Name
-                        {{'↑' if direction == 'asc' and column == 'program_name'}}
-                        {{'↓' if direction == 'desc' and column == 'program_name'}}
-                    </a>
-                </th>
-                <th>
-                    <a
-                        href="{{ url_for('programs', column='upload_date', direction='desc' if direction == 'asc' and column == 'upload_date' else 'asc') }}">
-                        Upload Date
-                        {{'↑' if direction == 'asc' and column == 'upload_date'}}
-                        {{'↓' if direction == 'desc' and column == 'upload_date'}}
-                    </a>
-                </th>
-                <th>Python Version, Libs</th>
-                <th>Status (log)</th>
-                <th width="30%">Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for program in programs.itertuples() %}
-            <tr>
-                <td><a href="{{ url_for('get_prg', program_name=program.program_name)}}">{{ program.program_name }}</a>
-                </td>
-                <td>{{ program.upload_date }}</td>
-                <td>py={{ program.python_version }},
-                    {% if program.selected_libs == "" %}<span class='text-muted'>(None)</span>
-                    {% else %}
-                    {{ program.selected_libs }}
-                    {% endif %}</td>
-                <td> <a href="{{ url_for('install_log', program_name=program.program_name) }}">{{ program.status }}</a>
-                </td>
-                <td>
-                    <a href="{{ url_for('del_program', program_name=program.program_name) }}">Delete</a>
+
+    <div class="container my-4">
+        <div class="row mb-2">
+            <div class="col">
+                <a
+                    href="{{ url_for('programs', column='program_name', direction='desc' if direction == 'asc' and column == 'program_name' else 'asc') }}">
+                    Program Name
+                    {{'↑' if direction == 'asc' and column == 'program_name'}}
+                    {{'↓' if direction == 'desc' and column == 'program_name'}}
+                </a>
+            </div>
+            <div class="col">
+                <a
+                    href="{{ url_for('programs', column='upload_date', direction='desc' if direction == 'asc' and column == 'upload_date' else 'asc') }}">
+                    Upload Date
+                    {{'↑' if direction == 'asc' and column == 'upload_date'}}
+                    {{'↓' if direction == 'desc' and column == 'upload_date'}}
+                </a>
+            </div>
+            <div class="col"> Python Version, Libs </div>
+            <div class="col">Actions</div>
+        </div>
+        {% for program in programs.itertuples() %}
+        <div class="row">
+            <div class="col">
+                <span data-bs-toggle="tooltip" data-bs-placement="top" title="{{program.status}}">
                     {% if program.status == "Installed" %}
-                    | <a href="{{ url_for('runs', program_name=program.program_name) }}">Run</a>
-                    | <a href="#" data-bs-toggle="collapse" data-bs-target="#inheritable{{ program.program_name }}"
-                        role="button" onclick="toggleButtonText(this)">Show</a> inputs
-                    <div class="collapse" id="inheritable{{ program.program_name }}">
-                        {% set inputs = program.inputs|parse_json %}
-                        {% for input_name, input_value in inputs.items() %}
-                        {% if input_value is not none %}
-                        {{ input_name }}: <a
-                            href="{{ url_for('get_program_input', program_name=program.program_name, input_value=input_value) }}">{{
-                            input_value }}</a>
-                        {% else %}
-                        {{ input_name }}
-                        {% endif %}
-                        <br>
-                        {% endfor %}
-                    </div>
+
+                    <span class="badge rounded-pill bg-success">G</span>
+                    {% elif "error" in program.status %}
+                    <span class="badge rounded-pill bg-danger">X</span>
+                    {% else %}
+                    <span class="badge rounded-pill bg-info">C</span>
                     {% endif %}
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+                </span>
+                {{ program.program_name }}
+            </div>
+            <div class="col">{{ program.upload_date }}</div>
+            <div class="col">
+                py={{ program.python_version }},
+                {% if program.selected_libs == "" %}<span class='text-muted'>(None)</span>
+                {% else %}
+                {{ program.selected_libs }}
+                {% endif %}
+            </div>
+            <div class="col text-end">
+                {% if program.status == "Installed" %}
+                <a href="{{ url_for('runs', program_name=program.program_name) }}"
+                    class="btn btn-success btn-sm mx-1">Run</a>
+                {% endif %}
+                <a href="{{ url_for('get_prg', program_name=program.program_name)}}"
+                    class="btn btn-primary btn-sm mx-1">Download</a>
+                <a href="#" onclick="toggleRow(event,this)" class="btn btn-info btn-sm mx-1">More</a>
+            </div>
+        </div>
+        <div class="row additional pt-0" style="display: none;">
+            <hr>
+            <div class="my-3"><strong>Program status:</strong>
+                {{ program.status }}
+                <a href="{{ url_for('install_log', program_name=program.program_name) }}">Download the install log
+                    file</a>
+            </div>
+            <div class="col-6" class="my-3"><strong>Inputs:</strong><br>
+                {% set inputs = program.inputs|parse_json %}
+                {% for input_name, input_value in inputs.items() %}
+                {{ input_name }}:
+                {% if input_value is not none %}
+                <a
+                    href="{{ url_for('get_program_input', program_name=program.program_name, input_value=input_value) }}">
+                    {{ input_value }}
+                </a>
+                {% else %}
+                <span class='text-muted'>(not present in the package)</span>
+                {% endif %}
+                <br>
+                {% endfor %}
+            </div>
+            <div class="col-6" class="my-3"><strong>Outputs:</strong><br>
+                {% set outputs = program.outputs|parse_json %}
+                {% for output_name, output_value in outputs.items() %}
+                {{ output_name }}: {{ output_value}}
+                <br>
+                {% endfor %}
+            </div>
+            <div class="my-3"><strong>Default call:</strong>
+                <code>python -m {{ program.def_args }}</code>
+            </div>
+            <div class="my-2"><span data-bs-toggle="tooltip" data-bs-placement="top"
+                    title="Deleting the program does not delete its runs, nor the libraries linked to it.">
+                    <a href="{{ url_for('del_program', program_name=program.program_name) }}"
+                        class="btn btn-danger btn-sm">
+                        Delete
+                    </a>
+                </span>
+
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
 </div>
 
 {% endblock %}

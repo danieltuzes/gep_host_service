@@ -25,7 +25,7 @@ RUN_DETAILS_CSV = os.path.join(PROJ_ROOT, 'runs/run_details.csv')
 LIB_DETAILS_CSV = os.path.join(PROJ_ROOT, 'libs/lib_details.csv')
 
 
-def count_not(data: pd.DataFrame, status: str) -> int:
+def count_not_status(data: pd.DataFrame, status: str) -> int:
     """Count how many times the col status doesn't start with status."""
     starts_with = len(data[data.status.str.startswith(status)])
     different = len(data) - starts_with
@@ -35,11 +35,11 @@ def count_not(data: pd.DataFrame, status: str) -> int:
 def activity(data: pd.DataFrame, type: str) -> str:
     """Generate the message to be displayed."""
     if type == "programs":
-        active = count_not(data, "Installed")
+        active = count_not_status(data, "Installed")
         active = active
         ret = f"{active} program installation(s) "
     if type == "runs":
-        active = count_not(data, "Completed")
+        active = count_not_status(data, "Completed")
         ret = f"{active} runs(s) "
     ret += "are in progress."
     return ret
@@ -124,6 +124,7 @@ def program_install():
     python_version = "".join(
         char for char in python_version_raw if char.isdigit or char == ".")
     selected_libs = request.form.getlist('selected_libs')
+    def_args = safer_call(request.form["def_args"])
 
     # Check uniqueness of program name
     masterfolder = os.path.join(PROJ_ROOT, "programs", program_name)
@@ -144,7 +145,8 @@ def program_install():
     res = install_program.init_install(program_name,
                                        t_filename,
                                        python_version,
-                                       selected_libs)
+                                       selected_libs,
+                                       def_args)
     if res != 0:
         flash(res, "warning")
     else:
@@ -213,15 +215,14 @@ def runs():
     if os.path.exists(PROGRAM_DETAILS_CSV):
         prgs = pd.read_csv(PROGRAM_DETAILS_CSV, dtype=str)
 
-    inputs = {}
+    prg_to_run = None
     if program_name is not None:
-        inputs = prgs.loc[prgs.program_name == program_name, "inputs"].iloc[0]
-        inputs = json.loads(inputs)
+        prg_to_run = prgs.loc[prgs.program_name == program_name].iloc[0]
 
     return render_template('runs.html',
                            runs=runs,
                            program_name=program_name,
-                           inputs=inputs,
+                           prg_to_run=prg_to_run,
                            direction=direction,
                            column=column,
                            activity=activity(runs, "runs"))

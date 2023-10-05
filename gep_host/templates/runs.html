@@ -3,7 +3,10 @@
 {% block content %}
 <div class="container mt-3">
     <h2>Runs</h2>
-    {% if program_name is not none %}
+    <p>Select a program from the <a href="{{ url_for('programs')}}">installed ones</a>
+        and choose action "run" to initatie a new run.<br>
+        Ongoing and previous runs are shown below.</p>
+    {% if prg_to_run is not none %}
     <div class="card">
         <div class="card-header" id="headingAddProgram">
             <h5>Setup and run {{program_name}}</h5>
@@ -30,9 +33,9 @@
                         <span class="tooltip-text" data-bs-toggle="tooltip" data-bs-placement="top"
                             title="Enter the string that follows python -m. It can contain only alphanumeric chars and &quot;-&#039;_\^/(,)[.]">(info)</span>:
                     </label>
-                    <input type="text" name="args" class="form-control" placeholder="my_lib" required>
+                    <input type="text" name="args" class="form-control" value="{{ prg_to_run.def_args }}" required>
                 </div>
-                <div class="accordion mb-3" id="accordionExample">
+                <div class="accordion mb-3" id="runInputAccordion">
                     <div class="accordion-item">
                         <h2 class="accordion-header" id="headingOne">
                             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
@@ -40,7 +43,7 @@
                                 Input files in 1 go - masterinput
                             </button>
                         </h2>
-                        <div id="collapseOne" class="accordion-collapse collapse" data-bs-parent="#accordionExample">
+                        <div id="collapseOne" class="accordion-collapse collapse" data-bs-parent="#runInputAccordion">
                             <div class="accordion-body">
                                 <p> Upload all the files and optionally even more by sending a zip file
                                     that contains all the files and a MasterInput.cfg for the mapping.
@@ -70,7 +73,7 @@
                             </button>
                         </h2>
                         <div id="collapseTwo" class="accordion-collapse collapse show"
-                            data-bs-parent="#accordionExample">
+                            data-bs-parent="#runInputAccordion">
                             <div class="accordion-body">
                                 <p>Upload files defined in the masterconfig or inherit them
                                     from the uploaded package.
@@ -79,6 +82,7 @@
                                     If no file is uploaded or inherited, the option is kept in
                                     the config file, but its value is set to None.
                                 </p>
+                                {% set inputs = prg_to_run.inputs|parse_json %}
                                 {% for input_name, input_path in inputs.items() %}
                                 {% if input_path is not none %}
                                 <div class="mb-3 row">
@@ -157,7 +161,7 @@
             <div class="col">
                 <a
                     href="{{ url_for('runs', column='setup_date', program_name=program_name, direction='desc' if direction == 'asc' and column == 'setup_date' else 'asc') }}">
-                    Setup Date
+                    Start Date
                     {{'↑' if direction == 'asc' and column == 'setup_date'}}
                     {{'↓' if direction == 'desc' and column == 'setup_date'}}
                 </a>
@@ -193,7 +197,8 @@
                 <a href="#" onclick="toggleRow(event,this)">Show more</a>
             </div>
         </div>
-        <div class="row additional" style="display: none;">
+        <div class="row additional pt-0" style="display: none;">
+            <hr>
             <div class="col-12"><strong>Python call:</strong>
                 <code>python -m {{ run.python_args }}</code>
             </div>
@@ -238,7 +243,7 @@
                     {% endif %}
                 </div>
             </div>
-            <hr class="my-3">
+            <hr class="my-3 text-center border-secondary">
             <div class="col-12"><strong>Expected output files</strong>
                 <a
                     href="{{ url_for('get_run_file', program_name=run.program_name, purpose=run.purpose, file=run.program_name + '__' + run.purpose) }}">(zipped
@@ -299,6 +304,8 @@
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         // Handle checkbox toggles for all inputs
+        {% if prg_to_run is not none %}
+        {% set inputs = prg_to_run.inputs | parse_json %}
         {% for input_name, input_path in inputs.items() %}
         {% if input_path is not none %}
         document.getElementById('check{{ input_name }}').addEventListener('change', function () {
@@ -306,6 +313,7 @@
         });
         {% endif %}
         {% endfor %}
+        {% endif %}
 
         function handleCheckboxToggle(inputId, checkId) {
             const input = document.getElementById(inputId);

@@ -20,7 +20,8 @@ LIB_DETAILS_CSV = os.path.join(PROJ_ROOT, 'libs/lib_details.csv')
 def init_install(program_name,
                  program_zip_path,
                  python_version,
-                 selected_libs) -> Union[int, str]:
+                 selected_libs,
+                 def_args) -> Union[int, str]:
     # Check uniqueness of program name
     if os.path.exists(PROGRAM_DETAILS_CSV):
         df = pd.read_csv(PROGRAM_DETAILS_CSV, dtype=str)
@@ -45,7 +46,10 @@ def init_install(program_name,
         'status': ['installing'],
         'PID': [proc.pid],
         'zip_fname': [program_zip_path],
-        'selected_libs': [selected_libs_str]
+        'selected_libs': [selected_libs_str],
+        'def_args': [def_args],
+        'inputs': json.dumps({}),
+        'outputs': json.dumps({})
     })
     if os.path.exists(PROGRAM_DETAILS_CSV):
         df = pd.concat([df, new_entry], ignore_index=True)
@@ -60,6 +64,7 @@ def run_and_verify(cmd: str, cwd=None):
     proc = subprocess.run(cmd, cwd=cwd, shell=True, text=True,
                           stdout=subprocess.PIPE,
                           stderr=subprocess.STDOUT)
+    print(proc.stdout)
     if proc.returncode != 0:
         raise subprocess.CalledProcessError(returncode=proc.returncode,
                                             cmd=cmd, stderr=proc.stdout)
@@ -112,8 +117,8 @@ def install_program(program_name,
                     ofile = config.get("outputs", option)
                     rel_ofile = os.path.relpath(ofile, masterfolder)
                     if rel_ofile.startswith(".."):
-                        print("Error: output file shouldn't be saved"
-                              "above package level."
+                        print("Error: output file shouldn't be saved "
+                              "above package level. "
                               "Please delete the package and re-upload it.")
                         code = 3
                     outputs[option] = rel_ofile
@@ -170,7 +175,6 @@ def install_program(program_name,
     except subprocess.CalledProcessError as err:
         code = 1
         print(f"Error calling subprocess:", traceback.format_exc(), sep="\n")
-        print(f"Standard error:", err.stderr, sep="\n")
     except Exception:
         code = 2
         print(f"Error in python script.", traceback.format_exc(), sep="\n")
