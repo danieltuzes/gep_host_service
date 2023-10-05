@@ -37,7 +37,6 @@ def remove_val_from_json(json_str, val_2_remove):
 def delete_program(program_name):
     code = 0
     try:
-
         masterfolder = os.path.join(PROJ_ROOT, 'programs', program_name)
         # 1. remove program_details.csv and get the zip_fname
         df = pd.read_csv('programs/program_details.csv', dtype=str)

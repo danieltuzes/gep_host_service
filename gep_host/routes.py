@@ -175,7 +175,7 @@ def del_program(program_name: str):
               "warning")
     else:
         flash(f"Successfully deleted program: {program_name}", "success")
-    return programs()
+    return redirect(url_for("programs"))
 
 
 @app.route('/program/<program_name>')
@@ -477,7 +477,7 @@ def check_status():
 def parse_json(json_str):
     if isinstance(json_str, str) and json_str != "":
         return json.loads(json_str)
-    return []
+    return {}
 
 
 app.jinja_env.filters['parse_json'] = parse_json
