@@ -157,43 +157,48 @@
                     {{'↓' if direction == 'desc' and column == 'setup_date'}}
                 </a>
             </div>
-            <div class="col">
-                <a
-                    href="{{ url_for('runs', column='status', program_name=program_name, direction='desc' if direction == 'asc' and column == 'status' else 'asc') }}">
-                    Status
-                    {{'↑' if direction == 'asc' and column == 'status'}}
-                    {{'↓' if direction == 'desc' and column == 'status'}}
-                </a>
-            </div>
-            <div class="col">Actions</div>
+            <div class="col text-end">Actions</div>
         </div>
         {% for run in runs.itertuples() %}
         <div class="row">
-            <div class="col">{{ run.program_name}}</div>
+            <div class="col">
+                <span data-bs-toggle="tooltip" data-bs-placement="top" title="{{run.status}}">
+                    {% if run.status == "Completed" %}
+                    <span class="badge rounded-pill bg-success">G</span>
+                    {% elif "error" in run.status %}
+                    <span class="badge rounded-pill bg-danger">X</span>
+                    {% else %}
+                    <span class="badge rounded-pill bg-info">C</span>
+                    {% endif %}
+                </span>
+                {{ run.program_name}}
+            </div>
             <div class="col">{{ run.purpose }}</div>
             <div class="col">{{ run.setup_date }}</div>
-            <div class="col">
+            <div class="col text-end">
+                {% if run.status == "running" %}
+                <a href="#" class="btn btn-warning btn-sm mx-1">Stop</a> |
+                {% endif %}
                 {% if "Completed" in run.status %}
-                <a
-                    href="{{ url_for('get_run_file', program_name=run.program_name, purpose=run.purpose, file=run.program_name + '__' + run.purpose + '.zip') }}">{{
-                    run.status }}</a>
-                {% else %}
-                {{ run.status }}{% if run.status=="running" %}, PID={{ run.pid }}{% endif %}{% endif %}
-            </div>
-            <div class="col">
-                <a href="{{ url_for('run_log', program_name=run.program_name, purpose=run.purpose) }}">log</a> |
-                {% if run.status == "running" %}Stop | {% endif %}
-                <a href="{{ url_for('del_run', program_name=run.program_name, purpose=run.purpose) }}">Delete</a>
-                |
-                <a href="#" onclick="toggleRow(event,this)">Show more</a>
+                <a class="btn btn-primary btn-sm mx-1"
+                    href="{{ url_for('get_run_file', program_name=run.program_name, purpose=run.purpose, file=run.program_name + '__' + run.purpose + '.zip') }}">
+                    Download</a>
+                {% endif %}
+                <a href="#" onclick="toggleRow(event,this)" class="btn btn-info btn-sm mx-1">More</a>
             </div>
         </div>
         <div class="row additional pt-0" style="display: none;">
             <hr>
-            <div class="col-12"><strong>Python call:</strong>
+            <div class="my-2"><strong>Status:</strong><br>
+                {{ run.status }}
+                <a href="{{ url_for('run_log', program_name=run.program_name, purpose=run.purpose) }}">
+                    Download the run log file
+                </a>
+            </div>
+            <div class="my-2"><strong>Python call:</strong>
                 <code>python -m {{ run.python_args }}</code>
             </div>
-            <div class="row">
+            <div class="row my-2">
                 <div class="col-5"><strong>Uploaded files:</strong><br>
                     {% set uploads = run.uploaded_files|parse_json %}
                     {% if uploads == {} %}<span class='text-muted'>(None)</span>
@@ -235,7 +240,7 @@
                 </div>
             </div>
             <hr class="my-3 text-center border-secondary">
-            <div class="col-12"><strong>Expected output files</strong>
+            <div class="my-2"><strong>Expected output files</strong>
                 <a
                     href="{{ url_for('get_run_file', program_name=run.program_name, purpose=run.purpose, file=run.program_name + '__' + run.purpose) }}">(zipped
                     run folder)</a>:
@@ -249,21 +254,21 @@
                 {% endfor %}
                 {% endif %}
             </div>
-
-
-            <div class="col-12"><strong>Comment:</strong>
+            <div class="my-2"><strong>Comment:</strong>
                 {% if run.comment == "" %}<span class='text-muted'>(None)</span>
                 {% else %}
                 {{ run.comment }}
                 {% endif %}
             </div>
-            <div class="col-12"><strong>Notifications:</strong>
+            <div><strong>Notifications:</strong>
                 {% if run.notifications == "[]" %}<span class='text-muted'>(None)</span>
                 {% else %}
                 {% set notifications = run.notifications|parse_json %}
                 {{ notifications|join(", ")}}
                 {% endif %}
             </div>
+            <div class="my-2"><a class="btn btn-danger btn-sm"
+                    href="{{ url_for('del_run', program_name=run.program_name, purpose=run.purpose) }}">Delete</a></div>
         </div>
         {% endfor %}
     </div>
@@ -273,6 +278,7 @@
     {% endif %}
 </div>
 
+<!-- invalid email notifier -->
 {% if program_name is not none %}
 <div class="modal fade" id="errorModal" tabindex="-1" aria-labelledby="errorModalLabel" aria-hidden="true">
     <div class="modal-dialog">
@@ -290,8 +296,9 @@
         </div>
     </div>
 </div>
-
 {% endif %}
+
+<!-- disable input field if inherited is selected -->
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         // Handle checkbox toggles for all inputs
