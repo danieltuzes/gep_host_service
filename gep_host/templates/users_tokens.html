@@ -2,7 +2,19 @@
 
 {% block content %}
 <div class="container mt-3">
-    <h2>Users, tokens</h2>
-    List of users, their email addresses
+    <div class="container">
+        <h2 class="d-inline-block">Users, tokens </h2>
+        <span class="badge bg-warning">Not implemented.</span>
+    </div>
+</div>
+<p>A token is specific to an email address and used to authenticate the user behind it.
+    Some actions on this page can be performed only by users with elevated privileges, e.g.:
+<ul>
+    <li>adding or removing users with elevated privileges,</li>
+    <li>deleting programs, runs or libraries,</li>
+    <li>downloading files not marked as public.</li>
+</ul>
+This feature will be implemented once a need for it arises.
+</p>
 </div>
 {% endblock %}
