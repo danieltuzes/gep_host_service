@@ -18,18 +18,22 @@
                 <div class="accordion-body">
                     <form action="{{ url_for('program_install') }}" method="post" enctype="multipart/form-data">
                         <div class="mb-3">
-                            <label for="program_package" class="form-label">Program Package:</label>
+                            <label for="program_package" class="form-label">Program Package<span
+                                    style="color: red;">*</span>:
+                            </label>
                             <input type="file" name="program_package" class="form-control" required>
                         </div>
                         <div class="mb-3">
                             <label for="unique_program_name" class="form-label">Program Name <span class="tooltip-text"
                                     data-bs-toggle="tooltip" data-bs-placement="top"
-                                    title="It can contain only alphanumeric chars and _.- Space is not allowed.">(info)</span>:</label>
+                                    title="It can contain only alphanumeric chars and _.- Space is not allowed.">(info)<span
+                                        style="color: red;">*</span></span>:</label>
                             <input type="text" name="unique_program_name" class="form-control" required
                                 placeholder="My_Unique_Program-Name_v1.0.0">
                         </div>
                         <div class="mb-3">
-                            <label for="required_python_version" class="form-label">Required Python Version:</label>
+                            <label for="required_python_version" class="form-label">Required Python Version<span
+                                    style="color: red;">*</span>:</label>
                             <input type="text" name="required_python_version" class="form-control" required
                                 placeholder="explicit single value, e.g. 3.8">
                         </div>
@@ -48,7 +52,7 @@
                                 <span class="tooltip-text" data-bs-toggle="tooltip" data-bs-placement="top"
                                     title="Enter the string that follows python -m. It can contain only alphanumeric chars and &quot;-&#039;_\^/(,)[.]">(info)</span>:
                             </label>
-                            <input type="text" name="def_args" class="form-control" placeholder="my_lib" required>
+                            <input type="text" name="def_args" class="form-control" placeholder="my_lib">
                         </div>
                         <button type="submit" class="btn btn-primary" id="submitButton" disabled>Upload</button>
                     </form>
