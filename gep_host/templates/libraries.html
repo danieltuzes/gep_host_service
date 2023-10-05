@@ -51,7 +51,7 @@
     </div>
     <div class="container my-4">
         <div class="row mb-2">
-            <div class="col-3 text-center">
+            <div class="col-3">
                 <a
                     href="{{ url_for('libraries', column='library_name', direction='desc' if direction == 'asc' and column == 'library_name' else 'asc') }}">
                     Library Name
@@ -59,7 +59,7 @@
                     {{'↓' if direction == 'desc' and column == 'library_name'}}
                 </a>
             </div>
-            <div class="col-3 text-center">
+            <div class="col-3">
                 <a
                     href="{{ url_for('libraries', column='upload_date', direction='desc' if direction == 'asc' and column == 'upload_date' else 'asc') }}">
                     Upload Date
@@ -67,36 +67,44 @@
                     {{'↓' if direction == 'desc' and column == 'upload_date'}}
                 </a>
             </div>
-            <div class="col-1 text-center">Status</div>
-            <div class="col-5 text-center">Action</div>
+            <div class="col-5 text-end">Action</div>
         </div>
         {% for library in libs.itertuples() %}
         <div class="row">
-            <div class="col-md-3 text-center">{{ library.library_name }}</div>
-            <div class="col-md-3 text-center">{{ library.upload_date }}</div>
-            <div class="col-md-1 text-center">{{ library.status }} </div>
-            <div class="col-md-5 text-center">
-                <a href="{{ url_for('del_library', library_name=library.library_name) }}">Delete</a> |
-                <a href="{{ url_for('get_lib', library_name=library.library_name) }}">Download
-                    ({{library.size}})</a> |
-                <a href="#" onclick="toggleRow(event,this)">Show more</a>
+            <div class="col-md-3">
+                <span data-bs-toggle="tooltip" data-bs-placement="top" title="{{library.status}}">
+                    {% if library.status == "Installed" %}
+                    <span class="badge rounded-pill bg-success">G</span>
+                    {% else %}
+                    <span class="badge rounded-pill bg-danger">X</span>
+                    {% endif %}
+                </span>
+                {{ library.library_name }}
+            </div>
+            <div class="col-md-3">{{ library.upload_date }}</div>
+            <div class="col-md-5 text-end">
+                <a class="btn btn-primary btn-sm mx-1"
+                    href="{{ url_for('get_lib', library_name=library.library_name) }}">Download
+                    ({{library.size}})</a>
+                <a href="#" onclick="toggleRow(event,this)" class="btn btn-info btn-sm mx-1">More</a>
             </div>
         </div>
         <div class="row additional" style="display: none;">
-            <div class="col-12">
+            <div class="my-2"><strong>Status:</strong><br>{{ library.status }} </div>
+            <div class="my-2">
                 <strong>Path to the executables: </strong>{{ library.path_to_exec }}
             </div>
-            <div class="col-12">
+            <div class="my-2">
                 <strong>Comment: </strong>
                 {% if library.comment == "" %}<span class='text-muted'>(None)</span>
                 {% else %}
                 {{ library.comment }}
                 {% endif %}
             </div>
-            <div class="col-12">
+            <div class="my-2">
                 <strong>Original filename:</strong> {{ library.orig_filename }}
             </div>
-            <div class="col-12">
+            <div class="my-2">
                 <strong>Used in the programs:</strong>
                 {% if library.used_in == "[]" %}<span class='text-muted'>(None)</span>
                 {% else %}<br>
@@ -105,6 +113,13 @@
                 {{ used_in }}<br>
                 {% endfor %}
                 {% endif %}
+            </div>
+            <div>
+                <span data-bs-toggle="tooltip" data-bs-placement="top"
+                    title="Deleting the library may affect the programs using it, see above. If you delete it now, you will still be able to add it again."><a
+                        class="btn btn-danger btn-sm"
+                        href="{{ url_for('del_library', library_name=library.library_name) }}">Delete</a>
+                </span>
             </div>
         </div>
         {% endfor %}
