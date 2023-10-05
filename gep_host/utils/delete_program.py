@@ -87,7 +87,7 @@ def delete_program(program_name):
         df = pd.concat([df, put_back])
         df.to_csv('programs/program_details.csv', index=False)
         if os.path.isdir(masterfolder):
-            with open(os.path.join(masterfolder, "output_and_error.log"), 'w') as logf:
+            with open(os.path.join(masterfolder, "install_output_and_error.log"), 'a') as logf:
                 print(f"Error deleting program {program_name}: {e}", file=logf)
                 print(traceback.format_exc(), file=logf)
         else:

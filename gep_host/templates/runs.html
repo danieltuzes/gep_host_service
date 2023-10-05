@@ -189,7 +189,7 @@
         </div>
         <div class="row additional pt-0" style="display: none;">
             <hr>
-            <div class="my-2"><strong>Status:</strong><br>
+            <div class="my-2"><strong>Status: </strong>
                 {{ run.status }}
                 <a href="{{ url_for('run_log', program_name=run.program_name, purpose=run.purpose) }}">
                     Download the run log file
@@ -280,12 +280,12 @@
 
 <!-- invalid email notifier -->
 {% if program_name is not none %}
-<div class="modal fade" id="errorModal" tabindex="-1" aria-labelledby="errorModalLabel" aria-hidden="true">
+<div class="modal fade" id="errorModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="errorModalLabel">Validation Error</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 Invalid email(s) entered.

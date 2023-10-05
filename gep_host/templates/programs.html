@@ -146,7 +146,7 @@
                 {% endfor %}
             </div>
             <div class="my-3"><strong>Default call:</strong>
-                <code>python -m {{ program.def_args }}</code>
+                <code>python -m {{ program.def_args }}{% if program.def_args == "" %}<span class='text-muted'>(no default arguments)</span>{% endif %}</code>
             </div>
             <div class="my-2"><span data-bs-toggle="tooltip" data-bs-placement="top"
                     title="Deleting the program does not delete its runs, nor the libraries linked to it.">

@@ -178,7 +178,7 @@ def init_run(request: flask.Request) -> Union[int, str]:
 
     setup_folder = os.path.join(PROJ_ROOT, 'runs', prg_name, purp)
     cmd = f"python {__file__} {prg_name} {purp}"
-    with open(os.path.join(setup_folder, "output_and_error.log"), 'w') as logf:
+    with open(os.path.join(setup_folder, "run_output_and_error.log"), 'w') as logf:
         proc = subprocess.Popen(cmd, shell=True,
                                 cwd=os.path.dirname(__file__),
                                 stdout=logf, stderr=logf)

@@ -158,7 +158,7 @@ def program_install():
 @app.route('/install_log/<program_name>')
 def install_log(program_name: str):
     log_path = os.path.join(PROJ_ROOT, "programs",
-                            program_name, "output_and_error.log")
+                            program_name, "install_output_and_error.log")
     if os.path.isfile(log_path):
         return send_file(log_path)
     else:
@@ -282,7 +282,7 @@ def del_run(program_name: str, purpose: str):
 @app.route('/run_log/<program_name>/<purpose>')
 def run_log(program_name: str, purpose: str):
     log_path = os.path.join(PROJ_ROOT, "runs", program_name, purpose)
-    return send_from_directory(log_path, "output_and_error.log")
+    return send_from_directory(log_path, "run_output_and_error.log")
 
 
 @app.route('/template/<program_name>/')
@@ -374,7 +374,7 @@ def libraries():
             'upload_date': [nowstr],
             'zip_path': [os.path.relpath(program_zip_path, PROJ_ROOT)],
             'orig_filename': [filename],
-            'status': ["installed"],
+            'status': ["Installed"],
             'size': [file_size_str],
             'comment': request.form["comment"],
             'used_in': [json.dumps([])]

@@ -35,7 +35,7 @@ def init_install(program_name,
     os.makedirs(masterfolder)
     cmd = (f"python {__file__} {program_name} {program_zip_path} "
            f'{python_version} "{selected_libs_str}"')
-    with open(os.path.join(masterfolder, "output_and_error.log"), 'w') as logf:
+    with open(os.path.join(masterfolder, "install_output_and_error.log"), 'w') as logf:
         proc = subprocess.Popen(cmd, shell=True,  stdout=logf, stderr=logf)
 
     # Update program details CSV
