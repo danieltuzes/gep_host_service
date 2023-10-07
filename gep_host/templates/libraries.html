@@ -70,7 +70,7 @@
             <div class="col-5 text-end">Action</div>
         </div>
         {% for library in libs.itertuples() %}
-        <div class="row">
+        <div class="row toggle-row">
             <div class="col-md-3">
                 <span data-bs-toggle="tooltip" data-bs-placement="top" title="{{library.status}}">
                     {% if library.status == "Installed" %}
@@ -86,7 +86,6 @@
                 <a class="btn btn-primary btn-sm mx-1"
                     href="{{ url_for('get_lib', library_name=library.library_name) }}">Download
                     ({{library.size}})</a>
-                <a href="#" onclick="toggleRow(event,this)" class="btn btn-info btn-sm mx-1">More</a>
             </div>
         </div>
         <div class="row additional" style="display: none;">

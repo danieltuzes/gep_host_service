@@ -109,7 +109,7 @@
                     </div>
                 </div>
                 <div class="mb-3">
-                    <label for="notifications">
+                    <label for="comment">
                         Comment:
                     </label>
                     <input type="text" name="comment" class="form-control">
@@ -160,7 +160,7 @@
             <div class="col text-end">Actions</div>
         </div>
         {% for run in runs.itertuples() %}
-        <div class="row">
+        <div class="row toggle-row">
             <div class="col">
                 <span data-bs-toggle="tooltip" data-bs-placement="top" title="{{run.status}}">
                     {% if run.status == "Completed" %}
@@ -177,14 +177,13 @@
             <div class="col">{{ run.setup_date }}</div>
             <div class="col text-end">
                 {% if run.status == "running" %}
-                <a href="#" class="btn btn-warning btn-sm mx-1">Stop</a> |
+                <a href="#" class="btn btn-warning btn-sm me-1 mb-1">Stop</a> |
                 {% endif %}
                 {% if "Completed" in run.status %}
-                <a class="btn btn-primary btn-sm mx-1"
+                <a class="btn btn-primary btn-sm me-1 mb-1"
                     href="{{ url_for('get_run_file', program_name=run.program_name, purpose=run.purpose, file=run.program_name + '__' + run.purpose + '.zip') }}">
                     Download</a>
                 {% endif %}
-                <a href="#" onclick="toggleRow(event,this)" class="btn btn-info btn-sm mx-1">More</a>
             </div>
         </div>
         <div class="row additional pt-0" style="display: none;">

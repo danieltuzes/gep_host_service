@@ -33,6 +33,11 @@
             font-weight: bolder;
         }
 
+        .container>.row.toggle-row:hover {
+            cursor: pointer;
+            background-color: #daecfd;
+        }
+
         .sticky-navbar {
             position: sticky;
             top: 0;
@@ -79,20 +84,24 @@
 
 
     {% if activity is defined %}
-    <div class="position-fixed top-0 end-0 p-3" style="z-index: 1031; top:70px">
-        <div id="toaster" class="toast align-items-center border border-success" role="alert" data-bs-autohide="false">
-            <div class="d-flex">
-                <div class="toast-body">
-                    A task is completed! Click <a href="#" id="reload-link">here</a> to reload.
+    <div class="container">
+        <div class="position-fixed top-0 end-0 p-3" style="z-index: 1031; top:70px">
+            <div id="toaster" class="toast align-items-center border border-success" role="alert"
+                data-bs-autohide="false">
+                <div class="d-flex">
+                    <div class="toast-body">
+                        A task is completed! Click <a href="#" id="reload-link">here</a> to reload.
+                    </div>
+                    <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast"
+                        aria-label="Close"></button>
                 </div>
-                <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
             </div>
         </div>
-    </div>
 
-    <div class="mt-5 pt-3">
-        <div class="container-fluid">
-            <p id="status">{{ activity }}</p>
+        <div class="mt-5 pt-3">
+            <div class="container-fluid">
+                <p id="status">{{ activity }}</p>
+            </div>
         </div>
     </div>
     {% endif %}
@@ -102,27 +111,29 @@
 <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
 <script>
     // show/hide the additional row
-    function toggleRow(event, buttonElement) {
-        event.preventDefault();
-
-        let currentRow = buttonElement.closest('.row');
+    function toggleRow(event) {
+        let currentRow = event.currentTarget;
         let nextRow = currentRow.nextElementSibling;
 
         // Check if the next row exists and has the "additional" class
         if (nextRow && nextRow.classList.contains('additional')) {
-            // Toggle visibility and button text
+            // Toggle visibility
             if (nextRow.style.display === 'none') {
                 nextRow.style.display = '';
-                buttonElement.textContent = 'Hide';
+                currentRow.classList.add('active'); // Add active class
             } else {
                 nextRow.style.display = 'none';
-                buttonElement.textContent = 'More';
+                currentRow.classList.remove('active'); // Remove active class
             }
         }
     }
 
     // don't allow submitting forms without filling required fields
     document.addEventListener('DOMContentLoaded', function () {
+        var toggleRows = document.querySelectorAll('.toggle-row');
+        toggleRows.forEach(function (row) {
+            row.addEventListener('click', toggleRow);
+        });
         var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
         var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
             return new bootstrap.Tooltip(tooltipTriggerEl)
@@ -169,11 +180,14 @@
 
     // how to verify emails
     function areValidEmails(input) {
+        if (input == "") { return true; }
+
         var emails = input.split(/[,;\s]+/);  // Split by comma, semicolon, or whitespace
-        var emailPattern = /(?:^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})?$/;
+        var emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
         for (var i = 0; i < emails.length; i++) {
-            if (!emailPattern.test(emails[i])) {
+            var trimmedEmail = emails[i].trim();
+            if (!emailPattern.test(trimmedEmail)) {
                 return false;
             }
         }
