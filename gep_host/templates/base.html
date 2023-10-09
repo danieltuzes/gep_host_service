@@ -157,6 +157,18 @@
             input.addEventListener('keyup', checkInputs);
             input.addEventListener('input', checkInputs);
         });
+
+        // highlight active content
+        let hash = window.location.hash;
+        if (hash) {
+            let element = document.querySelector(hash);
+            if (element) {
+                element.classList.add("bg-warning");
+                setTimeout(function () {
+                    element.classList.remove("bg-warning");
+                }, 5000);  // remove highlight after 5000 milliseconds (5 seconds)
+            }
+        }
     });
 
     // if email field is invalid, disallow sending

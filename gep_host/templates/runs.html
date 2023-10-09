@@ -7,6 +7,7 @@
         and choose action "run" to initatie a new run.<br>
         Ongoing and previous runs are shown below.</p>
     {% if prg_to_run is not none %}
+    <!-- run configuration -->
     <div class="card">
         <div class="card-header pt-3" id="headingAddProgram">
             <h5>Setup and run {{program_name}}</h5>
@@ -131,8 +132,9 @@
     </div>
     {% endif %}
 
-
+    <!-- existing runs -->
     <div class="container my-4">
+        <!-- header -->
         <div class="row mb-2">
             <div class="col">
                 {% if program_name is not none %}Program Name{% else %}
@@ -162,8 +164,9 @@
             </div>
             <div class="col text-end">Actions</div>
         </div>
+        <!-- content -->
         {% for run in runs.itertuples() %}
-        <div class="row toggle-row">
+        <div class="row toggle-row" id="{{ run.program_name }}__{{ run.purpose }}">
             <div class="col">
                 <span data-bs-toggle="tooltip" data-bs-placement="top" title="{{run.status}}">
                     {% if run.status == "Completed" %}

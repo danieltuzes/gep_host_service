@@ -187,8 +187,9 @@ def init_run(request: Request) -> Union[int, str]:
 
     body = (f"A run of program {prg_name} with purpose {purp} "
             "is successfully triggered. Emails regardless of the outcome "
-            "will be sent. Visit <a href='localhost:5000/runs'>the run page</a> "
-            "for further details.")
+            "will be sent. Visit "
+            f"{conf['host_name']}:5000/runs#{prg_name}__{purp}"
+            " for the run page for further details.")
     send_email("gep_host run trigger", body, notifications)
     return 0
 
