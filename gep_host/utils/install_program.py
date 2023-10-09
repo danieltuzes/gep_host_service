@@ -56,6 +56,7 @@ def init_install(program_name,
 
 
 def run_and_verify(cmd: str, cwd=None):
+    print(cmd)
     proc = subprocess.run(cmd, cwd=cwd, shell=True, text=True,
                           stdout=subprocess.PIPE,
                           stderr=subprocess.STDOUT)
@@ -140,7 +141,7 @@ def install_program(program_name,
         df.loc[df['program_name'] == program_name,
                'status'] = 'installing packages'
         df.to_csv(app_conf["PRG"], index=False)
-        activate_env_command = f'conda activate {program_name}'
+        activate_env_command = f'{app_conf["activate"]}{program_name}'
         if os.path.isfile(os.path.join(masterfolder, "setup.py")):
             print("setup.py is found")
             pip_install_command = ' && pip install .'
@@ -156,11 +157,11 @@ def install_program(program_name,
         required_libs = required_libs_raw.split(", ")
         if len(required_libs) > 0 and os.path.isfile(app_conf["LIB"]):
             libs = pd.read_csv(app_conf["LIB"])
-            conda_devs = [f'conda activate {program_name}']
+            conda_devs = [f'{app_conf["activate"]}{program_name}']
             for lib in libs.itertuples():
                 if lib.library_name not in required_libs:
                     continue
-                path = os.path.join(app_conf["PRGR"],
+                path = os.path.join(app_conf["LIBR"],
                                     lib.library_name,
                                     lib.path_to_exec)
                 conda_devs.append(f'conda develop "{path}"')

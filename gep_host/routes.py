@@ -7,6 +7,7 @@ import traceback
 import zipfile
 import platform
 import multiprocessing
+import logging
 from io import StringIO
 
 from flask import render_template, request, redirect, flash, \
@@ -250,15 +251,16 @@ def users_tokens():
     return render_template('users_tokens.html')
 
 
-@main_routes.route('/program/<program_name>/<input_value>')
-def get_program_input(program_name, input_value):
+@main_routes.route('/program/<program_name>/<path:input_path>')
+def get_program_input(program_name, input_path):
     f_path = os.path.join(
-        current_app.config["PRGR"], program_name, input_value)
+        current_app.config["PRGR"], program_name, input_path)
+    logging.info("sending %s", f_path)
     return send_from_directory(os.path.dirname(f_path),
                                os.path.basename(f_path))
 
 
-@main_routes.route('/run/<program_name>/<purpose>/<file>')
+@main_routes.route('/run/<program_name>/<purpose>/<path:file>')
 def get_run_file(program_name, purpose, file):
     f_path = os.path.join(current_app.config["RUNR"],
                           program_name,

@@ -49,3 +49,10 @@ def set_conf(config: dict):
                                                  fallback="developer_ID@company.com, manager@company.com")
     config["host_name"] = prg_config.get("settings", "host_name",
                                          fallback="localhost")
+    activate = prg_config.get("settings", "activate",
+                              fallback="conda activate ")
+    if activate.startswith('"') and activate.endswith('"'):
+        activate = activate[1:-1]
+    config["activate"] = activate
+    config["lib_def_path"] = prg_config.get("settings", "lib_def_path",
+                                            fallback="bin64")

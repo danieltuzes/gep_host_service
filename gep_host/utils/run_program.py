@@ -208,7 +208,7 @@ def run_program(prg_name, purp):
         runs.to_csv(conf["RUN"], index=False)
 
         # Activate the conda environment and run the program
-        activate_env_command = f'conda activate {prg_name}'
+        activate_env_command = f'{conf["activate"]}{prg_name}'
         args = runs.loc[id_row(runs, prg_name, purp), 'python_args'].iloc[0]
         i_cmd = f'{activate_env_command} && python -m {args}'
         setup_folder = os.path.join(conf["RUNR"], prg_name, purp)

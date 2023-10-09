@@ -131,7 +131,7 @@
                 {{ input_name }}:
                 {% if input_value is not none %}
                 <a
-                    href="{{ url_for('main_routes.get_program_input', program_name=program.program_name, input_value=input_value) }}">
+                    href="{{ url_for('main_routes.get_program_input', program_name=program.program_name, input_path=input_value) }}">
                     {{ input_value }}
                 </a>
                 {% else %}
