@@ -4,7 +4,6 @@ import datetime
 import os
 import subprocess
 import sys
-from pathlib import Path
 from configparser import ConfigParser, ExtendedInterpolation
 import json
 import traceback
@@ -18,13 +17,8 @@ import socket
 
 import pandas as pd
 from werkzeug.utils import secure_filename
-import flask
+from flask import Request, current_app
 from unidecode import unidecode
-
-PROJ_ROOT = Path(os.path.dirname(__file__)).parent.parent.parent
-RUN_DETAILS_CSV = os.path.join(PROJ_ROOT, 'runs', 'run_details.csv')
-PROGRAM_DETAILS_CSV = os.path.join(PROJ_ROOT,
-                                   'programs/program_details.csv')
 
 
 def id_row(details: pd.DataFrame, prg_name: str, purp: str):
@@ -34,7 +28,7 @@ def id_row(details: pd.DataFrame, prg_name: str, purp: str):
 
 
 def extract_emails(emails_input: str) -> List[str]:
-    email_pattern = r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'
+    email_pattern = current_app.config["email_patter"]
     return re.findall(email_pattern, emails_input)
 
 
@@ -58,28 +52,29 @@ def send_email(subject: str, body: str, receiver_emails: List[str]) -> None:
             return ret
 
 
-def init_run(request: flask.Request) -> Union[int, str]:
+def init_run(request: Request) -> Union[int, str]:
     """Process the run request, and create detached run."""
     from .helpers import alnum, safer_call, concat_to
+    conf = current_app.config
 
     # check if the purpose is unique
     prg_name = request.form["program_name"]
     purp = alnum(request.form["purpose"], "_-.")
-    setup_folder = os.path.join(PROJ_ROOT, "runs", prg_name, purp)
+    setup_folder = os.path.join(conf["ROOT"], "runs", prg_name, purp)
     if os.path.isdir(setup_folder):
         return ("Run setup is unsuccessful. "
                 "Cannot save the run files to a new folder."
                 "Is the purpose name unique?")
 
     # copy the program to a new location
-    masterfolder = os.path.join(PROJ_ROOT, "programs", prg_name)
+    masterfolder = os.path.join(conf["ROOT"], "programs", prg_name)
     shutil.copytree(masterfolder, setup_folder)
 
     # save all the inputs
     input_folder = os.path.join(setup_folder, "inputs")
     os.makedirs(input_folder, exist_ok=True)
     masterinput = request.files["masterinput"]
-    prgs = pd.read_csv(PROGRAM_DETAILS_CSV, dtype=str)
+    prgs = pd.read_csv(conf["PRG"], dtype=str)
     inputs = Dict[str, str]
     inputs = json.loads(prgs.loc[prgs.program_name == prg_name,
                                  "inputs"].iloc[0])
@@ -174,18 +169,21 @@ def init_run(request: flask.Request) -> Union[int, str]:
         'comment': request.form["comment"],
         'notifications': [json.dumps(notifications)]
     })
-    concat_to(new_entry, RUN_DETAILS_CSV)
+    concat_to(new_entry, conf["RUN"])
 
-    setup_folder = os.path.join(PROJ_ROOT, 'runs', prg_name, purp)
+    # start the execution in a detached process
+    setup_folder = os.path.join(conf["ROOT"], 'runs', prg_name, purp)
     cmd = f"python {__file__} {prg_name} {purp}"
     with open(os.path.join(setup_folder, "run_output_and_error.log"), 'w') as logf:
         proc = subprocess.Popen(cmd, shell=True,
                                 cwd=os.path.dirname(__file__),
                                 stdout=logf, stderr=logf)
 
-    runs = pd.read_csv(RUN_DETAILS_CSV, dtype=str)
+    # set run information
+    runs = pd.read_csv(conf["RUN"], dtype=str)
     runs.loc[(runs['program_name'] == prg_name) &
              (runs['purpose'] == purp), 'PID'] = proc.pid
+    runs.to_csv(conf["RUN"], index=False)
 
     body = (f"A run of program {prg_name} with purpose {purp} "
             "is successfully triggered. Emails regardless of the outcome "
@@ -196,35 +194,42 @@ def init_run(request: flask.Request) -> Union[int, str]:
 
 
 def run_program(prg_name, purp):
-    from helpers import zipdir
+    from set_conf import set_conf
+    conf = {}
+    set_conf(conf)
+
     code = 0
     body = f"The program {prg_name} with purpose {purp} "
+
     try:
         # Update status in run_details.csv
-        runs = pd.read_csv(RUN_DETAILS_CSV, dtype=str).fillna("")
+        runs = pd.read_csv(conf["RUN"], dtype=str).fillna("")
         runs.loc[id_row(runs, prg_name, purp), 'status'] = 'running'
-        runs.to_csv(RUN_DETAILS_CSV, index=False)
+        runs.to_csv(conf["RUN"], index=False)
 
         # Activate the conda environment and run the program
         activate_env_command = f'conda activate {prg_name}'
         args = runs.loc[id_row(runs, prg_name, purp), 'python_args'].iloc[0]
         i_cmd = f'{activate_env_command} && python -m {args}'
-        setup_folder = os.path.join(PROJ_ROOT, 'runs', prg_name, purp)
+        setup_folder = os.path.join(conf["RUNR"], prg_name, purp)
         proc = subprocess.run(i_cmd, shell=True, cwd=setup_folder, text=True,
                               stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                               check=True)
 
+        print(proc.stdout, flush=True)
+
         # compress the whole folder to offer for download
-        zip_file = os.path.join(setup_folder,
+        zip_file = os.path.join(conf["ROOT"],
                                 f"{program_name}__{purp}.zip")
-        zipdir(setup_folder, zip_file)
+        shutil.make_archive(zip_file[:-4], 'zip',
+                            root_dir=setup_folder, base_dir='.')
+        shutil.move(zip_file, setup_folder)
 
         # Update status in run_details.csv to completed
         runs.loc[id_row(runs, prg_name, purp), 'status'] = 'Completed'
         runs.loc[id_row(runs, prg_name, purp) == prg_name,
                  'PID'] = ''
-        print(proc.stdout)
-        body += f"is successfully completed."
+        body += "is successfully completed."
 
     except subprocess.CalledProcessError as err:
         code = 1
@@ -242,7 +247,7 @@ def run_program(prg_name, purp):
             f'Completed with error 2'
         body += "had an error upon trying to call the program."
     finally:
-        runs.to_csv(RUN_DETAILS_CSV, index=False)
+        runs.to_csv(conf["RUN"], index=False)
         body += (" See more details on "
                  f"<a href='{socket.gethostname()}'>the run page.</a>")
         notifs = runs.loc[id_row(runs, prg_name, purp),

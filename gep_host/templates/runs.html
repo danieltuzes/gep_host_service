@@ -3,7 +3,7 @@
 {% block content %}
 <div class="container mt-3">
     <h2>Runs</h2>
-    <p>Select a program from the <a href="{{ url_for('programs')}}">installed ones</a>
+    <p>Select a program from the <a href="{{ url_for('main_routes.programs')}}">installed ones</a>
         and choose action "run" to initatie a new run.<br>
         Ongoing and previous runs are shown below.</p>
     {% if prg_to_run is not none %}
@@ -12,7 +12,7 @@
             <h5>Setup and run {{program_name}}</h5>
         </div>
         <div class="card-body">
-            <form action="{{ url_for('trigger_run') }}" method="post" enctype="multipart/form-data">
+            <form action="{{ url_for('main_routes.trigger_run') }}" method="post" enctype="multipart/form-data">
                 <div class="row">
                     <div class="mb-3 col-md-6">
                         <label for="program_name">Program Name:</label>
@@ -54,7 +54,7 @@
                                         <input type="file" class="form-control" id="masterinput" name="masterinput">
                                     </div>
                                     <div class="col-sm-4 col-form-label">
-                                        <a href="{{ url_for('get_template', program_name=program_name) }}">
+                                        <a href="{{ url_for('main_routes.get_template', program_name=program_name) }}">
                                             Get the MasterInput.cfg template
                                         </a>
                                     </div>
@@ -74,6 +74,9 @@
                             data-bs-parent="#runInputAccordion">
                             <div class="accordion-body">
                                 {% set inputs = prg_to_run.inputs|parse_json %}
+                                {% if not inputs %}
+                                <span class="text-muted">No inputs are associated with this program.</span>
+                                {% endif %}
                                 {% for input_name, input_path in inputs.items() %}
                                 {% if input_path is not none %}
                                 <div class="mb-3 row">
@@ -88,7 +91,7 @@
                                             id="check{{ input_name }}" checked>
                                         <label class="form-check-label" for="check{{ input_name }}">Inherit
                                             <a
-                                                href="{{ url_for('get_program_input', program_name=program_name, input_value=input_path) }}">{{input_path}}</a></label>
+                                                href="{{ url_for('main_routes.get_program_input', program_name=program_name, input_value=input_path) }}">{{input_path}}</a></label>
                                     </div>
                                 </div>
                                 {% else %}
@@ -119,7 +122,7 @@
                         Notify in email:
                     </label>
                     <input type="text" name="notifications" class="form-control" id="emailInput"
-                        placeholder="developer_ID@company.com, manager@company.com">
+                        placeholder="{{ email_placeholder }}">
                 </div>
                 <button type="submit" class="btn btn-primary" id="submitButton" disabled>Start run</button>
             </form>
@@ -134,7 +137,7 @@
             <div class="col">
                 {% if program_name is not none %}Program Name{% else %}
                 <a
-                    href="{{ url_for('runs', column='program_name', program_name=program_name, direction='desc' if direction == 'asc' and column == 'program_name' else 'asc') }}">
+                    href="{{ url_for('main_routes.runs', column='program_name', program_name=program_name, direction='desc' if direction == 'asc' and column == 'program_name' else 'asc') }}">
                     Program Name
                     {{'↑' if direction == 'asc' and column == 'program_name'}}
                     {{'↓' if direction == 'desc' and column == 'program_name'}}
@@ -143,7 +146,7 @@
             </div>
             <div class="col">
                 <a
-                    href="{{ url_for('runs', column='purpose', program_name=program_name, direction='desc' if direction == 'asc' and column == 'purpose' else 'asc') }}">
+                    href="{{ url_for('main_routes.runs', column='purpose', program_name=program_name, direction='desc' if direction == 'asc' and column == 'purpose' else 'asc') }}">
                     Purpose
                     {{'↑' if direction == 'asc' and column == 'purpose'}}
                     {{'↓' if direction == 'desc' and column == 'purpose'}}
@@ -151,7 +154,7 @@
             </div>
             <div class="col">
                 <a
-                    href="{{ url_for('runs', column='setup_date', program_name=program_name, direction='desc' if direction == 'asc' and column == 'setup_date' else 'asc') }}">
+                    href="{{ url_for('main_routes.runs', column='setup_date', program_name=program_name, direction='desc' if direction == 'asc' and column == 'setup_date' else 'asc') }}">
                     Start Date
                     {{'↑' if direction == 'asc' and column == 'setup_date'}}
                     {{'↓' if direction == 'desc' and column == 'setup_date'}}
@@ -164,11 +167,11 @@
             <div class="col">
                 <span data-bs-toggle="tooltip" data-bs-placement="top" title="{{run.status}}">
                     {% if run.status == "Completed" %}
-                    <span class="badge rounded-pill bg-success">G</span>
-                    {% elif "error" in run.status %}
+                    <span class="badge rounded-pill bg-success">✓</span>
+                    {% elif "error" in run.status or "terminated" in run.status %}
                     <span class="badge rounded-pill bg-danger">X</span>
                     {% else %}
-                    <span class="badge rounded-pill bg-info">C</span>
+                    <span class="badge rounded-pill bg-info">↺</span>
                     {% endif %}
                 </span>
                 {{ run.program_name}}
@@ -176,12 +179,13 @@
             <div class="col">{{ run.purpose }}</div>
             <div class="col">{{ run.setup_date }}</div>
             <div class="col text-end">
-                {% if run.status == "running" %}
-                <a href="#" class="btn btn-warning btn-sm me-1 mb-1">Stop</a> |
+                {% if run.status in ["running","set up"] %}
+                <a href="{{ url_for('main_routes.stop_run', program_name=run.program_name, purpose=run.purpose) }}"
+                    class="btn btn-warning btn-sm me-1 mb-1">Stop</a>
                 {% endif %}
                 {% if "Completed" in run.status %}
                 <a class="btn btn-primary btn-sm me-1 mb-1"
-                    href="{{ url_for('get_run_file', program_name=run.program_name, purpose=run.purpose, file=run.program_name + '__' + run.purpose + '.zip') }}">
+                    href="{{ url_for('main_routes.get_run_file', program_name=run.program_name, purpose=run.purpose, file=run.program_name + '__' + run.purpose + '.zip') }}">
                     Download</a>
                 {% endif %}
             </div>
@@ -190,7 +194,7 @@
             <hr>
             <div class="my-2"><strong>Status: </strong>
                 {{ run.status }}
-                <a href="{{ url_for('run_log', program_name=run.program_name, purpose=run.purpose) }}">
+                <a href="{{ url_for('main_routes.run_log', program_name=run.program_name, purpose=run.purpose) }}">
                     Download the run log file
                 </a>
             </div>
@@ -205,7 +209,7 @@
                     {% for input_name, input_value in uploads.items() %}
                     {{ input_name }}: {% if input_value is not none %}
                     <a
-                        href="{{ url_for('get_run_file', program_name=run.program_name, purpose=run.purpose, file=input_value) }}">
+                        href="{{ url_for('main_routes.get_run_file', program_name=run.program_name, purpose=run.purpose, file=input_value) }}">
                         {{ input_value }}</a>
                     <br>
                     {% else %}
@@ -220,7 +224,7 @@
                     {% else %}
                     {% for input_name, input_value in inherits.items() %}
                     {{ input_name }}: {% if input_value is not none %}<a
-                        href="{{ url_for('get_run_file', program_name=run.program_name, purpose=run.purpose, file=input_value) }}">
+                        href="{{ url_for('main_routes.get_run_file', program_name=run.program_name, purpose=run.purpose, file=input_value) }}">
                         {{ input_value }}</a>
                     <br>
                     {% endif %}
@@ -241,7 +245,7 @@
             <hr class="my-3 text-center border-secondary">
             <div class="my-2"><strong>Expected output files</strong>
                 <a
-                    href="{{ url_for('get_run_file', program_name=run.program_name, purpose=run.purpose, file=run.program_name + '__' + run.purpose) }}">(zipped
+                    href="{{ url_for('main_routes.get_run_file', program_name=run.program_name, purpose=run.purpose, file=run.program_name + '__' + run.purpose + '.zip') }}">(zipped
                     run folder)</a>:
                 <br>
                 {% set outputs = run.outputs|parse_json %}
@@ -249,7 +253,7 @@
                 {% else %}
                 {% for output_name, output_path in outputs.items() %}
                 {{ output_name }}: <a
-                    href="{{ url_for('get_run_file', program_name=run.program_name, purpose=run.purpose, file=output_path) }}">{{output_path}}</a><br>
+                    href="{{ url_for('main_routes.get_run_file', program_name=run.program_name, purpose=run.purpose, file=output_path) }}">{{output_path}}</a><br>
                 {% endfor %}
                 {% endif %}
             </div>
@@ -267,7 +271,8 @@
                 {% endif %}
             </div>
             <div class="my-2"><a class="btn btn-danger btn-sm"
-                    href="{{ url_for('del_run', program_name=run.program_name, purpose=run.purpose) }}">Delete</a></div>
+                    href="{{ url_for('main_routes.del_run', program_name=run.program_name, purpose=run.purpose) }}">Delete</a>
+            </div>
         </div>
         {% endfor %}
     </div>

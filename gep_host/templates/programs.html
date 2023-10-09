@@ -17,7 +17,8 @@
             </h5>
             <div id="collapseOne" class="accordion-collapse collapse" data-bs-parent="#installProgramAccordion">
                 <div class="accordion-body">
-                    <form action="{{ url_for('program_install') }}" method="post" enctype="multipart/form-data">
+                    <form action="{{ url_for('main_routes.program_install') }}" method="post"
+                        enctype="multipart/form-data">
                         <div class="mb-3">
                             <label for="program_package" class="form-label">Program Package<span
                                     style="color: red;">*</span>:
@@ -67,7 +68,7 @@
         <div class="row mb-2">
             <div class="col">
                 <a
-                    href="{{ url_for('programs', column='program_name', direction='desc' if direction == 'asc' and column == 'program_name' else 'asc') }}">
+                    href="{{ url_for('main_routes.programs', column='program_name', direction='desc' if direction == 'asc' and column == 'program_name' else 'asc') }}">
                     Program Name
                     {{'↑' if direction == 'asc' and column == 'program_name'}}
                     {{'↓' if direction == 'desc' and column == 'program_name'}}
@@ -75,7 +76,7 @@
             </div>
             <div class="col">
                 <a
-                    href="{{ url_for('programs', column='upload_date', direction='desc' if direction == 'asc' and column == 'upload_date' else 'asc') }}">
+                    href="{{ url_for('main_routes.programs', column='upload_date', direction='desc' if direction == 'asc' and column == 'upload_date' else 'asc') }}">
                     Upload Date
                     {{'↑' if direction == 'asc' and column == 'upload_date'}}
                     {{'↓' if direction == 'desc' and column == 'upload_date'}}
@@ -90,11 +91,11 @@
                 <span data-bs-toggle="tooltip" data-bs-placement="top" title="{{program.status}}">
                     {% if program.status == "Installed" %}
 
-                    <span class="badge rounded-pill bg-success">G</span>
+                    <span class="badge rounded-pill bg-success">✓</span>
                     {% elif "error" in program.status %}
                     <span class="badge rounded-pill bg-danger">X</span>
                     {% else %}
-                    <span class="badge rounded-pill bg-info">C</span>
+                    <span class="badge rounded-pill bg-info">↺</span>
                     {% endif %}
                 </span>
                 {{ program.program_name }}
@@ -109,10 +110,10 @@
             </div>
             <div class="col text-end">
                 {% if program.status == "Installed" %}
-                <a href="{{ url_for('runs', program_name=program.program_name) }}"
+                <a href="{{ url_for('main_routes.runs', program_name=program.program_name) }}"
                     class="btn btn-success btn-sm  me-1 mb-1">Run</a>
                 {% endif %}
-                <a href="{{ url_for('get_prg', program_name=program.program_name)}}"
+                <a href="{{ url_for('main_routes.get_prg', program_name=program.program_name)}}"
                     class="btn btn-primary btn-sm me-1 mb-1">Download</a>
             </div>
         </div>
@@ -120,7 +121,8 @@
             <hr>
             <div class="my-3"><strong>Program status:</strong>
                 {{ program.status }}
-                <a href="{{ url_for('install_log', program_name=program.program_name) }}">Download the install log
+                <a href="{{ url_for('main_routes.install_log', program_name=program.program_name) }}">Download the
+                    install log
                     file</a>
             </div>
             <div class="col-6" class="my-3"><strong>Inputs:</strong><br>
@@ -129,7 +131,7 @@
                 {{ input_name }}:
                 {% if input_value is not none %}
                 <a
-                    href="{{ url_for('get_program_input', program_name=program.program_name, input_value=input_value) }}">
+                    href="{{ url_for('main_routes.get_program_input', program_name=program.program_name, input_value=input_value) }}">
                     {{ input_value }}
                 </a>
                 {% else %}
@@ -150,7 +152,7 @@
             </div>
             <div class="my-2"><span data-bs-toggle="tooltip" data-bs-placement="top"
                     title="Deleting the program does not delete its runs, nor the libraries linked to it.">
-                    <a href="{{ url_for('del_program', program_name=program.program_name) }}"
+                    <a href="{{ url_for('main_routes.del_program', program_name=program.program_name) }}"
                         class="btn btn-danger btn-sm">
                         Delete
                     </a>

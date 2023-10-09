@@ -12,7 +12,7 @@
     </p>
     <p>
         When installing a library, keep in mind the system specification from the
-        <a href="{{ url_for('index') }}">index page</a>.
+        <a href="{{ url_for('main_routes.index') }}">index page</a>.
     </p>
     <div class="accordion mb-3" id="addLibraryAccordion">
         <div class="accordion-item">
@@ -24,7 +24,7 @@
             </h5>
             <div id="collapseOne" class="accordion-collapse collapse" data-bs-parent="#addLibraryAccordion">
                 <div class="accordion-body">
-                    <form action="{{ url_for('libraries') }}" method="post" enctype="multipart/form-data">
+                    <form action="{{ url_for('main_routes.libraries') }}" method="post" enctype="multipart/form-data">
                         <div class="mb-3">
                             <label for="library_package" class="form-label">Library Package:</label>
                             <input type="file" name="library_package" class="form-control" required>
@@ -53,7 +53,7 @@
         <div class="row mb-2">
             <div class="col-3">
                 <a
-                    href="{{ url_for('libraries', column='library_name', direction='desc' if direction == 'asc' and column == 'library_name' else 'asc') }}">
+                    href="{{ url_for('main_routes.libraries', column='library_name', direction='desc' if direction == 'asc' and column == 'library_name' else 'asc') }}">
                     Library Name
                     {{'↑' if direction == 'asc' and column == 'library_name'}}
                     {{'↓' if direction == 'desc' and column == 'library_name'}}
@@ -61,7 +61,7 @@
             </div>
             <div class="col-3">
                 <a
-                    href="{{ url_for('libraries', column='upload_date', direction='desc' if direction == 'asc' and column == 'upload_date' else 'asc') }}">
+                    href="{{ url_for('main_routes.libraries', column='upload_date', direction='desc' if direction == 'asc' and column == 'upload_date' else 'asc') }}">
                     Upload Date
                     {{'↑' if direction == 'asc' and column == 'upload_date'}}
                     {{'↓' if direction == 'desc' and column == 'upload_date'}}
@@ -74,7 +74,7 @@
             <div class="col-md-3">
                 <span data-bs-toggle="tooltip" data-bs-placement="top" title="{{library.status}}">
                     {% if library.status == "Installed" %}
-                    <span class="badge rounded-pill bg-success">G</span>
+                    <span class="badge rounded-pill bg-success">✓</span>
                     {% else %}
                     <span class="badge rounded-pill bg-danger">X</span>
                     {% endif %}
@@ -84,7 +84,7 @@
             <div class="col-md-3">{{ library.upload_date }}</div>
             <div class="col-md-5 text-end">
                 <a class="btn btn-primary btn-sm mx-1"
-                    href="{{ url_for('get_lib', library_name=library.library_name) }}">Download
+                    href="{{ url_for('main_routes.get_lib', library_name=library.library_name) }}">Download
                     ({{library.size}})</a>
             </div>
         </div>
@@ -117,7 +117,7 @@
                 <span data-bs-toggle="tooltip" data-bs-placement="top"
                     title="Deleting the library may affect the programs using it, see above. If you delete it now, you will still be able to add it again."><a
                         class="btn btn-danger btn-sm"
-                        href="{{ url_for('del_library', library_name=library.library_name) }}">Delete</a>
+                        href="{{ url_for('main_routes.del_library', library_name=library.library_name) }}">Delete</a>
                 </span>
             </div>
         </div>

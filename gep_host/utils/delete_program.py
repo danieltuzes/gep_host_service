@@ -3,13 +3,9 @@ import subprocess
 import shutil
 import sys
 import traceback
-from pathlib import Path
 import json
 
 import pandas as pd
-
-PROJ_ROOT = Path(os.path.dirname(__file__)).parent.parent.parent
-LIB_DETAILS_CSV = os.path.join(PROJ_ROOT, 'libs/lib_details.csv')
 
 
 def run_and_verify(cmd: str, cwd=None):
@@ -35,21 +31,35 @@ def remove_val_from_json(json_str, val_2_remove):
 
 
 def delete_program(program_name):
+    """Delete a program.
+
+    Parameters
+    ----------
+    program_name : _type_
+        Delete this program and its zip file.
+
+    """
+    # the price of using the same file where the deletion is initiated from python
+    # and where the console script's deletion is implemented
+    from set_conf import set_conf
+    config = {}
+    set_conf(config)
+
     code = 0
     try:
-        masterfolder = os.path.join(PROJ_ROOT, 'programs', program_name)
+        masterfolder = os.path.join(config["PRGR"], program_name)
         # 1. remove program_details.csv and get the zip_fname
-        df = pd.read_csv('programs/program_details.csv', dtype=str)
+        df = pd.read_csv(config["PRG"], dtype=str)
         zip_fname = df.loc[df['program_name'] ==
                            program_name, "zip_fname"].iloc[0]
         df = df[df['program_name'] != program_name]
-        df.to_csv('programs/program_details.csv', index=False)
+        df.to_csv(config["PRG"], index=False)
 
         # 2. remove the folder recursively
         if zip_fname != zip_fname:
             print("Program package file is not associated with the program.")
         else:
-            zip_path = os.path.join(PROJ_ROOT, "programs", zip_fname)
+            zip_path = os.path.join(config["PRGR"], zip_fname)
             if os.path.isfile(zip_path):
                 os.remove(zip_path)
             else:
@@ -65,10 +75,11 @@ def delete_program(program_name):
         cmd = f'conda env remove -n {program_name}'
         run_and_verify(cmd)
 
-        libs = pd.read_csv(LIB_DETAILS_CSV)
-        libs["used_in"] = libs["used_in"].apply(remove_val_from_json,
-                                                val_2_remove=program_name)
-        libs.to_csv(LIB_DETAILS_CSV)
+        if os.path.isfile(config["LIB"]):
+            libs = pd.read_csv(config["LIB"])
+            libs["used_in"] = libs["used_in"].apply(remove_val_from_json,
+                                                    val_2_remove=program_name)
+            libs.to_csv(config["LIB"])
 
         return code
 
@@ -85,7 +96,7 @@ def delete_program(program_name):
         put_back = pd.DataFrame({"program_name": [program_name],
                                  "status": ["program uninstall error"]})
         df = pd.concat([df, put_back])
-        df.to_csv('programs/program_details.csv', index=False)
+        df.to_csv(config["PRG"], index=False)
         if os.path.isdir(masterfolder):
             with open(os.path.join(masterfolder, "install_output_and_error.log"), 'a') as logf:
                 print(f"Error deleting program {program_name}: {e}", file=logf)

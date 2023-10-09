@@ -7,8 +7,7 @@ import traceback
 
 import pandas as pd
 
-PROJ_ROOT = Path(os.path.dirname(__file__)).parent.parent.parent
-RUN_DETAILS_CSV = os.path.join(PROJ_ROOT, 'runs/run_details.csv')
+from flask import current_app
 
 
 def init_del(program_name: str, purpose: str):
@@ -19,16 +18,30 @@ def init_del(program_name: str, purpose: str):
 
 
 def delete_run(program_name: str, purpose: str):
+    """Deletes a run.
+
+    Parameters
+    ----------
+    program_name : str
+        The program name for which the run was made.
+    purpose : str
+        The purpose used for the run.
+    """
+    # the price of using the same file where the deletion is initiated from python
+    # and where the console script's deletion is implemented
+    from set_conf import set_conf
+    config = {}
+    set_conf(config)
+
     try:
         # 1. remove run_details.csv
-        df = pd.read_csv(RUN_DETAILS_CSV, dtype=str)
+        df = pd.read_csv(config["RUN"], dtype=str)
         df = df[~((df['program_name'] == program_name)
                 & (df['purpose'] == purpose))]
-        df.to_csv(RUN_DETAILS_CSV, index=False)
+        df.to_csv(config["RUN"], index=False)
 
         # 2. remove the folder recursively
-        setup_folder = os.path.join(PROJ_ROOT,
-                                    'runs',
+        setup_folder = os.path.join(config["RUNR"],
                                     program_name,
                                     purpose)
         shutil.rmtree(setup_folder)
@@ -46,9 +59,9 @@ def delete_run(program_name: str, purpose: str):
         print(traceback.format_exc())
         put_back = pd.DataFrame({"program_name": [program_name],
                                  "purpose": [purpose],
-                                 "status": ["run delete error"]})
+                                 "status": ["Completed (run delete error)"]})
         df = pd.concat([df, put_back])
-        df.to_csv(RUN_DETAILS_CSV, index=False)
+        df.to_csv(config["RUN"], index=False)
         return 2
 
 

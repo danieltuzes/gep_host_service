@@ -5,16 +5,11 @@ import json
 import sys
 import datetime
 from configparser import ConfigParser, ExtendedInterpolation
-from pathlib import Path
 from typing import Union
 import traceback
 
 import pandas as pd
-
-PROJ_ROOT = Path(os.path.dirname(__file__)).parent.parent.parent
-PROGRAM_DETAILS_CSV = os.path.join(PROJ_ROOT,
-                                   'programs/program_details.csv')
-LIB_DETAILS_CSV = os.path.join(PROJ_ROOT, 'libs/lib_details.csv')
+from flask import current_app
 
 
 def init_install(program_name,
@@ -23,15 +18,15 @@ def init_install(program_name,
                  selected_libs,
                  def_args) -> Union[int, str]:
     # Check uniqueness of program name
-    if os.path.exists(PROGRAM_DETAILS_CSV):
-        df = pd.read_csv(PROGRAM_DETAILS_CSV, dtype=str)
+    if os.path.exists(current_app.config["PRG"]):
+        df = pd.read_csv(current_app.config["PRG"], dtype=str)
         if program_name in df['program_name'].values:
             os.remove(program_zip_path)
             return 'Program upload unsuccessful due to non-unique name.'
 
     # trigger the installation
     selected_libs_str = ", ".join(selected_libs)
-    masterfolder = os.path.join(PROJ_ROOT, 'programs', program_name)
+    masterfolder = os.path.join(current_app.config["PRGR"], program_name)
     os.makedirs(masterfolder)
     cmd = (f"python {__file__} {program_name} {program_zip_path} "
            f'{python_version} "{selected_libs_str}"')
@@ -51,11 +46,11 @@ def init_install(program_name,
         'inputs': json.dumps({}),
         'outputs': json.dumps({})
     })
-    if os.path.exists(PROGRAM_DETAILS_CSV):
+    if os.path.exists(current_app.config["PRG"]):
         df = pd.concat([df, new_entry], ignore_index=True)
     else:
         df = new_entry
-    df.to_csv(PROGRAM_DETAILS_CSV, index=False)
+    df.to_csv(current_app.config["PRG"], index=False)
 
     return 0
 
@@ -74,16 +69,20 @@ def install_program(program_name,
                     program_zip_name,
                     required_python_version,
                     required_libs_raw: str):
+    from set_conf import set_conf
+    app_conf = {}
+    set_conf(app_conf)
+
     code = 0
     try:
         # 1. Update status in program_details.csv
-        df = pd.read_csv(PROGRAM_DETAILS_CSV, dtype=str)
+        df = pd.read_csv(app_conf["PRG"], dtype=str)
         df.loc[df['program_name'] == program_name, 'status'] = 'extracting'
-        df.to_csv(PROGRAM_DETAILS_CSV, index=False)
+        df.to_csv(app_conf["PRG"], index=False)
 
         # 2. Extract zip to the masterfolder
-        zipf = os.path.join(PROJ_ROOT, 'programs', program_zip_name)
-        masterfolder = os.path.join(PROJ_ROOT, 'programs', program_name)
+        zipf = os.path.join(app_conf["PRGR"], program_zip_name)
+        masterfolder = os.path.join(app_conf["PRGR"], program_name)
         with zipfile.ZipFile(zipf, 'r') as zip_ref:
             zip_ref.extractall(masterfolder)
 
@@ -123,6 +122,7 @@ def install_program(program_name,
                         code = 3
                     outputs[option] = rel_ofile
 
+        df = pd.read_csv(app_conf["PRG"], dtype=str)
         df.loc[df['program_name'] == program_name,
                'inputs'] = json.dumps(inputs)
         df.loc[df['program_name'] == program_name,
@@ -131,29 +131,36 @@ def install_program(program_name,
         # 4. Create a new conda environment with the provided python version
         df.loc[df['program_name'] == program_name,
                'status'] = 'creating conda env'
-        df.to_csv(PROGRAM_DETAILS_CSV, index=False)
+        df.to_csv(app_conf["PRG"], index=False)
         c_cmd = f'conda create -y -n {program_name} python={required_python_version} conda-build'
         run_and_verify(c_cmd)
 
         # 4. Activate the new conda environment and install the program using pip
+        df = pd.read_csv(app_conf["PRG"], dtype=str)
         df.loc[df['program_name'] == program_name,
                'status'] = 'installing packages'
-        df.to_csv(PROGRAM_DETAILS_CSV, index=False)
+        df.to_csv(app_conf["PRG"], index=False)
         activate_env_command = f'conda activate {program_name}'
-        pip_install_command = 'pip install .'
-        i_cmd = f'{activate_env_command} && {pip_install_command}'
+        if os.path.isfile(os.path.join(masterfolder, "setup.py")):
+            print("setup.py is found")
+            pip_install_command = ' && pip install .'
+        elif os.path.join(masterfolder, "requirements.txt"):
+            print("requirements.txt is found")
+            pip_install_command = ' && pip install -r requirements.txt'
+        else:
+            pip_install_command = ""
+        i_cmd = f'{activate_env_command} {pip_install_command}'
         run_and_verify(i_cmd, cwd=masterfolder)
 
         # 5. add the libraries
         required_libs = required_libs_raw.split(", ")
-        if len(required_libs) > 0 and os.path.isfile(LIB_DETAILS_CSV):
-            libs = pd.read_csv(LIB_DETAILS_CSV)
+        if len(required_libs) > 0 and os.path.isfile(app_conf["LIB"]):
+            libs = pd.read_csv(app_conf["LIB"])
             conda_devs = [f'conda activate {program_name}']
             for lib in libs.itertuples():
                 if lib.library_name not in required_libs:
                     continue
-                path = os.path.join(PROJ_ROOT,
-                                    "libs",
+                path = os.path.join(app_conf["PRGR"],
                                     lib.library_name,
                                     lib.path_to_exec)
                 conda_devs.append(f'conda develop "{path}"')
@@ -164,11 +171,12 @@ def install_program(program_name,
                 used_in_raw = json.dumps(used_in)
                 libs.loc[libs["library_name"] ==
                          lib.library_name, "used_in"] = used_in_raw
-            libs.to_csv(LIB_DETAILS_CSV, index=False)
+            libs.to_csv(app_conf["LIB"], index=False)
             cmd = " && ".join(conda_devs)
             run_and_verify(cmd, cwd=masterfolder)
 
         # 6. Update status in program_details.csv to installed
+        df = pd.read_csv(app_conf["PRG"], dtype=str)
         df.loc[df['program_name'] == program_name, 'status'] = 'Installed'
         df.loc[df['program_name'] == program_name, 'PID'] = ''
 
@@ -180,9 +188,10 @@ def install_program(program_name,
         print(f"Error in python script.", traceback.format_exc(), sep="\n")
     finally:
         if code != 0:
+            df = pd.read_csv(app_conf["PRG"], dtype=str)
             df.loc[df['program_name'] == program_name, 'status'] =\
                 f'Installed with error ({code})'
-        df.to_csv(PROGRAM_DETAILS_CSV, index=False)
+        df.to_csv(app_conf["PRG"], index=False)
 
 
 if __name__ == '__main__':
