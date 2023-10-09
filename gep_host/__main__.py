@@ -59,7 +59,9 @@ if __name__ == "__main__":
 
     if args.debug:
         logging.info("Webservice is starting in debug mode.")
-        app.run(debug=True, port=app.config["port"])
+        app.run(debug=True,
+                port=app.config["port"],
+                host=app.config['host_to'])
         logging.critical("Webservice is shutting down.")
         sys.exit(1)
 

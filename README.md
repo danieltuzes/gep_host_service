@@ -19,3 +19,15 @@ Install the library from source code by issuing `pip install .` in the root. For
 
 - For production, run `python -m gep_host`
 - For debugging, run `python -m gep_host --debug`,
+
+## Fetures to implement
+
+- instert link into the email, instead of text
+- support tar.gz library upload
+- installing library under deletion results in double entry
+- show mandatory inputs at libraries
+- if a package is being installed with a name X, and another package named X is wanted to be installed again, it crashes
+- Write the comment of a program, run and library into a file, and support markdown. Make it editable.
+- user auth
+- make property public for input and output files, and if a file is not public, ask for token
+- put the files relative to cwd, not relative to __file__
