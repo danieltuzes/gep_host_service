@@ -177,7 +177,7 @@
                     <span class="badge rounded-pill bg-info">↺</span>
                     {% endif %}
                 </span>
-                {{ run.program_name}}
+                <a href="{{ url_for('main_routes.programs') }}#{{run.program_name}}">{{ run.program_name}}</a>
             </div>
             <div class="col">{{ run.purpose }}</div>
             <div class="col">{{ run.setup_date }}</div>
