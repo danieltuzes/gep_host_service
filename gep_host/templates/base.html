@@ -169,6 +169,22 @@
                 }, 5000);  // remove highlight after 5000 milliseconds (5 seconds)
             }
         }
+
+        // radio button for program install
+        let zipRadioButton = document.getElementById('zipFile');
+        let gitRadioButton = document.getElementById('gitSource');
+        let zipFileFields = document.getElementById('zipFileFields');
+        let gitSourceFields = document.getElementById('gitSourceFields');
+
+        zipRadioButton.addEventListener('change', function () {
+            zipFileFields.style.display = 'block';
+            gitSourceFields.style.display = 'none';
+        });
+
+        gitRadioButton.addEventListener('change', function () {
+            zipFileFields.style.display = 'none';
+            gitSourceFields.style.display = 'block';
+        });
     });
 
     // if email field is invalid, disallow sending

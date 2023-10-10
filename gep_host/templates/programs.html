@@ -15,15 +15,55 @@
                     Install a new program
                 </button>
             </h5>
-            <div id="collapseOne" class="accordion-collapse collapse" data-bs-parent="#installProgramAccordion">
-                <div class="accordion-body">
+            <div id="collapseOne" class="accordion-collapse collapse">
+                <div class="accordion-body" id="programSourceAccordion">
                     <form action="{{ url_for('main_routes.program_install') }}" method="post"
                         enctype="multipart/form-data">
-                        <div class="mb-3">
-                            <label for="program_package" class="form-label">Program Package<span
-                                    style="color: red;">*</span>:
-                            </label>
-                            <input type="file" name="program_package" class="form-control" required>
+                        <div class="mb-1">Source of the program:</div>
+                        <div class="row align-items-top mb-3">
+                            <div class="col-2">
+                                <!-- Radio Buttons -->
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="radio" name="sourceType" id="zipFile"
+                                        value="zip" checked>
+                                    <label class="form-check-label" for="zipFile">
+                                        Zip File
+                                    </label>
+                                </div>
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="radio" name="sourceType" id="gitSource"
+                                        value="git">
+                                    <label class="form-check-label" for="gitSource">
+                                        Git Link
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-10">
+                                <!-- Zip File Form Fields (Initially Displayed) -->
+                                <div id="zipFileFields">
+                                    <label for="program_package" class="form-label">Zipped Package<span
+                                            style="color: red;">*</span>:</label>
+                                    <input type="file" name="program_package" class="form-control">
+                                </div>
+
+                                <!-- Git Source Form Fields (Initially Hidden) -->
+                                <div id="gitSourceFields" style="display: none;">
+                                    <div class="row">
+                                        <div class="col-8">
+                                            <label for="git-source-url" class="form-label">Git URL<span
+                                                    style="color: red;">*</span>:</label>
+                                            <input type="text" class="form-control" id="git-source-url"
+                                                placeholder="{{ git_example }}">
+                                        </div>
+                                        <div class="col-4">
+                                            <label for="git-source-ref" class="form-label">Branch, commit hash or
+                                                tag<span style="color: red;">*</span>:</label>
+                                            <input type="text" class="form-control" id="git-source-ref"
+                                                placeholder="{{ git_branch }}">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         <div class="mb-3">
                             <label for="unique_program_name" class="form-label">Program Name <span class="tooltip-text"
@@ -56,7 +96,7 @@
                             </label>
                             <input type="text" name="def_args" class="form-control" placeholder="my_lib">
                         </div>
-                        <button type="submit" class="btn btn-primary" id="submitButton" disabled>Upload</button>
+                        <button type="submit" class="btn btn-primary" id="submitButton" disabled>Install</button>
                     </form>
                 </div>
             </div>
@@ -77,7 +117,7 @@
             <div class="col">
                 <a
                     href="{{ url_for('main_routes.programs', column='upload_date', direction='desc' if direction == 'asc' and column == 'upload_date' else 'asc') }}">
-                    Upload Date
+                    Install Date
                     {{'↑' if direction == 'asc' and column == 'upload_date'}}
                     {{'↓' if direction == 'desc' and column == 'upload_date'}}
                 </a>
@@ -113,8 +153,19 @@
                 <a href="{{ url_for('main_routes.runs', program_name=program.program_name) }}"
                     class="btn btn-success btn-sm  me-1 mb-1">Run</a>
                 {% endif %}
+
+
+                {% if program.source == "file upload"%}
                 <a href="{{ url_for('main_routes.get_prg', program_name=program.program_name)}}"
                     class="btn btn-primary btn-sm me-1 mb-1">Download</a>
+                {% else %}
+                {% set git_list = program.source.split(" ") %}
+                <div class="btn-group">
+                    <a href="{{ url_for('main_routes.get_prg', program_name=program.program_name)}}"
+                        class="btn btn-primary btn-sm mb-1">Download</a><a href="{{ git_list[0] }}"
+                        class="btn btn-secondary btn-sm me-1 mb-1">🔗</a>
+                </div>
+                {% endif %}
             </div>
         </div>
         <div class="row additional pt-0" style="display: none;">
@@ -150,6 +201,12 @@
             <div class="my-3"><strong>Default call:</strong>
                 <code>python -m {{ program.def_args }}{% if program.def_args == "" %}<span class='text-muted'>(no default arguments)</span>{% endif %}</code>
             </div>
+            <div class="my-3"><strong>Program source:</strong>
+                {% if program.source == "file upload" %}file upload{% else %}
+                {% set git_split = program.source.split(' ')%}
+                <a href="{{git_split[0]}}">Repository</a>, identifier = {{git_split[1]}}
+                {% endif %}
+            </div>
             <div class="my-2"><span data-bs-toggle="tooltip" data-bs-placement="top"
                     title="Deleting the program does not delete its runs, nor the libraries linked to it.">
                     <a href="{{ url_for('main_routes.del_program', program_name=program.program_name) }}"
@@ -164,5 +221,4 @@
     </div>
 
 </div>
-
 {% endblock %}

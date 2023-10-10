@@ -1,48 +1,55 @@
+import argparse
 import os
 import subprocess
 import zipfile
 import json
 import sys
-import datetime
+from datetime import datetime
 from configparser import ConfigParser, ExtendedInterpolation
-from typing import Union
+from typing import Union, List, Dict
 import traceback
+import shutil
 
 import pandas as pd
 from flask import current_app
+import git
 
 
 def init_install(program_name,
                  program_zip_path,
                  python_version,
                  selected_libs,
-                 def_args) -> Union[int, str]:
-    # Check uniqueness of program name
-    if os.path.exists(current_app.config["PRG"]):
-        df = pd.read_csv(current_app.config["PRG"], dtype=str)
-        if program_name in df['program_name'].values:
-            os.remove(program_zip_path)
-            return 'Program upload unsuccessful due to non-unique name.'
+                 def_args,
+                 git_source: Dict[str, str]) -> Union[int, str]:
 
     # trigger the installation
-    selected_libs_str = ", ".join(selected_libs)
+    selected_libs_str = ""
+    if selected_libs:
+        selected_libs_str = "--list-of-libs " + " ".join(selected_libs)
     masterfolder = os.path.join(current_app.config["PRGR"], program_name)
     os.makedirs(masterfolder)
-    cmd = (f"python {__file__} {program_name} {program_zip_path} "
-           f'{python_version} "{selected_libs_str}"')
+    if git_source == {}:
+        cmd = (f"python {__file__} {program_name} {program_zip_path} "
+               f'{python_version} {selected_libs_str}')
+        source = "file upload"
+    else:
+        cmd = (f'python {__file__} {program_name} {git_source["git-source-url"]} '
+               f'{python_version} {selected_libs_str} {git_source["git-source-ref"]}')
+        source = " ".join(git_source.values())
     with open(os.path.join(masterfolder, "install_output_and_error.log"), 'w') as logf:
         proc = subprocess.Popen(cmd, shell=True,  stdout=logf, stderr=logf)
 
     # Update program details CSV
     new_entry = pd.DataFrame({
         'program_name': [program_name],
-        'upload_date': [datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')],
+        'upload_date': [datetime.now().strftime('%Y-%m-%d %H:%M:%S')],
         'python_version': [python_version],
         'status': ['installing'],
         'PID': [proc.pid],
         'zip_fname': [program_zip_path],
         'selected_libs': [selected_libs_str],
         'def_args': [def_args],
+        'source': [source],
         'inputs': json.dumps({}),
         'outputs': json.dumps({})
     })
@@ -66,10 +73,11 @@ def run_and_verify(cmd: str, cwd=None):
                                             cmd=cmd, stderr=proc.stdout)
 
 
-def install_program(program_name,
-                    program_zip_name,
-                    required_python_version,
-                    required_libs_raw: str):
+def install_program(program_name: str,
+                    program_source: str,
+                    required_python_version: str,
+                    required_libs: List[str],
+                    source_specifier: str):
     from set_conf import set_conf
     app_conf = {}
     set_conf(app_conf)
@@ -77,15 +85,50 @@ def install_program(program_name,
     code = 0
     try:
         # 1. Update status in program_details.csv
-        df = pd.read_csv(app_conf["PRG"], dtype=str)
-        df.loc[df['program_name'] == program_name, 'status'] = 'extracting'
+        df = pd.DataFrame()
+        if os.path.exists(app_conf["PRG"]):
+            df = pd.read_csv(app_conf["PRG"], dtype=str)
+        if len(df[df['program_name'] == program_name]) == 0:
+            selected_libs_str = ""
+            if required_libs:
+                selected_libs_str = "--list-of-libs " + " ".join(required_libs)
+            if source_specifier is None:
+                program_zip_path = program_source
+                source = "file upload"
+            else:
+                nowstr = datetime.now().strftime('%Y%m%d%H%M%S')
+                program_zip_path = f"{program_name}_{nowstr}.zip"
+                source = " ".join([program_source, source_specifier])
+            new_entry = pd.DataFrame({
+                'program_name': [program_name],
+                'upload_date': [datetime.now().strftime('%Y-%m-%d %H:%M:%S')],
+                'python_version': [required_python_version],
+                'status': [""],
+                'PID': [os.getpid()],
+                'zip_fname': [program_zip_path],
+                'selected_libs': [selected_libs_str],
+                'def_args': [""],
+                'source': [source],
+                'inputs': json.dumps({}),
+                'outputs': json.dumps({})
+            })
+            df = pd.concat([df, new_entry], ignore_index=True, axis=0)
+        df.loc[df['program_name'] == program_name,
+               'status'] = 'getting the files'
         df.to_csv(app_conf["PRG"], index=False)
 
-        # 2. Extract zip to the masterfolder
-        zipf = os.path.join(app_conf["PRGR"], program_zip_name)
+        # 2. get the files
         masterfolder = os.path.join(app_conf["PRGR"], program_name)
-        with zipfile.ZipFile(zipf, 'r') as zip_ref:
-            zip_ref.extractall(masterfolder)
+        # Extract zip to the masterfolder
+        if source_specifier is None:
+            zipf = os.path.join(app_conf["PRGR"], program_source)
+            with zipfile.ZipFile(zipf, 'r') as zip_ref:
+                zip_ref.extractall(masterfolder)
+
+        # or git clone and checkout
+        else:
+            repo = git.Repo.clone_from(program_source, masterfolder)
+            repo.git.checkout(source_specifier)
 
         # 3. Read and update the MasterConfig.cfg file
         config_file = os.path.join(masterfolder, 'config', 'MasterConfig.cfg')
@@ -137,7 +180,6 @@ def install_program(program_name,
         run_and_verify(c_cmd)
 
         # 4. Activate the new conda environment and install the program using pip
-        df = pd.read_csv(app_conf["PRG"], dtype=str)
         df.loc[df['program_name'] == program_name,
                'status'] = 'installing packages'
         df.to_csv(app_conf["PRG"], index=False)
@@ -154,7 +196,6 @@ def install_program(program_name,
         run_and_verify(i_cmd, cwd=masterfolder)
 
         # 5. add the libraries
-        required_libs = required_libs_raw.split(", ")
         if len(required_libs) > 0 and os.path.isfile(app_conf["LIB"]):
             libs = pd.read_csv(app_conf["LIB"])
             conda_devs = [f'{app_conf["activate"]}{program_name}']
@@ -176,7 +217,18 @@ def install_program(program_name,
             cmd = " && ".join(conda_devs)
             run_and_verify(cmd, cwd=masterfolder)
 
-        # 6. Update status in program_details.csv to installed
+        # 6. compress the folder if it was git
+        if source_specifier is not None:
+            df.loc[df['program_name'] == program_name,
+                   'status'] = 'creating the zip from repo'
+            df.to_csv(app_conf["PRG"], index=False)
+            zip_fname = df.loc[df['program_name'] == program_name,
+                               'zip_fname'].iloc[0]
+            zip_path = os.path.join(app_conf["PRGR"], zip_fname)
+            shutil.make_archive(zip_path[:-4], 'zip',
+                                root_dir=masterfolder, base_dir='.')
+
+        # 7. Update status in program_details.csv to installed
         df = pd.read_csv(app_conf["PRG"], dtype=str)
         df.loc[df['program_name'] == program_name, 'status'] = 'Installed'
         df.loc[df['program_name'] == program_name, 'PID'] = ''
@@ -196,23 +248,37 @@ def install_program(program_name,
 
 
 if __name__ == '__main__':
-    if len(sys.argv) not in [4, 5]:
-        print("Usage: python install_program.py",
-              "<program_name> <zip_filename>",
-              "<python_version> ['<required_lib1>, <required_lib2>']")
-        print("While program is called as:\n", sys.argv)
-        sys.exit(1)
+    parser = argparse.ArgumentParser(
+        description="Install a program into GEP Host")
 
-    program_name = sys.argv[1]
-    program_zip_name = sys.argv[2]
-    required_python_version = sys.argv[3]
+    # Required arguments
+    parser.add_argument("program_name", type=str, help="Name of the program")
+    parser.add_argument("program_source", type=str,
+                        help=("Source of the program. "
+                              "Zip file location or git repo URL"))
+    parser.add_argument("required_python_version", type=str,
+                        help="Python version for the program")
 
-    required_libs_str = "''"
-    if len(sys.argv) == 5:
-        required_libs_str = sys.argv[4]
+    # Optional arguments
+    parser.add_argument("-s", "--source-specifier", type=str,
+                        default=None,
+                        help=("If program_source is git, "
+                              "this defines the commit hash, "
+                              "branch or version tag"))
+    parser.add_argument("-l", "--list-of-libs", type=str, nargs='*',
+                        default=[],
+                        help="List of libraries for the program")
+    args = parser.parse_args()
+
+    program_name = args.program_name
+    program_source = args.program_source
+    required_python_version = args.required_python_version
+    source_specifier = args.source_specifier
+    list_of_libs = args.list_of_libs
 
     install_program(program_name,
-                    program_zip_name,
+                    program_source,
                     required_python_version,
-                    required_libs_str)
+                    list_of_libs,
+                    source_specifier)
     sys.exit(0)

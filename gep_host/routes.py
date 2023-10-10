@@ -109,15 +109,18 @@ def program_install():
         return programs()
 
     # Logic for handling the file upload
-    if 'program_package' not in request.files:
-        flash('No file part', 'warning')
-        return redirect(request.url)
     file = request.files['program_package']
-    if file.filename == '':
-        flash('No selected file', 'warning')
+    if file.filename["zipFile"] == "" and "git-source-url" not in request.form:
+        flash('No selected zip file or git source', 'warning')
         return redirect(request.url)
-    if not allowed_file(file.filename):
-        flash('Not allowed filetype', 'warning')
+
+    if file.filename["zipFile"] != "":
+        if not allowed_file(file.filename):
+            flash('Not allowed filetype', 'warning')
+            return redirect(request.url)
+
+    if "git-source-url" in request.form and "git-source-ref" not in request.form:
+        flash('No branch, commit hash or tag specified for git source', 'warning')
         return redirect(request.url)
 
     # Program details
@@ -134,21 +137,27 @@ def program_install():
         flash('Program upload is unsuccessful due to its non-unique name.', 'warning')
         return redirect(request.url)
 
-    # save the file
-    filename = secure_filename(file.filename)
-    base, ext = os.path.splitext(filename)
-    nowstr = datetime.now().strftime('%Y%m%d%H%M%S')
-    t_filename = f"{base}_{nowstr}{ext}"
-    program_zip_path = os.path.join(
-        current_app.config['PRGR'], t_filename)
-    file.save(program_zip_path)
+    # save the file or pass git source
+    git = {}
+    if file.filename["zipFile"] != "":
+        filename = secure_filename(file.filename)
+        base, ext = os.path.splitext(filename)
+        nowstr = datetime.now().strftime('%Y%m%d%H%M%S')
+        t_filename = f"{base}_{nowstr}{ext}"
+        program_zip_path = os.path.join(
+            current_app.config['PRGR'], t_filename)
+        file.save(program_zip_path)
+    else:
+        git["git-source-url"] = request.form["git-source-url"]
+        git["git-source-ref"] = request.form["git-source-ref"]
 
     # Execute install script in subprocess
     res = install_program.init_install(program_name,
                                        program_zip_path,
                                        python_version,
                                        selected_libs,
-                                       def_args)
+                                       def_args,
+                                       git)
     if res != 0:
         flash(res, "warning")
     else:

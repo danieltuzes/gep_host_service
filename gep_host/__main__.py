@@ -37,7 +37,9 @@ if __name__ == "__main__":
         return dict(service_name=app.config["service_name"],
                     email_placeholder=app.config["email_placeholder"],
                     host_name=app.config["host_name"],
-                    lib_def_path=app.config["lib_def_path"])
+                    lib_def_path=app.config["lib_def_path"],
+                    git_example=app.config['git_example'],
+                    git_branch=app.config['git_branch'])
 
     app.register_blueprint(main_routes)
     app.jinja_env.filters['parse_json'] = parse_json

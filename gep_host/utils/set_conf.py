@@ -56,3 +56,7 @@ def set_conf(config: dict):
     config["activate"] = activate
     config["lib_def_path"] = prg_config.get("settings", "lib_def_path",
                                             fallback="bin64")
+    config["git_example"] = prg_config.get("settings", "git_example",
+                                           fallback="https://github.com/username/repository.git")
+    config["git_branch"] = prg_config.get("settings", "git_branch",
+                                          fallback="master ")
