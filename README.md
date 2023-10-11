@@ -11,6 +11,11 @@ The programs must meet specific design requirements:
 3. Must be executable with a single command from `python -m`, e.g. `python -m my_module`.
 4. Outputs must be saved within the root folder.
 
+Additional features:
+
+1. Provide the version information in the `__init__.py`, and the version info will be shown for the package. Every module within the root and 1 level lower are searched for module and version values.
+2. A git repo can be cloned. The user running the webservice must have access to the repo with no additional credentials being entered. Git submodules are all initiated.
+
 ## Installing
 
 Install the library from source code by issuing `pip install .` in the root. For development, install the requirements too.
@@ -22,7 +27,6 @@ Install the library from source code by issuing `pip install .` in the root. For
 
 ## Fetures to implement
 
-- instert link into the email, instead of text
 - support tar.gz library upload
 - installing library under deletion results in double entry
 - show mandatory inputs at libraries

@@ -135,7 +135,7 @@ def program_install():
     masterfolder = os.path.join(current_app.config["PRGR"], program_name)
     if os.path.isdir(masterfolder):
         flash('Program upload is unsuccessful due to its non-unique name.', 'warning')
-        redirect(url_for("main_routes.programs"))
+        return redirect(url_for("main_routes.programs"))
 
     # save the file or pass git source
     git = {}

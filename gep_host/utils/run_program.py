@@ -28,7 +28,7 @@ def id_row(details: pd.DataFrame, prg_name: str, purp: str):
 
 
 def extract_emails(emails_input: str) -> List[str]:
-    email_pattern = current_app.config["email_patter"]
+    email_pattern = current_app.config["email_pattern"]
     return re.findall(email_pattern, emails_input)
 
 

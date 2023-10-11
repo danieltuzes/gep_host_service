@@ -42,8 +42,8 @@ def set_conf(config: dict):
                                        fallback="0.0.0.0")
     config["salt"] = prg_config.get("settings", "salt",
                                     fallback="my_secret_key")
-    config["email_patter"] = prg_config.get("settings", "email_pattern",
-                                            fallback="[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}")
+    config["email_pattern"] = prg_config.get("settings", "email_pattern",
+                                             fallback="[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}")
 
     config["email_placeholder"] = prg_config.get("settings", "email_placeholder",
                                                  fallback="developer_ID@company.com, manager@company.com")
