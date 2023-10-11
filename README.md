@@ -27,6 +27,9 @@ Install the library from source code by issuing `pip install .` in the root. For
 
 ## Fetures to implement
 
+- add queue management
+- don't copy over inheritable files, rather, use the original one
+- allow entering local path, and don't copy them over
 - support tar.gz library upload
 - installing library under deletion results in double entry
 - show mandatory inputs at libraries
