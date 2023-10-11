@@ -55,13 +55,13 @@
                                             <label for="git-source-url" class="form-label">Git URL<span
                                                     style="color: red;">*</span>:</label>
                                             <input type="text" class="form-control" id="git-source-url"
-                                                placeholder="{{ git_example }}">
+                                                placeholder="{{ git_example }}" name="git-source-url">
                                         </div>
                                         <div class="col-4">
                                             <label for="git-source-ref" class="form-label">Branch, commit hash or
                                                 tag<span style="color: red;">*</span>:</label>
                                             <input type="text" class="form-control" id="git-source-ref"
-                                                placeholder="{{ git_branch }}">
+                                                placeholder="{{ git_branch }}" name="git-source-ref">
                                         </div>
                                     </div>
                                 </div>
@@ -160,7 +160,7 @@
                 {% if program.source == "file upload"%}
                 <a href="{{ url_for('main_routes.get_prg', program_name=program.program_name)}}"
                     class="btn btn-primary btn-sm me-1 mb-1">Download</a>
-                {% else %}
+                {% elif program.source.startswith("http") %}
                 {% set git_list = program.source.split(" ") %}
                 <div class="btn-group">
                     <a href="{{ url_for('main_routes.get_prg', program_name=program.program_name)}}"
@@ -172,6 +172,9 @@
         </div>
         <div class="row additional pt-0" style="display: none;">
             <hr>
+            <div class="my-3"><strong>{{program.version}}</strong>
+
+            </div>
             <div class="my-3"><strong>Program status:</strong>
                 {{ program.status }}
                 <a href="{{ url_for('main_routes.install_log', program_name=program.program_name) }}">Download the
@@ -206,7 +209,7 @@
             <div class="my-3"><strong>Program source:</strong>
                 {% if program.source == "file upload" %}file upload{% else %}
                 {% set git_split = program.source.split(' ')%}
-                <a href="{{git_split[0]}}">Repository</a>, identifier = {{git_split[1]}}
+                <a href="{{git_split[0]}}">Repository</a>, identifier = <code>{{git_split[1]}}</code>
                 {% endif %}
             </div>
             <div class="my-2"><span data-bs-toggle="tooltip" data-bs-placement="top"

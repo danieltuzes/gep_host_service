@@ -9,6 +9,8 @@ from configparser import ConfigParser, ExtendedInterpolation
 from typing import Union, List, Dict
 import traceback
 import shutil
+import re
+import tempfile
 
 import pandas as pd
 from flask import current_app
@@ -34,7 +36,7 @@ def init_install(program_name,
         source = "file upload"
     else:
         cmd = (f'python {__file__} {program_name} {git_source["git-source-url"]} '
-               f'{python_version} {selected_libs_str} {git_source["git-source-ref"]}')
+               f'{python_version} {selected_libs_str} -s {git_source["git-source-ref"]}')
         source = " ".join(git_source.values())
     with open(os.path.join(masterfolder, "install_output_and_error.log"), 'w') as logf:
         proc = subprocess.Popen(cmd, shell=True,  stdout=logf, stderr=logf)
@@ -54,6 +56,7 @@ def init_install(program_name,
         'outputs': json.dumps({})
     })
     if os.path.exists(current_app.config["PRG"]):
+        df = pd.read_csv(current_app.config["PRG"], dtype=str)
         df = pd.concat([df, new_entry], ignore_index=True)
     else:
         df = new_entry
@@ -71,6 +74,51 @@ def run_and_verify(cmd: str, cwd=None):
     if proc.returncode != 0:
         raise subprocess.CalledProcessError(returncode=proc.returncode,
                                             cmd=cmd, stderr=proc.stdout)
+
+
+def get_version_from_init(module_path):
+    init_path = os.path.join(module_path, '__init__.py')
+    if not os.path.exists(init_path):
+        return None
+
+    with open(init_path, 'r') as f:
+        contents = f.read()
+        version_match = re.search(
+            r"^__version__\s*=\s*['\"]([^'\"]*)['\"]", contents, re.MULTILINE)
+        if version_match:
+            return version_match.group(1)
+    return None
+
+
+def find_first_module_version(root):
+    versionstrs = []
+
+    # Helper function to check for module version in a directory
+    def check_directory(directory):
+        for item in os.listdir(directory):
+            item_path = os.path.join(directory, item)
+            # Check if the item is a directory and contains __init__.py
+            if os.path.isdir(item_path) and os.path.exists(os.path.join(item_path, '__init__.py')):
+                version = get_version_from_init(item_path)
+                if version:
+                    versionstr = f"Module: {item}, Version: {version}"
+                else:
+                    versionstr = f"Module: {item}"
+                versionstrs.append(versionstr)
+
+    # Check the root directory
+    check_directory(root)
+
+    # Check directories one level deeper
+    for item in os.listdir(root):
+        item_path = os.path.join(root, item)
+        if os.path.isdir(item_path):
+            check_directory(item_path)
+
+    versions = "; ".join(versionstrs)
+    if versions != "":
+        return versions
+    return "No valid modules with version info found in the root."
 
 
 def install_program(program_name: str,
@@ -117,7 +165,7 @@ def install_program(program_name: str,
                'status'] = 'getting the files'
         df.to_csv(app_conf["PRG"], index=False)
 
-        # 2. get the files
+        # 2. get the files and version info
         masterfolder = os.path.join(app_conf["PRGR"], program_name)
         # Extract zip to the masterfolder
         if source_specifier is None:
@@ -127,8 +175,31 @@ def install_program(program_name: str,
 
         # or git clone and checkout
         else:
-            repo = git.Repo.clone_from(program_source, masterfolder)
-            repo.git.checkout(source_specifier)
+            tmpdir = tempfile.mkdtemp()
+            try:
+                repo = git.Repo.clone_from(program_source, tmpdir)
+
+                # Initialize and update all submodules
+                for submodule in repo.submodules:
+                    submodule.update(init=True)
+
+                # Checkout to the desired state
+                repo.git.checkout(source_specifier)
+
+                # Copy contents of the temporary directory into masterfolder
+                for item in os.listdir(tmpdir):
+                    s = os.path.join(tmpdir, item)
+                    d = os.path.join(masterfolder, item)
+                    if os.path.isdir(s):
+                        shutil.copytree(s, d, dirs_exist_ok=True)
+                    else:
+                        shutil.copy2(s, d)
+            finally:
+                # Explicitly attempt to delete the temporary directory
+                shutil.rmtree(tmpdir, ignore_errors=True)
+
+        version = find_first_module_version(masterfolder)
+        df.loc[df["program_name"] == program_name, "version"] = version
 
         # 3. Read and update the MasterConfig.cfg file
         config_file = os.path.join(masterfolder, 'config', 'MasterConfig.cfg')
@@ -166,7 +237,6 @@ def install_program(program_name: str,
                         code = 3
                     outputs[option] = rel_ofile
 
-        df = pd.read_csv(app_conf["PRG"], dtype=str)
         df.loc[df['program_name'] == program_name,
                'inputs'] = json.dumps(inputs)
         df.loc[df['program_name'] == program_name,

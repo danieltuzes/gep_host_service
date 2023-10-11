@@ -11,6 +11,7 @@ from gevent.pywsgi import WSGIServer
 
 from .routes import main_routes
 from .utils.set_conf import set_conf
+from . import __version__
 
 
 def parse_json(json_str):
@@ -24,6 +25,8 @@ if __name__ == "__main__":
              "host your data-oriented python programs from a webpage, "
              "execute it, store and download inputs and outputs")
     parser = argparse.ArgumentParser(description=descr)
+    parser.add_argument('-v', '--version', action='version',
+                        version='%(prog)s ' + __version__)
     parser.add_argument('--debug', action='store_true',
                         help="Enable debug mode for flask")
     args = parser.parse_args()
@@ -51,7 +54,7 @@ if __name__ == "__main__":
 
     logf_name = os.path.join(app.config["ROOT"], 'logs', 'app.log')
     os.makedirs(os.path.dirname(logf_name), exist_ok=True)
-    file_h = RotatingFileHandler(logf_name, maxBytes=10000, backupCount=1)
+    file_h = RotatingFileHandler(logf_name, maxBytes=1000000, backupCount=1)
     strm_h = logging.StreamHandler()
 
     for handler in [file_h, strm_h]:

@@ -110,11 +110,11 @@ def program_install():
 
     # Logic for handling the file upload
     file = request.files['program_package']
-    if file.filename["zipFile"] == "" and "git-source-url" not in request.form:
+    if file.filename == "" and "git-source-url" not in request.form:
         flash('No selected zip file or git source', 'warning')
-        return redirect(request.url)
+        return redirect(url_for("main_routes.programs"))
 
-    if file.filename["zipFile"] != "":
+    if file.filename != "":
         if not allowed_file(file.filename):
             flash('Not allowed filetype', 'warning')
             return redirect(request.url)
@@ -135,11 +135,12 @@ def program_install():
     masterfolder = os.path.join(current_app.config["PRGR"], program_name)
     if os.path.isdir(masterfolder):
         flash('Program upload is unsuccessful due to its non-unique name.', 'warning')
-        return redirect(request.url)
+        redirect(url_for("main_routes.programs"))
 
     # save the file or pass git source
     git = {}
-    if file.filename["zipFile"] != "":
+    program_zip_path = ""
+    if file.filename != "":
         filename = secure_filename(file.filename)
         base, ext = os.path.splitext(filename)
         nowstr = datetime.now().strftime('%Y%m%d%H%M%S')

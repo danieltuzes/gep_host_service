@@ -4,7 +4,8 @@ import shutil
 import sys
 import traceback
 import json
-
+import stat
+import errno
 import pandas as pd
 
 
@@ -28,6 +29,15 @@ def remove_val_from_json(json_str, val_2_remove):
     mylist = json.loads(json_str)
     new_list = [val for val in mylist if val != val_2_remove]
     return json.dumps(new_list)
+
+
+def remove_readonly(path):
+    """Recursively remove read-only attributes from files and directories."""
+    for root, dirs, files in os.walk(path):
+        for name in files:
+            os.chmod(os.path.join(root, name), 0o666)
+        for name in dirs:
+            os.chmod(os.path.join(root, name), 0o777)
 
 
 def delete_program(program_name):
@@ -66,6 +76,7 @@ def delete_program(program_name):
                 print("The package zip file has been already deleted.")
 
         if os.path.isdir(masterfolder):
+            remove_readonly(masterfolder)
             shutil.rmtree(masterfolder)
         else:
             print("The program folder has been already deleted.")
@@ -94,7 +105,7 @@ def delete_program(program_name):
         print(f"Error deleting program {program_name}: {e}")
         print(traceback.format_exc())
         put_back = pd.DataFrame({"program_name": [program_name],
-                                 "status": ["program uninstall error"]})
+                                 "status": ["Installed (deleting with error)"]})
         df = pd.concat([df, put_back])
         df.to_csv(config["PRG"], index=False)
         if os.path.isdir(masterfolder):
