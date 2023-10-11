@@ -188,7 +188,7 @@ def init_run(request: Request) -> Union[int, str]:
     body = (f"A run of program {prg_name} with purpose {purp} "
             "is successfully triggered. Emails regardless of the outcome "
             "will be sent. Visit "
-            f"{conf['host_name']}:5000/runs#{prg_name}__{purp}"
+            f"http://{conf['host_name']}:{conf['port']}/runs#{prg_name}__{purp}"
             " for the run page for further details.")
     send_email("gep_host run trigger", body, notifications)
     return 0
@@ -250,7 +250,7 @@ def run_program(prg_name, purp):
     finally:
         runs.to_csv(conf["RUN"], index=False)
         body += (" See more details on "
-                 f"<a href='{socket.gethostname()}'>the run page.</a>")
+                 f"http://{conf['host_name']}:{conf['port']}/runs#{prg_name}__{purp} ")
         notifs = runs.loc[id_row(runs, prg_name, purp),
                           'notifications'].iloc[0]
         receiver_emails = json.loads(notifs)
