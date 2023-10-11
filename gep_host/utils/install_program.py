@@ -199,6 +199,7 @@ def install_program(program_name: str,
                 shutil.rmtree(tmpdir, ignore_errors=True)
 
         version = find_first_module_version(masterfolder)
+        df = pd.read_csv(app_conf["PRG"], dtype=str)
         df.loc[df["program_name"] == program_name, "version"] = version
 
         # 3. Read and update the MasterConfig.cfg file
@@ -250,6 +251,7 @@ def install_program(program_name: str,
         run_and_verify(c_cmd)
 
         # 4. Activate the new conda environment and install the program using pip
+        df = pd.read_csv(app_conf["PRG"], dtype=str)
         df.loc[df['program_name'] == program_name,
                'status'] = 'installing packages'
         df.to_csv(app_conf["PRG"], index=False)
@@ -289,6 +291,7 @@ def install_program(program_name: str,
 
         # 6. compress the folder if it was git
         if source_specifier is not None:
+            df = pd.read_csv(app_conf["PRG"], dtype=str)
             df.loc[df['program_name'] == program_name,
                    'status'] = 'creating the zip from repo'
             df.to_csv(app_conf["PRG"], index=False)

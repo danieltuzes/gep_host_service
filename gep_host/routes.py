@@ -139,22 +139,22 @@ def program_install():
 
     # save the file or pass git source
     git = {}
-    program_zip_path = ""
-    if file.filename != "":
-        filename = secure_filename(file.filename)
-        base, ext = os.path.splitext(filename)
-        nowstr = datetime.now().strftime('%Y%m%d%H%M%S')
-        t_filename = f"{base}_{nowstr}{ext}"
-        program_zip_path = os.path.join(
-            current_app.config['PRGR'], t_filename)
-        file.save(program_zip_path)
-    else:
+    if file.filename == "":
+        filename = f"{program_name}.zip"
         git["git-source-url"] = request.form["git-source-url"]
         git["git-source-ref"] = request.form["git-source-ref"]
+    else:
+        filename = secure_filename(file.filename)
+    base, ext = os.path.splitext(filename)
+    nowstr = datetime.now().strftime('%Y%m%d%H%M%S')
+    t_filename = f"{base}_{nowstr}{ext}"
+    program_zip_path = os.path.join(current_app.config['PRGR'], t_filename)
+    if file.filename != "":
+        file.save(program_zip_path)
 
     # Execute install script in subprocess
     res = install_program.init_install(program_name,
-                                       program_zip_path,
+                                       t_filename,
                                        python_version,
                                        selected_libs,
                                        def_args,
@@ -196,7 +196,7 @@ def get_prg(program_name: str):
     zip_fname = prgs.loc[prgs["program_name"]
                          == program_name, "zip_fname"].iloc[0]
     f_path = os.path.join(current_app.config["PRGR"], zip_fname)
-    orig_fname = zip_fname[:-19] + zip_fname[-4:]
+    orig_fname = zip_fname[:-19] + zip_fname[-4:]  # remove timestamp
 
     return send_file(f_path,
                      mimetype='main_routeslication/zip',
