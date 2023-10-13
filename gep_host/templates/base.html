@@ -105,6 +105,31 @@
         </div>
     </div>
     {% endif %}
+
+    <!-- upload is in progress -->
+    <div class="modal fade" id="uploadModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="uploadModalLabel">Upload is in progress</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    Upload is in progress.
+                    Depending on the total size of the files you requested to upload,
+                    it may take up to several minutes to upload them.
+                    You can close this message dialog,
+                    but <strong>do not leave or close this page</strong>.<br>
+                    In another tab you can still open {{ service_name }} again,
+                    but your network may seem to be slowerer
+                    as it is uploading files at full capacity.
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">OK</button>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 
 <script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
@@ -187,8 +212,11 @@
         });
     });
 
-    // if email field is invalid, disallow sending
+    // if email field is invalid, disallow sending, and show upload in progress
     document.addEventListener('submit', function (e) {
+        var myModal = new bootstrap.Modal(document.getElementById('uploadModal'));
+        myModal.show();
+
         var emailInput = e.target.querySelector('#emailInput');
         if (emailInput) {
             if (!areValidEmails(emailInput.value)) {
