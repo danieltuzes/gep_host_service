@@ -49,6 +49,10 @@
                         </h2>
                         <div id="collapseOne" class="accordion-collapse collapse" data-bs-parent="#runInputAccordion">
                             <div class="accordion-body">
+                                <p>Upload all the files and optionally even more by sending a zip file that contains all
+                                    the files and a MasterInput.cfg for the mapping. Inputs in the 1-by-1 tab are
+                                    ignored if you select a file here. Inheritable files are all inherited if not
+                                    defined in the MasterInput.cfg in the zip file.</p>
                                 <div class="mb-3 row">
                                     <label for="masterinput" class="col-sm-2 col-form-label">Masterinput:</label>
                                     <div class="col-sm-6">
@@ -74,6 +78,10 @@
                         <div id="collapseTwo" class="accordion-collapse collapse show"
                             data-bs-parent="#runInputAccordion">
                             <div class="accordion-body">
+                                <p>Upload files defined in the masterconfig or inherit them from the uploaded package.
+                                    These files are neglected if you choose to upload the masterinput file in the
+                                    previous tab. If no file is uploaded or inherited, the option is kept in the config
+                                    file, but its value is set to None.</p>
                                 {% set inputs = prg_to_run.inputs|parse_json %}
                                 {% if not inputs %}
                                 <span class="text-muted">No inputs are associated with this program.</span>
