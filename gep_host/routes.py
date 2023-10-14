@@ -475,7 +475,6 @@ def libraries():
 
 @main_routes.route('/del_lib/<library_name>')
 def del_library(library_name: str):
-    path = os.path.join(current_app.config["LIBR"], library_name)
     try:
         libs = pd.read_csv(current_app.config["LIB"])
         used_in_raw = libs.loc[libs["library_name"]
@@ -493,12 +492,14 @@ def del_library(library_name: str):
             flash(f"The entry of the library {library_name} is successfully deleted.",
                   "success")
         else:
-            zip_loc = libs.loc[libs["library_name"] ==
-                               library_name, "zip_path"].iloc[0]
+            zip_path = libs.loc[libs["library_name"] ==
+                                library_name, "zip_path"].iloc[0]
+            zip_loc = os.path.join(current_app.config["ROOT"], zip_path)
             os.remove(zip_loc)
             libs = libs[libs["library_name"] != library_name]
         libs.to_csv(current_app.config["LIB"], index=False)
 
+        path = os.path.join(current_app.config["LIBR"], library_name)
         if os.path.isdir(path):
             shutil.rmtree(path, ignore_errors=True)
             flash(f"The library {library_name} is successfully deleted.",
