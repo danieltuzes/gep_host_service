@@ -4,9 +4,8 @@ import shutil
 import sys
 import traceback
 import json
-import stat
-import errno
 import pandas as pd
+from .helpers import remove_readonly
 
 
 def run_and_verify(cmd: str, cwd=None):
@@ -29,15 +28,6 @@ def remove_val_from_json(json_str, val_2_remove):
     mylist = json.loads(json_str)
     new_list = [val for val in mylist if val != val_2_remove]
     return json.dumps(new_list)
-
-
-def remove_readonly(path):
-    """Recursively remove read-only attributes from files and directories."""
-    for root, dirs, files in os.walk(path):
-        for name in files:
-            os.chmod(os.path.join(root, name), 0o666)
-        for name in dirs:
-            os.chmod(os.path.join(root, name), 0o777)
 
 
 def delete_program(program_name):

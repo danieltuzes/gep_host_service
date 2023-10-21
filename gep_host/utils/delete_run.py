@@ -2,11 +2,9 @@ import os
 import subprocess
 import shutil
 import sys
-from pathlib import Path
 import traceback
 
 import pandas as pd
-
 from flask import current_app
 
 
@@ -18,6 +16,7 @@ def init_del(program_name: str, purpose: str):
 
 
 def delete_run(program_name: str, purpose: str):
+    from helpers import remove_readonly
     """Deletes a run.
 
     Parameters
@@ -44,6 +43,7 @@ def delete_run(program_name: str, purpose: str):
         setup_folder = os.path.join(config["RUNR"],
                                     program_name,
                                     purpose)
+        remove_readonly(setup_folder)
         shutil.rmtree(setup_folder)
         return 0
 
