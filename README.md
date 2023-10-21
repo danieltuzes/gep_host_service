@@ -37,4 +37,4 @@ Install the library from source code by issuing `pip install .` in the root. For
 - Write the comment of a program, run and library into a file, and support markdown. Make it editable.
 - user auth
 - make property public for input and output files, and if a file is not public, ask for token
-- put the files relative to cwd, not relative to __file__
+- put the files relative to cwd, not relative to `__file__`
