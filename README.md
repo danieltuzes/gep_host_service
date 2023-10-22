@@ -8,7 +8,7 @@ The programs must meet specific design requirements:
 
 1. The program must be installable with a `pip install .` issued in the root, otherwise, the `requirements.txt` will be installed only.
 2. The files and their paths are defined in a python ini file at `config/MasterConfig.cfg`, stored under the sections inputs and outputs.
-3. Must be executable with a single command from `python -m`, e.g. `python -m my_module`.
+3. Must be executable with a single command from `python`, e.g. `python -m my_module`.
 4. Outputs must be saved within the root folder.
 
 Additional features:

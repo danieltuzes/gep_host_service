@@ -33,7 +33,7 @@
                     <label for="args">
                         Python call's argument string
                         <span class="tooltip-text" data-bs-toggle="tooltip" data-bs-placement="top"
-                            title="Enter the string that follows python -m. It can contain only alphanumeric chars and &quot;-&#039;_\^/(,)[.]">
+                            title="Enter the string that follows python. It can contain only alphanumeric chars and &quot;-&#039;_\^/(,)[.]">
                             (info)</span><span style="color: red;">*</span>:
                     </label>
                     <input type="text" name="args" class="form-control" value="{{ prg_to_run.def_args }}" required>
@@ -210,7 +210,7 @@
                 </a>
             </div>
             <div class="my-2"><strong>Python call:</strong>
-                <code>python -m {{ run.python_args }}</code>
+                <code>python {{ run.python_args }}</code>
             </div>
             <div class="row my-2">
                 <div class="col-5"><strong>Uploaded files:</strong><br>

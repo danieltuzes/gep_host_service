@@ -211,7 +211,7 @@ def run_program(prg_name, purp):
         # Activate the conda environment and run the program
         activate_env_command = f'{conf["activate"]}{prg_name}'
         args = runs.loc[id_row(runs, prg_name, purp), 'python_args'].iloc[0]
-        i_cmd = f'{activate_env_command} && python -m {args}'
+        i_cmd = f'{activate_env_command} && python {args}'
         setup_folder = os.path.join(conf["RUNR"], prg_name, purp)
         proc = subprocess.run(i_cmd, shell=True, cwd=setup_folder, text=True,
                               stdout=subprocess.PIPE, stderr=subprocess.STDOUT,

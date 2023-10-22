@@ -94,9 +94,9 @@
                             <label for="def_args">
                                 Python call's default argument string
                                 <span class="tooltip-text" data-bs-toggle="tooltip" data-bs-placement="top"
-                                    title="Enter the string that follows python -m. It can contain only alphanumeric chars and &quot;-&#039;_\^/(,)[.]">(info)</span>:
+                                    title="Enter the string that follows python. It can contain only alphanumeric chars and &quot;-&#039;_\^/(,)[.]">(info)</span>:
                             </label>
-                            <input type="text" name="def_args" class="form-control" placeholder="my_lib">
+                            <input type="text" name="def_args" class="form-control" placeholder="-m my_module">
                         </div>
                         <button type="submit" class="btn btn-primary" id="submitButton" disabled>Install</button>
                     </form>
@@ -172,8 +172,10 @@
         </div>
         <div class="row additional pt-0" style="display: none;">
             <hr>
-            <div class="my-3"><strong>{{program.version}}</strong>
-
+            <div class="my-3"><strong>Modules and version:</strong>
+                {% if not program.version.startswith("Module") %}<span class='text-muted'>(root module)</span>
+                {% endif %}
+                {{program.version}}
             </div>
             <div class="my-3"><strong>Program status:</strong>
                 {{ program.status }}
@@ -204,7 +206,7 @@
                 {% endfor %}
             </div>
             <div class="my-3"><strong>Default call:</strong>
-                <code>python -m {{ program.def_args }}{% if program.def_args == "" %}<span class='text-muted'>(no default arguments)</span>{% endif %}</code>
+                <code>python {{ program.def_args }}{% if program.def_args == "" %}<span class='text-muted'>(no default arguments)</span>{% endif %}</code>
             </div>
             <div class="my-3"><strong>Program source:</strong>
                 {% if program.source == "file upload" %}file upload{% else %}
