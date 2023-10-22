@@ -76,10 +76,7 @@ def run_and_verify(cmd: str, cwd=None):
                                             cmd=cmd, stderr=proc.stdout)
 
 
-def get_version_from_init(module_path):
-    init_path = os.path.join(module_path, '__init__.py')
-    if not os.path.exists(init_path):
-        return None
+def get_version_from_init(init_path):
 
     with open(init_path, 'r') as f:
         contents = f.read()
@@ -94,26 +91,32 @@ def find_first_module_version(root):
     versionstrs = []
 
     # Helper function to check for module version in a directory
-    def check_directory(directory):
-        for item in os.listdir(directory):
-            item_path = os.path.join(directory, item)
-            # Check if the item is a directory and contains __init__.py
-            if os.path.isdir(item_path) and os.path.exists(os.path.join(item_path, '__init__.py')):
-                version = get_version_from_init(item_path)
-                if version:
-                    versionstr = f"Module: {item}, Version: {version}"
-                else:
-                    versionstr = f"Module: {item}"
-                versionstrs.append(versionstr)
+    def check_this_dir(rel_root, item):
+        # Check if the item is a directory and contains __init__.py
+
+        init_loc = os.path.join(rel_root, item, '__init__.py')
+
+        if os.path.exists(init_loc):
+            version = get_version_from_init(init_loc)
+            if version and item:
+                versionstr = f"Module: {item}, Version: {version}"
+            elif item:
+                versionstr = f"Module: {item}"
+            else:
+                versionstr = f"Version: {version}"
+            versionstrs.append(versionstr)
 
     # Check the root directory
-    check_directory(root)
+    check_this_dir(root, "")
 
     # Check directories one level deeper
     for item in os.listdir(root):
         item_path = os.path.join(root, item)
+        check_this_dir(root, item)
         if os.path.isdir(item_path):
-            check_directory(item_path)
+            for subitem in os.listdir(item_path):
+                subitem_path = os.path.join(item_path, subitem)
+                check_this_dir(subitem_path)
 
     versions = "; ".join(versionstrs)
     if versions != "":
@@ -354,4 +357,5 @@ if __name__ == '__main__':
                     required_python_version,
                     list_of_libs,
                     source_specifier)
+    print(sys.argv)
     sys.exit(0)
