@@ -5,7 +5,6 @@ import sys
 import traceback
 import json
 import pandas as pd
-from .helpers import remove_readonly
 
 
 def run_and_verify(cmd: str, cwd=None):
@@ -42,6 +41,7 @@ def delete_program(program_name):
     # the price of using the same file where the deletion is initiated from python
     # and where the console script's deletion is implemented
     from set_conf import set_conf
+    from helpers import remove_readonly
     config = {}
     set_conf(config)
 
