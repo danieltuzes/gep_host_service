@@ -147,12 +147,13 @@ def init_run(request: Request) -> Union[int, str]:
 
     # get output paths
     outputs = {}
-    for ofile in config.options("outputs"):
-        ofilepath = os.path.relpath(config.get("outputs", ofile),
-                                    setup_folder)
-        outputs[ofile] = ofilepath
-    with open(config_file, 'w') as configfile:
-        config.write(configfile)
+    if config.has_section("outputs"):
+        for ofile in config.options("outputs"):
+            ofilepath = os.path.relpath(config.get("outputs", ofile),
+                                        setup_folder)
+            outputs[ofile] = ofilepath
+        with open(config_file, 'w') as configfile:
+            config.write(configfile)
 
     python_args = safer_call(request.form["args"])
     notifications = extract_emails(request.form["notifications"])
