@@ -9,7 +9,7 @@
         the program.</p>
 
     <!-- Install a new program collapsible -->
-    <div class="accordion mb-3" id="installProgramAccordion">
+    <div class="accordion mb-3 shadow" id="installProgramAccordion">
         <div class="accordion-item">
             <h5 class="accordion-header border-primary border" id="headingOne">
                 <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
@@ -151,23 +151,29 @@
                 {% endif %}
             </div>
             <div class="col text-end">
-                {% if program.status == "Installed" %}
-                <a href="{{ url_for('main_routes.runs', program_name=program.program_name) }}"
-                    class="btn btn-success btn-sm  me-1 mb-1">Run</a>
-                {% endif %}
-
-
                 {% if program.source == "file upload"%}
                 <a href="{{ url_for('main_routes.get_prg', program_name=program.program_name)}}"
-                    class="btn btn-primary btn-sm me-1 mb-1">Download</a>
+                    class="btn btn-primary btn-sm me-1 mb-1" title="Download the whole package">Download</a>
                 {% elif program.source.startswith("http") %}
                 {% set git_list = program.source.split(" ") %}
-                <div class="btn-group">
+                <div class="btn-group"><a href="{{ git_list[0] }}" class="btn btn-secondary btn-sm ms-1 mb-1"
+                        title="copy the link to the repo">🔗</a>
                     <a href="{{ url_for('main_routes.get_prg', program_name=program.program_name)}}"
-                        class="btn btn-primary btn-sm mb-1">Download</a><a href="{{ git_list[0] }}"
-                        class="btn btn-secondary btn-sm me-1 mb-1">🔗</a>
+                        class="btn btn-primary btn-sm mb-1" title="Download the whole package">Download</a>
                 </div>
                 {% endif %}
+
+                {% if program.status == "Installed" %}
+                <a href="{{ url_for('main_routes.runs', program_name=program.program_name) }}"
+                    class="btn btn-success btn-sm  me-1 mb-1" title="Setup and run on the server">Run</a>
+                {% endif %}
+
+
+
+                <a href="#" class="btn btn-secondary btn-sm me-1 mb-1 copy-id-link"
+                    title="Copy the deeplink to this element">
+                    <i class="bi bi-clipboard"></i> Copy Link
+                </a>
             </div>
         </div>
         <div class="row additional pt-0" style="display: none;">
@@ -228,4 +234,25 @@
     </div>
 
 </div>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // radio button for program install
+        let zipRadioButton = document.getElementById('zipFile');
+        let gitRadioButton = document.getElementById('gitSource');
+        let zipFileFields = document.getElementById('zipFileFields');
+        let gitSourceFields = document.getElementById('gitSourceFields');
+
+        zipRadioButton.addEventListener('change', function () {
+            zipFileFields.style.display = 'block';
+            gitSourceFields.style.display = 'none';
+        });
+
+        gitRadioButton.addEventListener('change', function () {
+            zipFileFields.style.display = 'none';
+            gitSourceFields.style.display = 'block';
+        });
+
+
+    });
+</script>
 {% endblock %}

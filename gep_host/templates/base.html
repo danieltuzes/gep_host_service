@@ -5,8 +5,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ service_name }}</title>
-    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
-    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='fonts-icons/bootstrap-icons.css') }}">
+
+
     <style>
         .tooltip-text {
             border-bottom: 1px dotted #007BFF;
@@ -70,6 +72,7 @@
             </div>
         </nav>
     </div>
+
     {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
     {% for category, message in messages %}
@@ -96,8 +99,7 @@
                     <div class="toast-body">
                         A task is completed! Click <a href="#" id="reload-link">here</a> to reload.
                     </div>
-                    <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast"
-                        aria-label="Close"></button>
+                    <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast"></button>
                 </div>
             </div>
         </div>
@@ -107,6 +109,7 @@
                 <p id="status">{{ activity }}</p>
             </div>
         </div>
+
     </div>
     {% endif %}
 
@@ -134,6 +137,19 @@
             </div>
         </div>
     </div>
+
+    <!-- copy link to clipboard -->
+    <div class="container">
+        <div class="position-fixed top-0 end-0 p-3" style="z-index: 1031; top:70px">
+            <div class="toast align-items-center border border-success" id="copyToast" role="alert">
+                <div class="d-flex">
+                    <div class="toast-body">Link copied!</div>
+                    <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </body>
 
 <script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
@@ -157,17 +173,20 @@
         }
     }
 
-    // don't allow submitting forms without filling required fields
     document.addEventListener('DOMContentLoaded', function () {
+        // show/hide additional row
         var toggleRows = document.querySelectorAll('.toggle-row');
         toggleRows.forEach(function (row) {
             row.addEventListener('click', toggleRow);
         });
+
+        // show tooltip
         var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
         var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
             return new bootstrap.Tooltip(tooltipTriggerEl)
         })
 
+        // disallow sending form without filling all required field
         let requiredInputs = document.querySelectorAll('input[required]');
         let submitButton = document.getElementById('submitButton');
 
@@ -199,21 +218,33 @@
             }
         }
 
-        // radio button for program install
-        let zipRadioButton = document.getElementById('zipFile');
-        let gitRadioButton = document.getElementById('gitSource');
-        let zipFileFields = document.getElementById('zipFileFields');
-        let gitSourceFields = document.getElementById('gitSourceFields');
+        function copyToClipboard(text) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+        }
 
-        zipRadioButton.addEventListener('change', function () {
-            zipFileFields.style.display = 'block';
-            gitSourceFields.style.display = 'none';
+        const copyLinks = document.querySelectorAll('.copy-id-link');
+
+        copyLinks.forEach(link => {
+            link.addEventListener('click', function (event) {
+                event.preventDefault(); // Prevent the default action (navigating)
+
+                const rowId = event.target.closest('.toggle-row').id;
+                const url = window.location.href.split('#')[0] + '#' + rowId;
+
+                copyToClipboard(url);
+
+                // Show the toast
+                const toastEl = document.getElementById('copyToast');
+                const toast = new bootstrap.Toast(toastEl);
+                toast.show();
+            });
         });
 
-        gitRadioButton.addEventListener('change', function () {
-            zipFileFields.style.display = 'none';
-            gitSourceFields.style.display = 'block';
-        });
     });
 
     // if email field is invalid, disallow sending, and show upload in progress

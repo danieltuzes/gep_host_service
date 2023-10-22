@@ -15,7 +15,7 @@
         <a href="{{ url_for('main_routes.index') }}">index page</a>.
     </p>
     <div class="accordion mb-3" id="addLibraryAccordion">
-        <div class="accordion-item">
+        <div class="accordion-item shadow">
             <h5 class="accordion-header border-primary border" id="headingOne">
                 <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
                     data-bs-target="#collapseOne">
@@ -71,8 +71,8 @@
             <div class="col-5 text-end">Action</div>
         </div>
         {% for library in libs.itertuples() %}
-        <div class="row toggle-row">
-            <div class="col-md-3">
+        <div class="row toggle-row" id="{{library.library_name}}">
+            <div class="col-6">
                 <span data-bs-toggle="tooltip" data-bs-placement="top" title="{{library.status}}">
                     {% if library.status == "Installed" %}
                     <span class="badge rounded-pill bg-success">✓</span>
@@ -82,11 +82,15 @@
                 </span>
                 {{ library.library_name }}
             </div>
-            <div class="col-md-3">{{ library.upload_date }}</div>
-            <div class="col-md-5 text-end">
-                <a class="btn btn-primary btn-sm mx-1"
+            <div class="col-3">{{ library.upload_date }}</div>
+            <div class="col-3 text-end">
+                <a class="btn btn-primary btn-sm mx-1" title="Download the original zipped library"
                     href="{{ url_for('main_routes.get_lib', library_name=library.library_name) }}">Download
                     ({{library.size}})</a>
+                <a href="#" class="btn btn-secondary btn-sm me-1 mb-1 copy-id-link"
+                    title="Copy the deeplink to this element">
+                    <i class="bi bi-clipboard"></i> Copy Link
+                </a>
             </div>
         </div>
         <div class="row additional" style="display: none;">

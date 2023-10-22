@@ -5,6 +5,7 @@ import argparse
 import os
 import json
 import sys
+import mimetypes
 
 from flask import Flask
 from gevent.pywsgi import WSGIServer
@@ -30,7 +31,7 @@ if __name__ == "__main__":
     parser.add_argument('--debug', action='store_true',
                         help="Enable debug mode for flask")
     args = parser.parse_args()
-
+    mimetypes.add_type('font/woff2', '.woff2')
     app = Flask(__name__)
 
     set_conf(app.config)
