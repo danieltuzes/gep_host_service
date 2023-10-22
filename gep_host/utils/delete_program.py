@@ -80,7 +80,7 @@ def delete_program(program_name):
             libs = pd.read_csv(config["LIB"])
             libs["used_in"] = libs["used_in"].apply(remove_val_from_json,
                                                     val_2_remove=program_name)
-            libs.to_csv(config["LIB"])
+            libs.to_csv(config["LIB"], index=False)
 
         return code
 
