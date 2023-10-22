@@ -166,6 +166,9 @@
                 {% if program.status == "Installed" %}
                 <a href="{{ url_for('main_routes.runs', program_name=program.program_name) }}"
                     class="btn btn-success btn-sm  me-1 mb-1" title="Setup and run on the server">Run</a>
+                {% else %}
+                <button class="btn btn-success btn-sm  me-1 mb-1"
+                    title="Run can be triggered after installation is complete" disabled>Run</button>
                 {% endif %}
 
 
