@@ -138,6 +138,27 @@
         </div>
     </div>
 
+    <!-- delete is in progress -->
+    <div class="modal fade" id="deleteModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteModalLabel">Delete is in progress</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    Delete is in progress.
+                    You can close this message dialog,
+                    but <strong>do not leave or close this page</strong>.<br>
+                    In another tab you can still open {{ service_name }} again.
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">OK</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- copy link to clipboard -->
     <div class="container">
         <div class="position-fixed top-0 end-0 p-3" style="z-index: 1031; top:70px">
@@ -317,6 +338,19 @@
                 });
         }
     }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const deleteLinks = document.querySelectorAll('a');
+
+        deleteLinks.forEach(link => {
+            if (link.textContent.trim() === 'Delete') {
+                link.addEventListener('click', function (event) {
+                    const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+                    deleteModal.show();
+                });
+            }
+        });
+    });
 
     // Fetch the status immediately upon page load
     checkStatus();
