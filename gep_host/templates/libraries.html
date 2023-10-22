@@ -119,11 +119,16 @@
                 {% endif %}
             </div>
             <div>
-                <span data-bs-toggle="tooltip" data-bs-placement="top"
-                    title="Deleting the library may affect the programs using it, see above. If you delete it now, you will still be able to add it again."><a
-                        class="btn btn-danger btn-sm"
-                        href="{{ url_for('main_routes.del_library', library_name=library.library_name) }}">Delete</a>
+                <a class="btn btn-danger btn-sm"
+                    href="{{ url_for('main_routes.del_library', library_name=library.library_name) }}">Delete</a>
+                {% if library.used_in != "[]" %}
+                <span class="badge bg-warning text-dark ms-2" data-bs-toggle="tooltip" data-bs-placement="top" title="">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                    Warning: deleting the library may affect the programs using it. If you delete it now, you will still
+                    be
+                    able to add it back again later.
                 </span>
+                {% endif %}
             </div>
         </div>
         {% endfor %}
