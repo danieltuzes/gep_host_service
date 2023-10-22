@@ -115,8 +115,7 @@ def find_first_module_version(root):
         check_this_dir(root, item)
         if os.path.isdir(item_path):
             for subitem in os.listdir(item_path):
-                subitem_path = os.path.join(item_path, subitem)
-                check_this_dir(subitem_path)
+                check_this_dir(item_path, subitem)
 
     versions = "; ".join(versionstrs)
     if versions != "":
