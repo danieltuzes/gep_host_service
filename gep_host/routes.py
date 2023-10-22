@@ -441,6 +441,15 @@ def libraries():
         if file_size > 2000000:
             file_size_str = f"{file_size/1024/1024:.0f} MB"
 
+        libs = pd.DataFrame()
+        used_in = json.dumps([])
+        if os.path.isfile(current_app.config["LIB"]):
+            libs = pd.read_csv(current_app.config["LIB"])
+        prev_entry = libs.loc[libs["library_name"] == library_name]
+        if not prev_entry.empty:
+            used_in = prev_entry["used_in"].iloc[0]
+            libs = libs.loc[libs["library_name"] != library_name]
+
         new_entry = pd.DataFrame({
             'library_name': [library_name],
             'path_to_exec': [path_to_exec],
@@ -450,12 +459,9 @@ def libraries():
             'status': ["Installed"],
             'size': [file_size_str],
             'comment': request.form["comment"],
-            'used_in': [json.dumps([])]
+            'used_in': [used_in]
         })
 
-        libs = pd.DataFrame()
-        if os.path.isfile(current_app.config["LIB"]):
-            libs = pd.read_csv(current_app.config["LIB"])
         libs = pd.concat([libs, new_entry], ignore_index=True)
         libs.to_csv(current_app.config["LIB"], index=False)
         flash(f"Library {library_name} is successfully uploaded.", "success")
@@ -481,7 +487,8 @@ def del_library(library_name: str):
                                == library_name, "used_in"].iloc[0]
         used_in = json.loads(used_in_raw)
         if used_in != []:  # if it still in use
-            flash(("Library is still required by the programs: "
+            flash(("The library's entry stays with a mark deleted, "
+                   "because programs are still using it: "
                    f"{', '.join(used_in)}. "
                    "To remove the entry from the libraries, "
                    "uninstall all programs using it. "
@@ -489,8 +496,6 @@ def del_library(library_name: str):
                   "warning")
             libs.loc[libs["library_name"] ==
                      library_name, "status"] = "deleted"
-            flash(f"The entry of the library {library_name} is successfully deleted.",
-                  "success")
         else:
             zip_path = libs.loc[libs["library_name"] ==
                                 library_name, "zip_path"].iloc[0]
@@ -502,8 +507,13 @@ def del_library(library_name: str):
         path = os.path.join(current_app.config["LIBR"], library_name)
         if os.path.isdir(path):
             shutil.rmtree(path, ignore_errors=True)
-            flash(f"The library {library_name} is successfully deleted.",
-                  "success")
+            if used_in != []:
+                flash(f"The files associated with the library {library_name} "
+                      "is successfully deleted.",
+                      "success")
+            else:
+                flash(f"The library {library_name} is successfully deleted.",
+                      "success")
         else:
             flash(f"The files of the library {library_name} have been already deleted.",
                   "warning")
