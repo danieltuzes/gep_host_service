@@ -520,7 +520,7 @@ def get_lib(library_name):
     libs = pd.read_csv(current_app.config["LIB"])
     zip_path = libs.loc[libs["library_name"]
                         == library_name, "zip_path"].iloc[0]
-    path_to_zip = os.path.join(current_app.config["LIB"], zip_path)
+    path_to_zip = os.path.join(current_app.config["ROOT"], zip_path)
     orig_filename = libs.loc[libs["library_name"]
                              == library_name, "orig_filename"].iloc[0]
 
