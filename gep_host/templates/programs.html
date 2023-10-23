@@ -21,7 +21,7 @@
                 <div class="accordion-body" id="programSourceAccordion">
                     <form action="{{ url_for('main_routes.program_install') }}" method="post"
                         enctype="multipart/form-data">
-                        <div class="mb-1">Source of the program:</div>
+                        <div class="mb-1">Source of the program</div>
                         <div class="row align-items-top mb-3">
                             <div class="col-2">
                                 <!-- Radio Buttons -->
@@ -44,7 +44,7 @@
                                 <!-- Zip File Form Fields (Initially Displayed) -->
                                 <div id="zipFileFields">
                                     <label for="program_package" class="form-label">Zipped Package<span
-                                            style="color: red;">*</span>:</label>
+                                            style="color: red;"> *</span></label>
                                     <input type="file" name="program_package" class="form-control">
                                 </div>
 
@@ -53,13 +53,13 @@
                                     <div class="row">
                                         <div class="col-8">
                                             <label for="git-source-url" class="form-label">Git URL<span
-                                                    style="color: red;">*</span>:</label>
+                                                    style="color: red;"> *</span></label>
                                             <input type="text" class="form-control" id="git-source-url"
                                                 placeholder="{{ git_example }}" name="git-source-url">
                                         </div>
                                         <div class="col-4">
                                             <label for="git-source-ref" class="form-label">Branch, commit hash or
-                                                tag<span style="color: red;">*</span>:</label>
+                                                tag<span style="color: red;"> *</span></label>
                                             <input type="text" class="form-control" id="git-source-ref"
                                                 placeholder="{{ git_branch }}" name="git-source-ref">
                                         </div>
@@ -71,19 +71,19 @@
                             <label for="unique_program_name" class="form-label">Program Name <span class="tooltip-text"
                                     data-bs-toggle="tooltip" data-bs-placement="top"
                                     title="It can contain only alphanumeric chars and _.- Space is not allowed.">(info)<span
-                                        style="color: red;">*</span></span>:</label>
+                                        style="color: red;"> *</span></span></label>
                             <input type="text" name="unique_program_name" class="form-control" required
                                 placeholder="My_Unique_Program-Name_v1.0.0">
                         </div>
                         <div class="mb-3">
                             <label for="required_python_version" class="form-label">Required Python Version<span
-                                    style="color: red;">*</span>:</label>
+                                    style="color: red;"> *</span></label>
                             <input type="text" name="required_python_version" class="form-control" required
                                 placeholder="explicit single value, e.g. 3.8">
                         </div>
                         <div class="mb-3">
                             <label for="selected_libs" class="form-label">Libraries needed to run this program
-                                (multiple selection):</label>
+                                (multiple selection)</label>
                             <select multiple class="form-select" id="selected_libs" size="4" name="selected_libs">
                                 {% for lib_name in libs['library_name'] %}
                                 <option>{{ lib_name }}</option>
@@ -94,7 +94,7 @@
                             <label for="def_args">
                                 Python call's default argument string
                                 <span class="tooltip-text" data-bs-toggle="tooltip" data-bs-placement="top"
-                                    title="Enter the string that follows python. It can contain only alphanumeric chars and &quot;-&#039;_\^/(,)[.]">(info)</span>:
+                                    title="Enter the string that follows python. It can contain only alphanumeric chars and &quot;-&#039;_\^/(,)[.]">(info)</span>
                             </label>
                             <input type="text" name="def_args" class="form-control" placeholder="-m my_module">
                         </div>

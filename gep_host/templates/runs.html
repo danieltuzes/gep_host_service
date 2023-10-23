@@ -20,7 +20,7 @@
                 <form action="{{ url_for('main_routes.trigger_run') }}" method="post" enctype="multipart/form-data">
                     <div class="row">
                         <div class="mb-3 col-md-6">
-                            <label for="program_name">Program Name:</label>
+                            <label for="program_name">Program Name</label>
                             <input type="text" name="program_name" class="form-control" disabled
                                 value="{{ program_name }}">
                             <input type="hidden" name="program_name" value="{{ program_name }}">
@@ -29,7 +29,7 @@
                             <label for="purpose">Purpose <span class="tooltip-text" data-bs-toggle="tooltip"
                                     data-bs-placement="top"
                                     title="It can contain only alphanumeric chars and _.- Space is not allowed.">(info)</span><span
-                                    style="color: red;">*</span>:</label>
+                                    style="color: red;"> *</span></label>
                             <input type="text" name="purpose" class="form-control" required
                                 placeholder="Enter a unique name for the run">
                         </div>
@@ -39,7 +39,7 @@
                             Python call's argument string
                             <span class="tooltip-text" data-bs-toggle="tooltip" data-bs-placement="top"
                                 title="Enter the string that follows python. It can contain only alphanumeric chars and &quot;-&#039;_\^/(,)[.]">
-                                (info)</span><span style="color: red;">*</span>:
+                                (info)</span><span style="color: red;"> *</span>
                         </label>
                         <input type="text" name="args" class="form-control" value="{{ prg_to_run.def_args }}" required>
                     </div>
@@ -61,7 +61,7 @@
                                         ignored if you select a file here. Inheritable files are all inherited if not
                                         defined in the MasterInput.cfg in the zip file.</p>
                                     <div class="mb-3 row">
-                                        <label for="masterinput" class="col-sm-2 col-form-label">Masterinput:</label>
+                                        <label for="masterinput" class="col-sm-2 col-form-label">Masterinput</label>
                                         <div class="col-sm-6">
                                             <input type="file" class="form-control" id="masterinput" name="masterinput">
                                         </div>
@@ -100,7 +100,7 @@
                                     {% if input_path is not none %}
                                     <div class="mb-3 row">
                                         <label for="{{ input_name }}" class="col-sm-2 col-form-label">{{ input_name
-                                            }}:</label>
+                                            }}</label>
                                         <div class="col-sm-6">
                                             <input type="file" class="form-control" id="{{ input_name }}" disabled
                                                 name="{{ input_name }}">
@@ -133,13 +133,13 @@
                     </div>
                     <div class="mb-3">
                         <label for="comment">
-                            Comment:
+                            Comment
                         </label>
                         <input type="text" name="comment" class="form-control">
                     </div>
                     <div class="mb-3">
                         <label for="notifications">
-                            Notify in email:
+                            Notify in email
                         </label>
                         <input type="text" name="notifications" class="form-control" id="emailInput"
                             placeholder="{{ email_placeholder }}">
@@ -284,7 +284,7 @@
             {% endfor %}
             {% endif %}
         </div>
-        <div class="my-2"><strong>Comment:</strong>
+        <div class="my-2"><strong>Comment</strong>
             {% if run.comment == "" %}<span class='text-muted'>(None)</span>
             {% else %}
             {{ run.comment }}

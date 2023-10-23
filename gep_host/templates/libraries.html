@@ -26,25 +26,29 @@
                 <div class="accordion-body">
                     <form action="{{ url_for('main_routes.libraries') }}" method="post" enctype="multipart/form-data">
                         <div class="mb-3">
-                            <label for="library_package" class="form-label">Library Package:</label>
+                            <label for="library_package" class="form-label">Library Package<span
+                                    style="color: red;"></span>
+                                *</span></label>
                             <input type="file" name="library_package" class="form-control" required>
                         </div>
                         <div class="mb-3">
-                            <label for="unique_library_name" class="form-label">Unique Library Name:</label>
+                            <label for="unique_library_name" class="form-label">Unique Library Name<span
+                                    style="color: red;"> *</span></label>
                             <input type="text" name="unique_library_name" class="form-control" required>
                         </div>
                         <div class="mb-3">
                             <label for="path_to_exec" class="form-label">Path to the executables <span
                                     class="tooltip-text" data-bs-toggle="tooltip" data-bs-placement="top"
-                                    title="It can contain only alphanumeric chars and _-.( -)/, +~!#">(info)</span>:</label>
+                                    title="It can contain only alphanumeric chars and _-.( -)/, +~!#">(info)</span>
+                                <span style="color: red;"> *</span></label>
                             <input type="text" name="path_to_exec" class="form-control" required
                                 value="{{ lib_def_path }}">
                         </div>
                         <div class="mb-3">
-                            <label for="comment" class="form-label">Comment:</label>
+                            <label for="comment" class="form-label">Comment</label>
                             <input type="text" name="comment" class="form-control">
                         </div>
-                        <button type="submit" class="btn btn-primary">Upload</button>
+                        <button type="submit" class="btn btn-primary" id="submitButton">Upload</button>
                     </form>
                 </div>
             </div>
@@ -99,7 +103,7 @@
                 <strong>Path to the executables: </strong>{{ library.path_to_exec }}
             </div>
             <div class="my-2">
-                <strong>Comment: </strong>
+                <strong>Comment </strong>
                 {% if library.comment == "" %}<span class='text-muted'>(None)</span>
                 {% else %}
                 {{ library.comment }}
