@@ -13,6 +13,7 @@
         .tooltip-text {
             border-bottom: 1px dotted #007BFF;
             /* Bootstrap primary color */
+            border: #eceef0
             cursor: help;
         }
 
@@ -73,6 +74,34 @@
         </nav>
     </div>
 
+    <!-- copy link to clipboard -->
+    <div class="container">
+        <div class="position-fixed top-1 end-0 p-3" style="z-index: 1031; padding-top: 100px">
+            <div class="toast align-items-center border border-success" id="copyToast" role="alert">
+                <div class="d-flex">
+                    <div class="toast-body">Link copied!</div>
+                    <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if activity is defined %}
+    <div class="container">
+        <div class="position-fixed top-1 end-0 p-3" style="z-index: 1031">
+            <div id="toaster" class="toast align-items-center border border-success" role="alert"
+                data-bs-autohide="false">
+                <div class="d-flex">
+                    <div class="toast-body">
+                        A task is completed! Click <a href="#" id="reload-link">here</a> to reload.
+                    </div>
+                    <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
     {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
     {% for category, message in messages %}
@@ -88,30 +117,6 @@
         {% block content %}
         {% endblock %}
     </div>
-
-
-    {% if activity is defined %}
-    <div class="container">
-        <div class="position-fixed top-0 end-0 p-3" style="z-index: 1031; top:70px">
-            <div id="toaster" class="toast align-items-center border border-success" role="alert"
-                data-bs-autohide="false">
-                <div class="d-flex">
-                    <div class="toast-body">
-                        A task is completed! Click <a href="#" id="reload-link">here</a> to reload.
-                    </div>
-                    <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast"></button>
-                </div>
-            </div>
-        </div>
-
-        <div class="mt-5 pt-3">
-            <div class="container-fluid">
-                <p id="status">{{ activity }}</p>
-            </div>
-        </div>
-
-    </div>
-    {% endif %}
 
     <!-- upload is in progress -->
     <div class="modal fade" id="uploadModal" tabindex="-1">
@@ -158,19 +163,16 @@
             </div>
         </div>
     </div>
-
-    <!-- copy link to clipboard -->
+    {% if activity is defined %}
     <div class="container">
-        <div class="position-fixed top-0 end-0 p-3" style="z-index: 1031; top:70px">
-            <div class="toast align-items-center border border-success" id="copyToast" role="alert">
-                <div class="d-flex">
-                    <div class="toast-body">Link copied!</div>
-                    <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast"></button>
-                </div>
+        <div class="mt-5 pt-3">
+            <div class="container-fluid">
+                <p id="status">{{ activity }}</p>
             </div>
         </div>
-    </div>
 
+    </div>
+    {% endif %}
 </body>
 
 <script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
