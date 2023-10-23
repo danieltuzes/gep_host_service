@@ -60,3 +60,5 @@ def set_conf(config: dict):
                                            fallback="https://github.com/username/repository.git")
     config["git_branch"] = prg_config.get("settings", "git_branch",
                                           fallback="master ")
+    config["stripe_color"] = prg_config.get("settings", "stripe_color",
+                                            fallback="#eceef0")

@@ -19,12 +19,12 @@
         /* Coloring every 4th and 5th rows starting from the 2nd row */
         .container>.row:nth-child(4n+2),
         .container>.row:nth-child(4n+3) {
-            background-color: #f8f9fa;
+            background-color: {{ stripe_color }};
             /* Light gray */
         }
 
         .container>.row:not(.additional):not(.container > :first-child) {
-            border-top: 1px solid #dee2e6;
+            border-top: 5px solid #ffffff;
         }
 
         .container>.row {
