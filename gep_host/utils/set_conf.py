@@ -10,6 +10,7 @@ def set_conf(config: dict):
     masterconf = ConfigParser(interpolation=ExtendedInterpolation())
     masterconf.read(masterconf_path)
 
+    # setting folders
     prg_conf_path = os.path.join(
         pgk_root, masterconf.get("inputs", "settings"))
     prg_config = ConfigParser(interpolation=ExtendedInterpolation())
@@ -25,8 +26,10 @@ def set_conf(config: dict):
     config["PRGR"] = os.path.join(root, 'programs')
     config["RUNR"] = os.path.join(root, 'runs')
     config["LIBR"] = os.path.join(root, 'libs')
+    config["LIBR"] = os.path.join(root, 'libs')
+    config['FLSR'] = os.path.join(root, 'files')
 
-    for folder in ["PRGR", "RUNR", "LIBR"]:
+    for folder in ["PRGR", "RUNR", "LIBR", "FLSR"]:
         if not os.path.isdir(config[folder]):
             os.makedirs(config[folder])
 
@@ -34,6 +37,7 @@ def set_conf(config: dict):
     config["RUN"] = os.path.join(root, 'runs/run_details.csv')
     config["LIB"] = os.path.join(root, 'libs/lib_details.csv')
 
+    # other settings from the host.cfg
     config["port"] = int(prg_config.get("settings", "port",
                                         fallback="5000"))
     config["service_name"] = prg_config.get("settings", "service_name",

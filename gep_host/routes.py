@@ -8,6 +8,7 @@ import zipfile
 import platform
 import multiprocessing
 import logging
+import hashlib
 from io import StringIO
 
 from flask import render_template, request, redirect, flash, \
@@ -77,7 +78,7 @@ def index():
     return render_template('index.html', data=data)
 
 
-@main_routes.route('/programs', methods=['GET', 'POST'])
+@main_routes.route('/programs', methods=['GET'])
 def programs():
     """Show programs, confirm successful installation."""
     column = request.args.get('column', 'upload_date')
@@ -538,6 +539,168 @@ def get_lib(library_name):
                      mimetype='main_routeslication/zip',
                      as_attachment=True,
                      download_name=orig_filename)
+
+
+@main_routes.route('/files', methods=['GET'])
+def upload_form():
+    column = request.args.get('column', 'upload_date')
+    direction = request.args.get('direction', 'desc')
+
+    csv_path = os.path.join(current_app.config['ROOT'], 'file_data.csv')
+    if os.path.exists(csv_path):
+        df = pd.read_csv(csv_path)
+
+        if direction == 'desc':
+            df = df.sort_values(by=column, ascending=False)
+        else:
+            df = df.sort_values(by=column, ascending=True)
+    else:
+        df = pd.DataFrame()
+
+    return render_template('upload.html', files=df, column=column, direction=direction)
+
+
+@main_routes.route('/save_files', methods=['POST'])
+def save_files():
+    uploaded_files = [f for f in request.files.values()]
+    data = []
+    new_filenames = []
+
+    csv_path = os.path.join(current_app.config['ROOT'], 'file_data.csv')
+    if os.path.exists(csv_path):
+        df = pd.read_csv(csv_path)
+    else:
+        df = pd.DataFrame(
+            columns=["filename", "upload_date", "size", "hash", "comment", "used_in"])
+
+    comment = request.form.get("comment")
+    for file in uploaded_files:
+        if file:
+            # Save file with datestring added to filename
+            secure_fname = secure_filename(file.filename)
+            file_content = file.read()
+            file_hash = hashlib.md5(file_content).hexdigest()
+            file.seek(0)
+
+            filename, file_extension = os.path.splitext(secure_fname)
+            new_filename = f"{filename}_{file_hash[:8]}{file_extension}"
+            now = datetime.now()
+
+            filepath = os.path.join(current_app.config['FLSR'], new_filename)
+            matches = df.loc[df["hash"] == file_hash]
+            if len(matches):
+                other_fname = matches["filename"].iloc[0]
+                flash(f"File named {file.filename} has the same content as "
+                      f"{other_fname}. This file is not saved.",
+                      "warning")
+                continue
+            file.save(filepath)
+
+            # Calculate file size and hash
+            size = len(file_content)
+
+            # Save file details to CSV
+            data.append({
+                "filename": new_filename,
+                "upload_date": now.strftime('%Y-%m-%d %H:%M:%S'),
+                "size": size,
+                "hash": file_hash,
+                "comment": comment,
+                "used_in": "{}"
+            })
+            new_filenames.append(new_filename)
+
+    if len(new_filenames):
+        flash(f"{len(new_filenames)} file(s) are successfully saved: "
+              f"{', '.join(new_filenames)}", "success")
+
+    df = pd.concat([df, pd.DataFrame(data)], ignore_index=True)
+    df.to_csv(csv_path, index=False)
+
+    return jsonify({"success": True, "message": "Files uploaded successfully"})
+
+
+def get_orig_fname(filename: str):
+    name, ext = os.path.splitext(filename)
+    orig_fname = name[:-8] + ext
+    return orig_fname
+
+
+@main_routes.route('/get_file', methods=['GET'])
+def get_file():
+    filename = request.args.get('filename')
+    csv_path = os.path.join(current_app.config['ROOT'], 'file_data.csv')
+    df = pd.read_csv(csv_path)
+    matches = df.loc[df["filename"] == filename, "dir"]
+    if matches.empty:
+        return "File not found in the database", 404
+    directory = matches.iloc[0]
+    if pd.isna(directory):
+        location = os.path.join(current_app.config["FLSR"], filename)
+    else:
+        location = os.path.join(directory, filename)
+    if os.path.isfile(location):
+        return send_file(location,
+                         as_attachment=True,
+                         download_name=filename)
+    else:
+        return "File not found in the system", 404
+
+
+@main_routes.route('/delete_file', methods=['GET'])
+def delete_file():
+    filename = request.args.get('filename')
+
+    # check if file is in database
+    csv_path = os.path.join(current_app.config['ROOT'], 'file_data.csv')
+    df = pd.read_csv(csv_path)
+    matches = df['filename'] == filename
+    if not matches.any():
+        return jsonify({"message": "File not found in the database"}), 404
+
+    # remove from database
+    updated_df = df[~matches]
+    updated_df.to_csv(csv_path, index=False)
+
+    # detect of the file was just registered
+    if os.path.sep in filename or "/" in filename:
+        return jsonify({"message": "File is unregistered"}), 200
+
+    # Remove the file from the file system
+    file_path = os.path.join(current_app.config['FLSR'], filename)
+    if os.path.exists(file_path):
+        os.remove(file_path)
+        return jsonify({"message": "File successfully deleted"}), 200
+    else:
+        return jsonify({"message": "File not found on the server, so the entry is removed"}), 200
+
+
+@main_routes.route('/register_files', methods=['POST'])
+def register_files():
+    data = request.get_json()
+    local = data.get('local')
+    if not os.path.isfile(local):
+        return jsonify({"message": "Error: file not found the server"}), 404
+
+    csv_path = os.path.join(current_app.config['ROOT'], 'file_data.csv')
+    df = pd.read_csv(csv_path)
+    directory, filename = os.path.split(local)
+    if (df["filename"] == filename).any():
+        return jsonify({"message": "Error: filename is already registered"}), 400
+
+    size = os.path.getsize(local)
+    comment = data.get('comment')
+    new_entry = {"filename": filename,
+                 "upload_date": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                 "size": size,
+                 "comment": comment,
+                 "dir": directory,
+                 "used_in": "{}"}
+
+    df = pd.concat([df, pd.DataFrame([new_entry])], ignore_index=True)
+    df.to_csv(csv_path, index=False)
+
+    return jsonify({"message": "File successfully registered"}), 200
 
 
 @main_routes.route('/check_status', methods=['POST'])

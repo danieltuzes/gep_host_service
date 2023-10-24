@@ -21,6 +21,34 @@ def parse_json(json_str):
     return {}
 
 
+def format_file_size(size):
+    # Define the thresholds for each unit
+    KB = 1024
+    MB = KB * 1024
+    GB = MB * 1024
+
+    # Determine the appropriate unit and format the size
+    if size < KB:
+        return f"{size}B"
+    elif size < MB:
+        return f"{size / KB:.0f}KB"
+    elif size < GB:
+        return f"{size / MB:.0f}MB"
+    else:
+        return f"{size / GB:.0f}GB"
+
+
+def filename_to_html_id(filename):
+    # Remove file extension
+    name_without_ext = filename.rsplit('.', 1)[0]
+
+    # Replace special characters with underscores and ensure it doesn't start with a number
+    sanitized_id = ''.join(['_' + char if char.isdigit() and i == 0 else char if char.isascii()
+                           and char.isalnum() else '_' for i, char in enumerate(name_without_ext)])
+
+    return sanitized_id
+
+
 if __name__ == "__main__":
     descr = ("GEP host service: "
              "host your data-oriented python programs from a webpage, "
@@ -48,6 +76,8 @@ if __name__ == "__main__":
 
     app.register_blueprint(main_routes)
     app.jinja_env.filters['parse_json'] = parse_json
+    app.jinja_env.filters['filesize'] = format_file_size
+    app.jinja_env.filters['filename_to_html_id'] = filename_to_html_id
 
     # Setup logger
     logger = logging.getLogger()

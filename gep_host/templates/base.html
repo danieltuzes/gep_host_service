@@ -2,367 +2,411 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ service_name }}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='fonts-icons/bootstrap-icons.css') }}">
+  <meta charset="utf-8" />
+  <meta name="keywords" content="python, live execution" />
+  <meta name="description" content="Execute data oriented python programs from browser, running on remote servers." />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ service_name }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='fonts-icons/bootstrap-icons.css') }}">
+  <style>
+    .tooltip-text {
+      border-bottom: 1px dotted #007BFF;
+      /* Bootstrap primary color */
+      border: #eceef0;
+      cursor: help;
+    }
 
+    /* Coloring every 4th and 5th rows starting from the 2nd row */
+    .container>.row:nth-child(4n+2),
+    .container>.row:nth-child(4n+3) {
+      background-color: {{ stripe_color }};
+      /* Light gray */
+    }
 
-    <style>
-        .tooltip-text {
-            border-bottom: 1px dotted #007BFF;
-            /* Bootstrap primary color */
-            border: #eceef0
-            cursor: help;
-        }
+    .container>.row:not(.additional):not(.container > :first-child) {
+      border-top: 5px solid #ffffff;
+    }
 
-        /* Coloring every 4th and 5th rows starting from the 2nd row */
-        .container>.row:nth-child(4n+2),
-        .container>.row:nth-child(4n+3) {
-            background-color: {{ stripe_color }};
-            /* Light gray */
-        }
+    .container>.row {
+      padding: 1em;
+    }
 
-        .container>.row:not(.additional):not(.container > :first-child) {
-            border-top: 5px solid #ffffff;
-        }
+    .container>.row:first-child {
+      font-weight: bolder;
+    }
 
-        .container>.row {
-            padding: 1em;
-        }
+    .container>.row.toggle-row:hover {
+      cursor: pointer;
+      background-color: #daecfd;
+    }
 
-        .container>.row:first-child {
-            font-weight: bolder;
-        }
+    .sticky-navbar {
+      position: sticky;
+      top: 0;
+      z-index: 1030;
+      /* to ensure navbar stays on top */
+    }
 
-        .container>.row.toggle-row:hover {
-            cursor: pointer;
-            background-color: #daecfd;
-        }
-
-        .sticky-navbar {
-            position: sticky;
-            top: 0;
-            z-index: 1030;
-            /* to ensure navbar stays on top */
-        }
-
-        :target {
-            scroll-margin-top: 100px;
-        }
-    </style>
+    :target {
+      scroll-margin-top: 100px;
+    }
+  </style>
 </head>
 
 <body>
-    <div class="sticky-navbar">
-        <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow">
-            <div class="container-fluid">
-                <a class="navbar-brand ps-3" href="/">{{ service_name }}</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="collapse navbar-collapse" id="navbar">
-                    <ul class="navbar-nav">
-                        <li class="nav-item"><a class="nav-link" href="/programs">Programs</a></li>
-                        <li class="nav-item"><a class="nav-link" href="/runs">Runs</a></li>
-                        <li class="nav-item"><a class="nav-link" href="/libraries">Libraries</a></li>
-                        <li class="nav-item"><a class="nav-link" href="/users_tokens">Users, Tokens</a></li>
-                    </ul>
-                </div>
-            </div>
-        </nav>
-    </div>
-
-    <!-- copy link to clipboard -->
-    <div class="container">
-        <div class="position-fixed top-1 end-0 p-3" style="z-index: 1031; padding-top: 100px">
-            <div class="toast align-items-center border border-success" id="copyToast" role="alert">
-                <div class="d-flex">
-                    <div class="toast-body">Link copied!</div>
-                    <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast"></button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    {% if activity is defined %}
-    <div class="container">
-        <div class="position-fixed top-1 end-0 p-3" style="z-index: 1031">
-            <div id="toaster" class="toast align-items-center border border-success" role="alert"
-                data-bs-autohide="false">
-                <div class="d-flex">
-                    <div class="toast-body">
-                        A task is completed! Click <a href="#" id="reload-link">here</a> to reload.
-                    </div>
-                    <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast"></button>
-                </div>
-            </div>
-        </div>
-    </div>
-    {% endif %}
-    
-    {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-    {% for category, message in messages %}
-    <div class="alert alert-{{ category or 'primary' }} alert-dismissible fade show" role="alert">
-        {{ message|safe }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close">
+  <div class="sticky-navbar">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow">
+      <div class="container-fluid">
+        <a class="navbar-brand ps-3" href='{{ url_for("main_routes.index") }}'>{{ service_name }}</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar">
+          <span class="navbar-toggler-icon"></span>
         </button>
-    </div>
-    {% endfor %}
-    {% endif %}
-    {% endwith %}
-    <div class="container">
-        {% block content %}
-        {% endblock %}
-    </div>
-
-    <!-- upload is in progress -->
-    <div class="modal fade" id="uploadModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="uploadModalLabel">Upload is in progress</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    Upload is in progress.
-                    Depending on the total size of the files you requested to upload,
-                    it may take up to several minutes to upload them.
-                    You can close this message dialog,
-                    but <strong>do not leave or close this page</strong>.<br>
-                    In another tab you can still open {{ service_name }} again,
-                    but your network may seem to be slowerer
-                    as it is uploading files at full capacity.
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">OK</button>
-                </div>
-            </div>
+        <div class="collapse navbar-collapse" id="navbar">
+          <ul class="navbar-nav">
+            <li class="nav-item">
+              <a class="nav-link" href='{{ url_for("main_routes.programs") }}'>Programs</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href='{{ url_for("main_routes.runs") }}'>Runs</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href='{{ url_for("main_routes.libraries") }}'>Libraries</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href='{{ url_for("main_routes.upload_form") }}'>Files</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href='{{ url_for("main_routes.users_tokens") }}'>Users, Tokens</a>
+            </li>
+          </ul>
         </div>
-    </div>
-
-    <!-- delete is in progress -->
-    <div class="modal fade" id="deleteModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="deleteModalLabel">Delete is in progress</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    Delete is in progress.
-                    You can close this message dialog,
-                    but <strong>do not leave or close this page</strong>.<br>
-                    In another tab you can still open {{ service_name }} again.
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">OK</button>
-                </div>
-            </div>
+      </div>
+    </nav>
+  </div>
+  <!-- copy link to clipboard -->
+  <div class="container">
+    <div class="position-fixed top-1 end-0 p-3" style="z-index: 1031;
+                  padding-top: 100px">
+      <div class="toast align-items-center border border-success" id="copyToast" role="alert">
+        <div class="d-flex">
+          <div class="toast-body">Copied to the clipboard!</div>
+          <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast"></button>
         </div>
+      </div>
     </div>
-    {% if activity is defined %}
-    <div class="container">
-        <div class="mt-5 pt-3">
-            <div class="container-fluid">
-                <p id="status">{{ activity }}</p>
-            </div>
+  </div>
+  {% if activity is defined %}
+  <div class="container">
+    <div class="position-fixed top-1 end-0 p-3" style="z-index: 1031">
+      <div id="toaster" class="toast align-items-center border border-success" role="alert" data-bs-autohide="false">
+        <div class="d-flex">
+          <div class="toast-body">
+            A task is completed! Click <a href="#" id="reload-link">here</a> to reload.
+          </div>
+          <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast"></button>
         </div>
-
+      </div>
     </div>
-    {% endif %}
+  </div>
+  {% endif %}
+  {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+  {% for category, message in messages %}
+  <div class="alert alert-{{ category or 'primary' }} alert-dismissible fade show" role="alert">
+    {{ message|safe }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  </div>
+  {% endfor %}
+  {% endif %}
+  {% endwith %}
+  <div class="container">
+    {% block content %}
+    {% endblock content %}
+  </div>
+  <!-- upload is in progress -->
+  <div class="modal fade" id="uploadModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="uploadModalLabel">Upload is in progress</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          Upload is in progress.
+          Depending on the total size of the files you requested to upload,
+          it may take up to several minutes to upload them.
+          You can close this message dialog,
+          but <strong>do not leave or close this page</strong>.
+          <br>
+          In another tab you can still open {{ service_name }} again,
+          but your network may seem to be slowerer
+          as it is uploading files at full capacity.
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">OK</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- delete is in progress -->
+  <div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="deleteModalLabel">Delete is in progress</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          Delete is in progress.
+          You can close this message dialog,
+          but <strong>do not leave or close this page</strong>.
+          <br>
+          In another tab you can still open {{ service_name }} again.
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">OK</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% if activity is defined %}
+  <div class="container">
+    <div class="mt-5 pt-3">
+      <div class="container-fluid">
+        <p id="status">{{ activity }}</p>
+      </div>
+    </div>
+  </div>
+  {% endif %}
 </body>
-
 <script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
 <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
 <script>
-    // show/hide the additional row
-    function toggleRow(event) {
-        let currentRow = event.currentTarget;
-        let nextRow = currentRow.nextElementSibling;
+  // show/hide the additional row
+  function toggleRow(event) {
+    let currentRow = event.currentTarget;
+    let nextRow = currentRow.nextElementSibling;
 
-        // Check if the next row exists and has the "additional" class
-        if (nextRow && nextRow.classList.contains('additional')) {
-            // Toggle visibility
-            if (nextRow.style.display === 'none') {
-                nextRow.style.display = '';
-                currentRow.classList.add('active'); // Add active class
-            } else {
-                nextRow.style.display = 'none';
-                currentRow.classList.remove('active'); // Remove active class
-            }
+    // Check if the next row exists and has the "additional" class
+    if (nextRow && nextRow.classList.contains('additional')) {
+      // Toggle visibility
+      if (nextRow.style.display === 'none') {
+        nextRow.style.display = '';
+        currentRow.classList.add('active'); // Add active class
+      } else {
+        nextRow.style.display = 'none';
+        currentRow.classList.remove('active'); // Remove active class
+      }
+    }
+  }
+
+  function copyToClipboard(text) {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textarea);
+  }
+
+  function copyFilenameToClipboard(filename) {
+    copyToClipboard(filename);
+    const toastEl = document.getElementById('copyToast');
+    const toast = new bootstrap.Toast(toastEl);
+    toast.show();
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    // show/hide additional row
+    var toggleRows = document.querySelectorAll('.toggle-row');
+    toggleRows.forEach(function (row) {
+      row.addEventListener('click', toggleRow);
+    });
+
+    // show tooltip
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+      return new bootstrap.Tooltip(tooltipTriggerEl)
+    })
+
+    // disallow sending form without filling all required field
+    let requiredInputs = document.querySelectorAll('input[required]');
+    let submitButton = document.getElementById('submitButton');
+
+    function checkInputs() {
+      let allFilled = true;
+      requiredInputs.forEach(input => {
+        if (input.value.trim() === "") {
+          allFilled = false;
         }
+      });
+      submitButton.disabled = !allFilled;
     }
 
-    document.addEventListener('DOMContentLoaded', function () {
-        // show/hide additional row
-        var toggleRows = document.querySelectorAll('.toggle-row');
-        toggleRows.forEach(function (row) {
-            row.addEventListener('click', toggleRow);
-        });
+    // Attach event listeners to the inputs
+    requiredInputs.forEach(input => {
+      input.addEventListener('keyup', checkInputs);
+      input.addEventListener('input', checkInputs);
+    });
 
-        // show tooltip
-        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-            return new bootstrap.Tooltip(tooltipTriggerEl)
+    // highlight active content
+    let hash = window.location.hash;
+    if (hash) {
+      let element = document.querySelector(hash);
+      console.info(element)
+      if (element) {
+        element.classList.add("bg-warning");
+        setTimeout(function () {
+          element.classList.remove("bg-warning");
+        }, 5000);  // remove highlight after 5000 milliseconds (5 seconds)
+      }
+    }
+
+
+
+    const copyLinks = document.querySelectorAll('.copy-id-link');
+
+    copyLinks.forEach(link => {
+      link.addEventListener('click', function (event) {
+        event.preventDefault(); // Prevent the default action (navigating)
+
+        const rowId = event.target.closest('.toggle-row').id;
+        const url = window.location.href.split('#')[0] + '#' + rowId;
+
+        copyToClipboard(url);
+
+        // Show the toast
+        const toastEl = document.getElementById('copyToast');
+        const toast = new bootstrap.Toast(toastEl);
+        toast.show();
+      });
+    });
+
+  });
+
+  // if email field is invalid, disallow sending, and show upload in progress
+  document.addEventListener('submit', function (e) {
+    var myModal = new bootstrap.Modal(document.getElementById('uploadModal'));
+    myModal.show();
+
+    var emailInput = e.target.querySelector('#emailInput');
+    if (emailInput) {
+      if (!areValidEmails(emailInput.value)) {
+        e.preventDefault(); // Prevent form submission
+        // Apply Bootstrap validation error styling
+        emailInput.classList.add('is-invalid');
+
+        // Show the modal
+        var errorModal = new bootstrap.Modal(document.getElementById('errorModal'));
+        errorModal.show();
+      } else {
+        // If the email is valid, remove the error styling if it exists
+        emailInput.classList.remove('is-invalid');
+      }
+    }
+  });
+
+  // how to verify emails
+  function areValidEmails(input) {
+    if (input == "") { return true; }
+
+    var emails = input.split(/[,;\s]+/);  // Split by comma, semicolon, or whitespace
+    var emailPattern = /^{{ email_pattern }}$/;
+
+    for (var i = 0; i < emails.length; i++) {
+      var trimmedEmail = emails[i].trim();
+      if (!emailPattern.test(trimmedEmail)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  // if there was activity, periodically check for updates
+  {% if activity is defined %}
+  function checkStatus() {
+    const statusElement = document.getElementById('status');
+    const currentStatus = statusElement.innerText.trim();
+
+    if (currentStatus[0] !== '0') {
+      fetch('/check_status', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          status: currentStatus // Sending the inner text of status element
         })
-
-        // disallow sending form without filling all required field
-        let requiredInputs = document.querySelectorAll('input[required]');
-        let submitButton = document.getElementById('submitButton');
-
-        function checkInputs() {
-            let allFilled = true;
-            requiredInputs.forEach(input => {
-                if (input.value.trim() === "") {
-                    allFilled = false;
-                }
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.to_reload) {
+            statusElement.innerText = data.active_msg;
+            const toaster = new bootstrap.Toast(document.getElementById('toaster'));
+            toaster.show();
+            document.getElementById('reload-link').addEventListener('click', function () {
+              location.reload();
             });
-            submitButton.disabled = !allFilled;
-        }
-
-        // Attach event listeners to the inputs
-        requiredInputs.forEach(input => {
-            input.addEventListener('keyup', checkInputs);
-            input.addEventListener('input', checkInputs);
+          }
+        })
+        .catch(error => {
+          console.error("Error fetching data: ", error);
         });
-
-        // highlight active content
-        let hash = window.location.hash;
-        if (hash) {
-            let element = document.querySelector(hash);
-            if (element) {
-                element.classList.add("bg-warning");
-                setTimeout(function () {
-                    element.classList.remove("bg-warning");
-                }, 5000);  // remove highlight after 5000 milliseconds (5 seconds)
-            }
-        }
-
-        function copyToClipboard(text) {
-            const textarea = document.createElement('textarea');
-            textarea.value = text;
-            document.body.appendChild(textarea);
-            textarea.select();
-            document.execCommand('copy');
-            document.body.removeChild(textarea);
-        }
-
-        const copyLinks = document.querySelectorAll('.copy-id-link');
-
-        copyLinks.forEach(link => {
-            link.addEventListener('click', function (event) {
-                event.preventDefault(); // Prevent the default action (navigating)
-
-                const rowId = event.target.closest('.toggle-row').id;
-                const url = window.location.href.split('#')[0] + '#' + rowId;
-
-                copyToClipboard(url);
-
-                // Show the toast
-                const toastEl = document.getElementById('copyToast');
-                const toast = new bootstrap.Toast(toastEl);
-                toast.show();
-            });
-        });
-
-    });
-
-    // if email field is invalid, disallow sending, and show upload in progress
-    document.addEventListener('submit', function (e) {
-        var myModal = new bootstrap.Modal(document.getElementById('uploadModal'));
-        myModal.show();
-
-        var emailInput = e.target.querySelector('#emailInput');
-        if (emailInput) {
-            if (!areValidEmails(emailInput.value)) {
-                e.preventDefault(); // Prevent form submission
-                // Apply Bootstrap validation error styling
-                emailInput.classList.add('is-invalid');
-
-                // Show the modal
-                var errorModal = new bootstrap.Modal(document.getElementById('errorModal'));
-                errorModal.show();
-            } else {
-                // If the email is valid, remove the error styling if it exists
-                emailInput.classList.remove('is-invalid');
-            }
-        }
-    });
-
-    // how to verify emails
-    function areValidEmails(input) {
-        if (input == "") { return true; }
-
-        var emails = input.split(/[,;\s]+/);  // Split by comma, semicolon, or whitespace
-        var emailPattern = /^{{ email_pattern }}$/;
-
-        for (var i = 0; i < emails.length; i++) {
-            var trimmedEmail = emails[i].trim();
-            if (!emailPattern.test(trimmedEmail)) {
-                return false;
-            }
-        }
-        return true;
     }
+  }
 
-    // if there was activity, periodically check for updates
-    {% if activity is defined %}
-    function checkStatus() {
-        const statusElement = document.getElementById('status');
-        const currentStatus = statusElement.innerText.trim();
+  document.addEventListener('DOMContentLoaded', function () {
+    const deleteLinks = document.querySelectorAll('a');
 
-        if (currentStatus[0] !== '0') {
-            fetch('/check_status', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    status: currentStatus // Sending the inner text of status element
-                })
-            })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.to_reload) {
-                        statusElement.innerText = data.active_msg;
-                        const toaster = new bootstrap.Toast(document.getElementById('toaster'));
-                        toaster.show();
-                        document.getElementById('reload-link').addEventListener('click', function () {
-                            location.reload();
-                        });
-                    }
-                })
-                .catch(error => {
-                    console.error("Error fetching data: ", error);
-                });
-        }
-    }
-
-    document.addEventListener('DOMContentLoaded', function () {
-        const deleteLinks = document.querySelectorAll('a');
-
-        deleteLinks.forEach(link => {
-            if (link.textContent.trim() === 'Delete') {
-                link.addEventListener('click', function (event) {
-                    const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
-                    deleteModal.show();
-                });
-            }
+    deleteLinks.forEach(link => {
+      if (link.textContent.trim() === 'Delete') {
+        link.addEventListener('click', function (event) {
+          const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+          deleteModal.show();
         });
+      }
+    });
+  });
+
+  // Fetch the status immediately upon page load
+  checkStatus();
+
+  // Set the function to recur every second
+  setInterval(checkStatus, 1000);
+
+
+
+  {% endif %}
+</script>
+{# File upload scrip #}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    var dropzone = document.getElementById('dropzone');
+
+    dropzone.addEventListener('dragover', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      this.classList.add('dragover');
     });
 
-    // Fetch the status immediately upon page load
-    checkStatus();
+    dropzone.addEventListener('dragleave', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      this.classList.remove('dragover');
+    });
 
-    // Set the function to recur every second
-    setInterval(checkStatus, 1000);
+    dropzone.addEventListener('drop', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      this.classList.remove('dragover');
 
-
-
-    {% endif %}
+      var files = e.dataTransfer.files;
+      for (var i = 0; i < files.length; i++) {
+        appendFileToList(files[i]);
+      }
+    });
+  });
 </script>
 
 </html>
