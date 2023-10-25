@@ -379,34 +379,4 @@
 
   {% endif %}
 </script>
-{# File upload scrip #}
-<script>
-  document.addEventListener('DOMContentLoaded', function () {
-    var dropzone = document.getElementById('dropzone');
-
-    dropzone.addEventListener('dragover', function (e) {
-      e.preventDefault();
-      e.stopPropagation();
-      this.classList.add('dragover');
-    });
-
-    dropzone.addEventListener('dragleave', function (e) {
-      e.preventDefault();
-      e.stopPropagation();
-      this.classList.remove('dragover');
-    });
-
-    dropzone.addEventListener('drop', function (e) {
-      e.preventDefault();
-      e.stopPropagation();
-      this.classList.remove('dragover');
-
-      var files = e.dataTransfer.files;
-      for (var i = 0; i < files.length; i++) {
-        appendFileToList(files[i]);
-      }
-    });
-  });
-</script>
-
 </html>

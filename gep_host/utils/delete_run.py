@@ -16,7 +16,7 @@ def init_del(program_name: str, purpose: str):
 
 
 def delete_run(program_name: str, purpose: str):
-    from helpers import remove_readonly
+    from helpers import remove_readonly, remove_val_from_json
     """Deletes a run.
 
     Parameters
@@ -33,6 +33,13 @@ def delete_run(program_name: str, purpose: str):
     set_conf(config)
 
     try:
+        files = pd.read_csv(config["FLE"], dtype=str)
+        # Unregister files
+        runid = f"{program_name}__{purpose}"
+        files["used_in"] = files["used_in"].apply(remove_val_from_json,
+                                                  val_2_remove=runid)
+        files.to_csv(config["FLE"], index=False)
+
         # 1. remove run_details.csv
         df = pd.read_csv(config["RUN"], dtype=str)
         df = df[~((df['program_name'] == program_name)

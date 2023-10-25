@@ -3,7 +3,6 @@ import subprocess
 import shutil
 import sys
 import traceback
-import json
 import pandas as pd
 
 
@@ -23,12 +22,6 @@ def init_del(program_name: str):
     return proc.returncode, proc.stdout
 
 
-def remove_val_from_json(json_str, val_2_remove):
-    mylist = json.loads(json_str)
-    new_list = [val for val in mylist if val != val_2_remove]
-    return json.dumps(new_list)
-
-
 def delete_program(program_name):
     """Delete a program.
 
@@ -41,7 +34,7 @@ def delete_program(program_name):
     # the price of using the same file where the deletion is initiated from python
     # and where the console script's deletion is implemented
     from set_conf import set_conf
-    from helpers import remove_readonly
+    from helpers import remove_readonly, remove_val_from_json
     config = {}
     set_conf(config)
 

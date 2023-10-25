@@ -80,6 +80,7 @@ def init_run(request: Request) -> Union[int, str]:
                                  "inputs"].iloc[0])
     inherits = {}
     uploads = {}
+    reg_files = {}
     undefineds = []
     if masterinput.filename != "":
         masterinput_path = os.path.join(setup_folder, "masterinput")
@@ -115,8 +116,8 @@ def init_run(request: Request) -> Union[int, str]:
         for input_name, path in inputs.items():
             # if inheritable and checked, inherit, and don't save
             if path is not None:
-                checkbox_value = request.form.get(f'check{input_name}')
-                if checkbox_value:
+                selected_option = request.form.get(f'{input_name}_option')
+                if selected_option == "inherit":
                     inherits[input_name] = path
                     continue
 
@@ -129,7 +130,28 @@ def init_run(request: Request) -> Union[int, str]:
                 uploads[input_name] = path
                 continue
 
+            reg_file = request.form.get(f'{input_name}_text')
+            if reg_file is not None and reg_file != "":
+                files_path = os.path.join(current_app.config["ROOT"],
+                                          "file_data.csv")
+                files = pd.read_csv(files_path)
+                matches = files.loc[files["filename"] == reg_file]
+                if not matches.empty:
+                    if pd.isna(matches["hash"].iloc[0]):
+                        directory = matches["dir"].iloc[0]
+                    else:
+                        directory = current_app.config["FLSR"]
+                    path = os.path.join(directory, reg_file)
+                    reg_files[input_name] = path
+                    used_in: List[str] = json.loads(matches["used_in"].iloc[0])
+                    used_in.append(prg_name + "__" + purp)
+                    files.loc[files["filename"] == reg_file,
+                              "used_in"] = json.dumps(used_in)
+                    continue
+
             undefineds.append(input_name)
+        if "files" in locals():
+            files.to_csv(files_path, index=False)
 
     # update the config
     # update the input fields
@@ -142,6 +164,8 @@ def init_run(request: Request) -> Union[int, str]:
     for upload, path in uploads.items():
         uploaded_path = os.path.join(setup_folder, path)
         config.set('inputs', upload, uploaded_path)
+    for regf, path in reg_files.items():
+        config.set('inputs', regf, path)
     for undefined in undefineds:
         config.set('inputs', undefined, "")
 
@@ -152,8 +176,8 @@ def init_run(request: Request) -> Union[int, str]:
             ofilepath = os.path.relpath(config.get("outputs", ofile),
                                         setup_folder)
             outputs[ofile] = ofilepath
-        with open(config_file, 'w') as configfile:
-            config.write(configfile)
+    with open(config_file, 'w') as configfile:
+        config.write(configfile)
 
     python_args = safer_call(request.form["args"])
     notifications = extract_emails(request.form["notifications"])
@@ -165,6 +189,7 @@ def init_run(request: Request) -> Union[int, str]:
         'status': ['set up'],
         'uploaded_files': [json.dumps(uploads)],
         'inherited_files': [json.dumps(inherits)],
+        'registered_files': [json.dumps(reg_files)],
         'undefineds': [json.dumps(undefineds)],
         'outputs': [json.dumps(outputs)],
         'comment': request.form["comment"],

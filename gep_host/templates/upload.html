@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
-<style>
+    <style>
     .dropzone {
         border: 2px dashed #ccc;
         padding: 20px;
@@ -11,171 +11,215 @@
     .dropzone.dragover {
         background-color: #bfd1e2;
     }
-</style>
-<h2>Files</h2>
-<p>
-    Files can be uploaded and registered, or just registered if already on the server.
-    Uploaded files are hashed to prevent multiple uploads of the same content,
-    their filename consists of the secured original filename and a short hash.
-</p>
-<p>
-    All files are monitored whether it is used by programs or runs.
-    If uploaded, it can be deleted if not used anywhere.
-    If registered, it can be unregistered if not used anywhere.
-</p>
-<div class="accordion mb-3 shadow border border-primary" id="addFilesAccordion">
-    <div class="accordion-item">
-        <h5 class="accordion-header" id="headingOne">
-            <button class="accordion-button" type="button" data-bs-toggle="collapse"
-                data-bs-target="#collapseOne">Upload new file(s)</button>
-        </h5>
-        <div id="collapseOne" class="accordion-collapse collapse show" data-bs-parent="#addFilesAccordion">
-            <div class="accordion-body">
-                <form id="uploadForm" action='{{ url_for("main_routes.save_files") }}' method="post"
-                    enctype="multipart/form-data" class="p-3">
-                    <!-- Drag & Drop Zone -->
-                    <p>Add one or more new files to the server from your local computer.</p>
-                    <div class="mb-3">
-                        <label for="dropzone" class="form-label">Upload Files</label>
-                        <div id="dropzone"
-                            class="dropzone d-flex justify-content-center align-items-center rounded p-5">
-                            Drag & Drop multiple files here or browse below
+    </style>
+    <h2>Files</h2>
+    <p>
+        Files can be uploaded and registered, or just registered if already on the server.
+        Uploaded files are hashed to prevent multiple uploads of the same content,
+        their filename consists of the secured original filename and a short hash.
+    </p>
+    <p>
+        All files are monitored whether it is used by programs or runs.
+        If uploaded, it can be deleted if not used anywhere.
+        If registered, it can be unregistered if not used anywhere.
+    </p>
+    <div class="accordion mb-3 shadow border border-primary"
+         id="addFilesAccordion">
+        <div class="accordion-item">
+            <h5 class="accordion-header" id="headingOne">
+                <button class="accordion-button"
+                        type="button"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#collapseOne">Upload new file(s)</button>
+            </h5>
+            <div id="collapseOne"
+                 class="accordion-collapse collapse show"
+                 data-bs-parent="#addFilesAccordion">
+                <div class="accordion-body">
+                    <form id="uploadForm"
+                          action='{{ url_for("main_routes.save_files") }}'
+                          method="post"
+                          enctype="multipart/form-data"
+                          class="p-3">
+                        <!-- Drag & Drop Zone -->
+                        <p>Add one or more new files to the server from your local computer.</p>
+                        <div class="mb-3">
+                            <label for="dropzone" class="form-label">Upload Files</label>
+                            <div id="dropzone"
+                                 class="dropzone d-flex justify-content-center align-items-center rounded p-5">
+                                Drag & Drop multiple files here or browse below
+                            </div>
                         </div>
-                    </div>
-                    <!-- List of selected files -->
-                    <ul id="fileList" class="list-group mb-3">
-                    </ul>
-                    <!-- Manual file input -->
-                    <div id="fileInputs" class="mb-3">
-                        <div class="d-flex mb-2">
-                            <input type="file" name="file" class="form-control me-2" onchange="addNewFileInput(event)">
-                            <button type="button" class="btn btn-danger" onclick="removeFileInput(this)">Remove</button>
+                        <!-- List of selected files -->
+                        <ul id="fileList" class="list-group mb-3">
+                        </ul>
+                        <!-- Manual file input -->
+                        <div id="fileInputs" class="mb-3">
+                            <div class="d-flex mb-2">
+                                <input type="file"
+                                       name="file"
+                                       class="form-control me-2"
+                                       onchange="addNewFileInput(event)">
+                                <button type="button" class="btn btn-danger" onclick="removeFileInput(this)">Remove</button>
+                            </div>
                         </div>
-                    </div>
-                    <div class="mb-3">
-                        <label for="comment" class="form-label">Comment</label>
-                        <input type="text" name="comment" class="form-control" placeholder="User ID, purpose">
-                    </div>
-                    <!-- Upload button -->
-                    <button type="button" class="btn btn-primary" onclick="uploadFiles()">Upload</button>
-                </form>
+                        <div class="mb-3">
+                            <label for="comment" class="form-label">Comment</label>
+                            <input type="text"
+                                   name="comment"
+                                   class="form-control"
+                                   placeholder="User ID, purpose">
+                        </div>
+                        <!-- Upload button -->
+                        <button type="button" class="btn btn-primary" onclick="uploadFiles()">Upload</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="accordion-item">
+            <h5 class="accordion-header" id="headingTwo">
+                <button class="accordion-button collapsed"
+                        type="button"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#collapseTwo">Register local file(s)</button>
+            </h5>
+            <div id="collapseTwo"
+                 class="accordion-collapse collapse"
+                 data-bs-parent="#addFilesAccordion">
+                <div class="accordion-body">
+                    <p>Register one or more files already on the server.</p>
+                    <form id="uploadForm"
+                          action='{{ url_for("main_routes.register_files") }}'
+                          method="post"
+                          enctype="text/plain"
+                          class="p-3">
+                        <div class="mb-3">
+                            <label for="comment" class="form-label">Local paths</label>
+                            <input type="text"
+                                   name="local"
+                                   id="local"
+                                   class="form-control"
+                                   placeholder='/path/file1.txt; "/path with space/file2.txt"'>
+                        </div>
+                        <div class="mb-3">
+                            <label for="comment" class="form-label">Comment</label>
+                            <input type="text"
+                                   name="comment"
+                                   class="form-control"
+                                   placeholder="User ID, purpose">
+                        </div>
+                        <!-- Upload button -->
+                        <button type="button" class="btn btn-primary" onclick="registerFiles()">Register</button>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
-    <div class="accordion-item">
-        <h5 class="accordion-header" id="headingTwo">
-            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-                data-bs-target="#collapseTwo">Register local file(s)</button>
-        </h5>
-        <div id="collapseTwo" class="accordion-collapse collapse" data-bs-parent="#addFilesAccordion">
-            <div class="accordion-body">
-                <p>Register one or more files already on the server.</p>
-                <form id="uploadForm" action='{{ url_for("main_routes.register_files") }}' method="post"
-                    enctype="text/plain" class="p-3">
-                    <div class="mb-3">
-                        <label for="comment" class="form-label">Local paths</label>
-                        <input type="text" name="local" id="local" class="form-control"
-                            placeholder="/path1/file1.txt, /path2/file2.txt">
-                    </div>
-                    <div class="mb-3">
-                        <label for="comment" class="form-label">Comment</label>
-                        <input type="text" name="comment" class="form-control" placeholder="User ID, purpose">
-                    </div>
-                    <!-- Upload button -->
-                    <button type="button" class="btn btn-primary" onclick="registerFiles()">Register</button>
-                </form>
+    <div class="mt-5">
+        <h3>Upload History:</h3>
+        <div class="container my-4">
+            <div class="row mb-2">
+                <div class="col-5">
+                    <a href="{{ url_for('main_routes.upload_form', column='filename', direction='desc' if direction == 'asc' and column == 'filename' else 'asc') }}">
+                        Filename
+                        {{'↑' if direction == 'asc' and column == 'filename'}}
+                        {{'↓' if direction == 'desc' and column == 'filename'}}
+                    </a>
+                </div>
+                <div class="col-2">
+                    <a href="{{ url_for('main_routes.upload_form', column='upload_date', direction='desc' if direction == 'asc' and column == 'upload_date' else 'asc') }}">
+                        Upload Date
+                        {{'↑' if direction == 'asc' and column == 'upload_date'}}
+                        {{'↓' if direction == 'desc' and column == 'upload_date'}}
+                    </a>
+                </div>
+                <div class="col-2">
+                    <a href="{{ url_for('main_routes.upload_form', column='size', direction='desc' if direction == 'asc' and column == 'size' else 'asc') }}">
+                        Size (bytes)
+                        {{'↑' if direction == 'asc' and column == 'size'}}
+                        {{'↓' if direction == 'desc' and column == 'size'}}
+                    </a>
+                </div>
+                <div class="col-3 text-end">Action</div>
             </div>
+            {% for file in files.itertuples() %}
+                <div class="row toggle-row" id="{{ file.filename|filename_to_html_id }}">
+                    <div class="col-5">
+                        <a href="#"
+                           class="btn btn-secondary btn-sm me-1 mb-1"
+                           title="Copy the filename to the clipboard"
+                           onclick="copyFilenameToClipboard('{{ file.filename }}')">
+                            <i class="bi bi-clipboard"></i></a>
+                        {{ file.filename }}
+                    </div>
+                    <div class="col-2">{{ file.upload_date }}</div>
+                    <div class="col-2">{{ file.size }}</div>
+                    <div class="col-3 text-end">
+                        <a class="btn btn-primary btn-sm mb-1"
+                           title="Download file"
+                           href="{{ url_for('main_routes.get_file', filename=file.filename) }}">Download ({{ file.size|filesize
+                        }})</a>
+                        <a href="#"
+                           class="btn btn-secondary btn-sm me-1 mb-1 copy-id-link"
+                           title="Copy the deeplink to this element">
+                            <i class="bi bi-clipboard"></i> Copy Link
+                        </a>
+                    </div>
+                </div>
+                <div class="row additional" style="display: none;">
+                    <div class="col-12 my-2">
+                        <strong>Comment:</strong>
+                        {% if file.comment == "" or file.comment|string == "nan" %}
+                            <span class="text-muted">(None)</span>
+                        {% else %}
+                            {{ file.comment }}
+                        {% endif %}
+                    </div>
+                    <div class="col-12 my-2">
+                        {% if file.hash != "" and file.hash|string != "nan" %}
+                            <strong>Hash:</strong> {{ file.hash }}
+                        {% else %}
+                            <strong>Directory:</strong> {{ file.dir }}
+                        {% endif %}
+                    </div>
+                    <div class="col-12 my-2">
+                        <strong>Used in the runs:</strong>
+                        {% if file.used_in == "[]" %}
+                            <span class="text-muted">(None)</span>
+                        {% else %}
+                            <br>
+                            {% set used_ins = file.used_in | parse_json %}
+                            {% for used_in in used_ins %}
+                                {% set parts = used_in.split('__') %}
+                                <a href='{{ url_for("main_routes.runs") }}#{{ used_in }}'>Program: {{ parts[0] }}, run {{ parts[1] }}</a>
+                                <br>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                    <div class="col-12 my-2">
+                        {% if file.used_in == "[]" %}
+                            {% if file.hash != "" and file.hash|string != "nan" %}
+                                <button class="btn btn-danger btn-sm delete-btn"
+                                        data-filename="{{ file.filename }}">Delete</button>
+                                <span class="badge bg-warning text-dark ms-2">Warning: deleting the file permanently removes it.</span>
+                            {% else %}
+                                <button class="btn btn-danger btn-sm delete-btn"
+                                        data-filename="{{ file.filename }}">Unregister</button>
+                            {% endif %}
+                        {% else %}
+                            {% if file.hash != "" and file.hash|string != "nan" %}
+                                <button class="btn btn-danger btn-sm delete-btn disabled">Delete</button>
+                                <span>The file is referenced by runs and therefore cannot be deleted.</span>
+                            {% else %}
+                                <button class="btn btn-danger btn-sm delete-btn disabled">Unregister</button>
+                                <span>The file is referenced by runs and therefore cannot be unregistered.</span>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
         </div>
     </div>
-</div>
-<div class="mt-5">
-    <h3>Upload History:</h3>
-    <div class="container my-4">
-        <div class="row mb-2">
-            <div class="col-5">
-                <a
-                    href="{{ url_for('main_routes.upload_form', column='filename', direction='desc' if direction == 'asc' and column == 'filename' else 'asc') }}">
-                    Filename
-                    {{'↑' if direction == 'asc' and column == 'filename'}}
-                    {{'↓' if direction == 'desc' and column == 'filename'}}
-                </a>
-            </div>
-            <div class="col-2">
-                <a
-                    href="{{ url_for('main_routes.upload_form', column='upload_date', direction='desc' if direction == 'asc' and column == 'upload_date' else 'asc') }}">
-                    Upload Date
-                    {{'↑' if direction == 'asc' and column == 'upload_date'}}
-                    {{'↓' if direction == 'desc' and column == 'upload_date'}}
-                </a>
-            </div>
-            <div class="col-2">
-                <a
-                    href="{{ url_for('main_routes.upload_form', column='size', direction='desc' if direction == 'asc' and column == 'size' else 'asc') }}">
-                    Size (bytes)
-                    {{'↑' if direction == 'asc' and column == 'size'}}
-                    {{'↓' if direction == 'desc' and column == 'size'}}
-                </a>
-            </div>
-            <div class="col-3 text-end">Action</div>
-        </div>
-        {% for file in files.itertuples() %}
-        <div class="row toggle-row" id="{{ file.filename|filename_to_html_id }}">
-            <div class="col-5">
-                <a href="#" class="btn btn-secondary btn-sm me-1 mb-1" title="Copy the filename to the clipboard"
-                    onclick="copyFilenameToClipboard('{{ file.filename }}')">
-                    <i class="bi bi-clipboard"></i></a>
-                {{ file.filename }}
-            </div>
-            <div class="col-2">{{ file.upload_date }}</div>
-            <div class="col-2">{{ file.size }}</div>
-            <div class="col-3 text-end">
-                <a class="btn btn-primary btn-sm mb-1" title="Download file"
-                    href="{{ url_for('main_routes.get_file', filename=file.filename) }}">Download ({{ file.size|filesize
-                    }})</a>
-                <a href="#" class="btn btn-secondary btn-sm me-1 mb-1 copy-id-link"
-                    title="Copy the deeplink to this element">
-                    <i class="bi bi-clipboard"></i> Copy Link
-                </a>
-            </div>
-        </div>
-        <div class="row additional" style="display: none;">
-            <div class="col-12 my-2">
-                <strong>Comment:</strong>
-                {% if file.comment == "" or file.comment|string == "nan" %}
-                <span class='text-muted'>(None)</span>
-                {% else %}
-                {{ file.comment }}
-                {% endif %}
-            </div>
-            <div class="col-12 my-2">
-                {% if file.hash != "" and file.hash|string != "nan" %}
-                <strong>Hash:</strong> {{ file.hash }}
-                {% else %}
-                <strong>Directory:</strong> {{ file.dir }}
-                {% endif %}
-            </div>
-            <div>
-                {% if file.used_in == "{}" %}
-                {% if file.hash != "" and file.hash|string != "nan" %}
-                <button class="btn btn-danger btn-sm delete-btn" data-filename="{{ file.filename }}">Delete</button>
-                <span class="badge bg-warning text-dark ms-2">Warning: deleting the file permanently removes it.</span>
-                {% else %}
-                <button class="btn btn-danger btn-sm delete-btn" data-filename="{{ file.filename }}">Unregister</button>
-                {% endif %}
-                {% else %}
-                {% if file.hash != "" and file.hash|string != "nan" %}
-                <button class="btn btn-danger btn-sm delete-btn disabled">Delete</button>
-                <span>The file is referenced by runs and therefore cannot be deleted.</span>
-                {% else %}
-                <button class="btn btn-danger btn-sm delete-btn disabled">Unregister</button>
-                <span>The file is referenced by runs and therefore cannot be unregistered.</span>
-                {% endif %}
-                {% endif %}
-            </div>
-        </div>
-        {% endfor %}
-    </div>
-</div>
 </div>
 </div>
 <script>
@@ -361,15 +405,46 @@
                 if (response.status === 200) {
                     location.reload();
                 } else {
-                    throw new Error('Server responded with a non-ok status');
+                    // Extract the message from the server's response
+                    return response.json().then(data => {
+                        throw new Error(data.message || 'Server responded with a non-ok status');
+                    });
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('An error occurred.');
+                alert(error.message);
             });
     }
 
 
+
+    {# File upload scrip #}
+  document.addEventListener('DOMContentLoaded', function () {
+    var dropzone = document.getElementById('dropzone');
+
+    dropzone.addEventListener('dragover', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      this.classList.add('dragover');
+    });
+
+    dropzone.addEventListener('dragleave', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      this.classList.remove('dragover');
+    });
+
+    dropzone.addEventListener('drop', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      this.classList.remove('dragover');
+
+      var files = e.dataTransfer.files;
+      for (var i = 0; i < files.length; i++) {
+        appendFileToList(files[i]);
+      }
+    });
+  });
 </script>
 {% endblock content %}

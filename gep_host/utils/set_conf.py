@@ -36,6 +36,7 @@ def set_conf(config: dict):
     config["PRG"] = os.path.join(root, 'programs/program_details.csv')
     config["RUN"] = os.path.join(root, 'runs/run_details.csv')
     config["LIB"] = os.path.join(root, 'libs/lib_details.csv')
+    config["FLE"] = os.path.join(root, 'file_data.csv')
 
     # other settings from the host.cfg
     config["port"] = int(prg_config.get("settings", "port",

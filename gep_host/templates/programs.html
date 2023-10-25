@@ -85,7 +85,7 @@
                                     Program Name <span class="tooltip-text"
        data-bs-toggle="tooltip"
        data-bs-placement="top"
-       title="It can contain only alphanumeric chars and _.- Space is not allowed.">(info)<span style="color: red;">*</span></span>
+       title="It can contain only alphanumeric chars and _.- Space and double underscore are not allowed.">(info)<span style="color: red;">*</span></span>
                                 </label>
                                 <input type="text"
                                        name="unique_program_name"
@@ -175,7 +175,7 @@
                     <div class="col">
                         py={{ program.python_version }},
                         {% if program.selected_libs == "" %}
-                            <span class='text-muted'>(None)</span>
+                            <span class="text-muted">(None)</span>
                         {% else %}
                             {{ program.selected_libs }}
                         {% endif %}
@@ -216,7 +216,7 @@
                     <hr>
                     <div class="my-3">
                         <strong>Modules and version:</strong>
-                        {% if not program.version.startswith("Module") %}<span class='text-muted'>(root module)</span>{% endif %}
+                        {% if not program.version.startswith("Module") %}<span class="text-muted">(root module)</span>{% endif %}
                         {{ program.version }}
                     </div>
                     <div class="my-3">
@@ -237,7 +237,7 @@
                                     {{ input_value }}
                                 </a>
                             {% else %}
-                                <span class='text-muted'>(not present in the package)</span>
+                                <span class="text-muted">(not present in the package)</span>
                             {% endif %}
                             <br>
                         {% endfor %}
@@ -254,7 +254,7 @@
                     <div class="my-3">
                         <strong>Default call:</strong>
                         <code>python {{ program.def_args }}
-                            {% if program.def_args == "" %}<span class='text-muted'>(no default arguments)</span>{% endif %}
+                            {% if program.def_args == "" %}<span class="text-muted">(no default arguments)</span>{% endif %}
                         </code>
                     </div>
                     <div class="my-3">
