@@ -19,6 +19,7 @@ import psutil
 
 from .utils import install_program, delete_program, delete_run, run_program
 from .utils.helpers import *
+from . import __version__
 
 
 main_routes = Blueprint('main_routes', __name__)
@@ -52,17 +53,19 @@ def allowed_file(filename):
 
 @main_routes.route('/')
 def index():
+    sorted_config = dict(sorted(current_app.config.items(),
+                         key=lambda k: (k[0][0].isupper(), k[0])))
+    service_config = {"version": __version__, **sorted_config}
+
     data = {
         'System': platform.system(),
         'Node': platform.node(),
-        'Hostname': current_app.config["host_name"],
         'Release': platform.release(),
         'Version': platform.version(),
         'Machine': platform.machine(),
         'Architecture': platform.architecture()[0],
         'Processor': platform.processor(),
         'Number of Cores': multiprocessing.cpu_count(),
-        'Project root': current_app.config["ROOT"]
     }
 
     # If on Linux, you can get more detailed info with:
@@ -75,7 +78,7 @@ def index():
         except AttributeError:
             data['Distribution'] = "N/A"
 
-    return render_template('index.html', data=data)
+    return render_template('index.html', data=data, service_config=service_config)
 
 
 @main_routes.route('/programs', methods=['GET'])
@@ -546,7 +549,7 @@ def upload_form():
     column = request.args.get('column', 'upload_date')
     direction = request.args.get('direction', 'desc')
 
-    csv_path = os.path.join(current_app.config['ROOT'], 'file_data.csv')
+    csv_path = current_app.config['FLE']
     if os.path.exists(csv_path):
         df = pd.read_csv(csv_path)
 
@@ -566,7 +569,7 @@ def save_files():
     data = []
     new_filenames = []
 
-    csv_path = os.path.join(current_app.config['ROOT'], 'file_data.csv')
+    csv_path = current_app.config['FLE']
     if os.path.exists(csv_path):
         df = pd.read_csv(csv_path)
     else:
@@ -628,14 +631,15 @@ def get_orig_fname(filename: str):
 
 @main_routes.route('/get_file', methods=['GET'])
 def get_file():
-    filename = request.args.get('filename')
-    csv_path = os.path.join(current_app.config['ROOT'], 'file_data.csv')
+    filename_full = request.args.get('filename')
+    directory, filename = os.path.split(filename_full)
+    csv_path = current_app.config['FLE']
     df = pd.read_csv(csv_path)
     matches = df.loc[df["filename"] == filename, "dir"]
     if matches.empty:
         return "File not found in the database", 404
-    directory = matches.iloc[0]
-    if pd.isna(directory):
+    m_dir = matches.iloc[0]
+    if pd.isna(m_dir):
         location = os.path.join(current_app.config["FLSR"], filename)
     else:
         location = os.path.join(directory, filename)
@@ -652,7 +656,7 @@ def delete_file():
     filename = request.args.get('filename')
 
     # check if file is in database
-    csv_path = os.path.join(current_app.config['ROOT'], 'file_data.csv')
+    csv_path = current_app.config['FLE']
     df = pd.read_csv(csv_path)
     matches = df['filename'] == filename
     if not matches.any():
@@ -678,29 +682,45 @@ def delete_file():
 @main_routes.route('/register_files', methods=['POST'])
 def register_files():
     data = request.get_json()
-    local = data.get('local')
-    if not os.path.isfile(local):
-        return jsonify({"message": "Error: file not found the server"}), 404
+    locals = data.get('local')
+    filenames = [segment.strip().strip('"')
+                 for segment in locals.split(';') if segment.strip()]
+    success_message = ""
+    warning_message = ""
+    for local in filenames:
+        if not os.path.isfile(local):
+            warning_message += f"File {local} is not found on the server.\n"
+            continue
 
-    csv_path = os.path.join(current_app.config['ROOT'], 'file_data.csv')
-    df = pd.read_csv(csv_path)
-    directory, filename = os.path.split(local)
-    if (df["filename"] == filename).any():
-        return jsonify({"message": "Error: filename is already registered"}), 400
+        csv_path = current_app.config['FLE']
+        df = pd.read_csv(csv_path)
+        directory, filename = os.path.split(local)
+        if (df["filename"] == filename).any():
+            warning_message += f"Filename {local} is already registered.\n"
+            continue
 
-    size = os.path.getsize(local)
-    comment = data.get('comment')
-    new_entry = {"filename": filename,
-                 "upload_date": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                 "size": size,
-                 "comment": comment,
-                 "dir": directory,
-                 "used_in": "{}"}
+        size = os.path.getsize(local)
+        comment = data.get('comment')
+        new_entry = {"filename": filename,
+                     "upload_date": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                     "size": size,
+                     "comment": comment,
+                     "dir": directory,
+                     "used_in": "{}"}
 
-    df = pd.concat([df, pd.DataFrame([new_entry])], ignore_index=True)
-    df.to_csv(csv_path, index=False)
+        df = pd.concat([df, pd.DataFrame([new_entry])], ignore_index=True)
+        df.to_csv(csv_path, index=False)
 
-    return jsonify({"message": "File successfully registered"}), 200
+        success_message += f"File {local} is successfully registered.\n"
+
+    if success_message:
+        flash(success_message, "success")
+        if warning_message:
+            flash(warning_message, "warning")
+
+        return jsonify({"message": warning_message + "\n\n" + success_message}), 200
+
+    return jsonify({"message": warning_message}), 400
 
 
 @main_routes.route('/check_status', methods=['POST'])
