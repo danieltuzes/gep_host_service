@@ -53,7 +53,8 @@ def init_install(program_name,
         'def_args': [def_args],
         'source': [source],
         'inputs': json.dumps({}),
-        'outputs': json.dumps({})
+        'outputs': json.dumps({}),
+        'version': json.dumps({})
     })
     if os.path.exists(current_app.config["PRG"]):
         df = pd.read_csv(current_app.config["PRG"], dtype=str)
@@ -87,35 +88,43 @@ def get_version_from_init(init_path):
     return None
 
 
-def find_first_module_version(root):
+def get_versions(root):
     versionstrs = []
 
-    # Helper function to check for module version in a directory
-    def check_this_dir(rel_root, item):
-        # Check if the item is a directory and contains __init__.py
-
-        init_loc = os.path.join(rel_root, item, '__init__.py')
-
-        if os.path.exists(init_loc):
-            version = get_version_from_init(init_loc)
-            if version and item:
-                versionstr = f"Module: {item}, Version: {version}"
-            elif item:
-                versionstr = f"Module: {item}"
-            else:
-                versionstr = f"Version: {version}"
+    def add_ver_from_file(location, versionstr):
+        version = get_version_from_init(location)
+        if version:
+            versionstr += f"Version: {version}"
             versionstrs.append(versionstr)
 
+    # Helper function to check for module version in a directory
+    def check_dir_ver(rel_root, item):
+        # Check if the item is a directory and contains __init__.py
+
+        versionstr = ""
+        if item:
+            versionstr = f"Module: {item} - "
+
+        init_loc = os.path.join(rel_root, item, '__init__.py')
+        main_loc = os.path.join(rel_root, item, '__main__.py')
+
+        version = None
+
+        if os.path.exists(main_loc):
+            add_ver_from_file(main_loc, versionstr)
+        if os.path.exists(init_loc) and not version:
+            add_ver_from_file(init_loc, versionstr)
+
     # Check the root directory
-    check_this_dir(root, "")
+    check_dir_ver(root, "")
 
     # Check directories one level deeper
     for item in os.listdir(root):
         item_path = os.path.join(root, item)
-        check_this_dir(root, item)
+        check_dir_ver(root, item)
         if os.path.isdir(item_path):
             for subitem in os.listdir(item_path):
-                check_this_dir(item_path, subitem)
+                check_dir_ver(item_path, subitem)
 
     versions = "; ".join(versionstrs)
     if versions != "":
@@ -160,7 +169,8 @@ def install_program(program_name: str,
                 'def_args': [""],
                 'source': [source],
                 'inputs': json.dumps({}),
-                'outputs': json.dumps({})
+                'outputs': json.dumps({}),
+                'version': json.dumps({})
             })
             df = pd.concat([df, new_entry], ignore_index=True, axis=0)
         df.loc[df['program_name'] == program_name,
@@ -200,7 +210,7 @@ def install_program(program_name: str,
                 # Explicitly attempt to delete the temporary directory
                 shutil.rmtree(tmpdir, ignore_errors=True)
 
-        version = find_first_module_version(masterfolder)
+        version = get_versions(masterfolder)
         df = pd.read_csv(app_conf["PRG"], dtype=str)
         df.loc[df["program_name"] == program_name, "version"] = version
 
@@ -261,7 +271,7 @@ def install_program(program_name: str,
         if os.path.isfile(os.path.join(masterfolder, "setup.py")):
             print("setup.py is found")
             pip_install_command = ' && pip install .'
-        elif os.path.join(masterfolder, "requirements.txt"):
+        elif os.path.isfile(os.path.join(masterfolder, "requirements.txt")):
             print("requirements.txt is found")
             pip_install_command = ' && pip install -r requirements.txt'
         else:

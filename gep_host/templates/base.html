@@ -6,8 +6,10 @@
   <meta name="keywords" content="python, live execution" />
   <meta name="description" content="Execute data oriented python programs from browser, running on remote servers." />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{ service_name }}</title>
+  {% block header %}
+  {% endblock header %}
   <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+  <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/png">
   <link rel="stylesheet" href="{{ url_for('static', filename='fonts-icons/bootstrap-icons.css') }}">
   <style>
     .tooltip-text {
@@ -56,7 +58,7 @@
 
 <body>
   <div class="sticky-navbar">
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow">
+    <nav class="navbar navbar-expand-sm navbar-dark bg-dark shadow">
       <div class="container-fluid">
         <a class="navbar-brand ps-3" href='{{ url_for("main_routes.index") }}'>{{ service_name }}</a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar">
@@ -250,18 +252,27 @@
       input.addEventListener('input', checkInputs);
     });
 
-    // highlight active content
-    let hash = window.location.hash;
-    if (hash) {
-      let element = document.querySelector(hash);
-      console.info(element)
-      if (element) {
-        element.classList.add("bg-warning");
-        setTimeout(function () {
-          element.classList.remove("bg-warning");
-        }, 5000);  // remove highlight after 5000 milliseconds (5 seconds)
+    function highlightElementByHash() {
+      let hash = window.location.hash;
+      console.info(hash);
+      if (hash) {
+        let element = document.querySelector(hash);
+        console.info(element);
+        if (element) {
+          element.classList.add("bg-warning");
+          setTimeout(function () {
+            element.classList.remove("bg-warning");
+          }, 5000);  // remove highlight after 5000 milliseconds (5 seconds)
+        }
       }
     }
+
+    // Call the function on initial page load
+    highlightElementByHash();
+
+    // Add the event listener for hash changes
+    window.addEventListener('hashchange', highlightElementByHash);
+
 
 
 
@@ -379,4 +390,5 @@
 
   {% endif %}
 </script>
+
 </html>

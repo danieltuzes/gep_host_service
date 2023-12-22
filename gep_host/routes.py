@@ -10,12 +10,15 @@ import multiprocessing
 import logging
 import hashlib
 from io import StringIO
+from typing import List
 
 from flask import render_template, request, redirect, flash, \
     url_for, send_from_directory, send_file, Response, jsonify, Blueprint, current_app
 import pandas as pd
+from markupsafe import Markup
 from werkzeug.utils import secure_filename
 import psutil
+import markdown
 
 from .utils import install_program, delete_program, delete_run, run_program
 from .utils.helpers import *
@@ -78,7 +81,17 @@ def index():
         except AttributeError:
             data['Distribution'] = "N/A"
 
-    return render_template('index.html', data=data, service_config=service_config)
+    readme_path = os.path.join(os.path.dirname(__file__), '..', 'README.md')
+    with open(readme_path, 'r') as f:
+        content = f.read()
+
+    # Convert markdown to HTML
+    md_template = Markup(markdown.markdown(content, extensions=['toc']))
+
+    return render_template('index.html',
+                           md_template=md_template,
+                           data=data,
+                           service_config=service_config)
 
 
 @main_routes.route('/programs', methods=['GET'])
@@ -145,8 +158,8 @@ def program_install():
     git = {}
     if file.filename == "":
         filename = f"{program_name}.zip"
-        git["git-source-url"] = request.form["git-source-url"]
-        git["git-source-ref"] = request.form["git-source-ref"]
+        git["git-source-url"] = request.form["git-source-url"].strip()
+        git["git-source-ref"] = request.form["git-source-ref"].strip()
     else:
         filename = secure_filename(file.filename)
     base, ext = os.path.splitext(filename)
@@ -449,10 +462,10 @@ def libraries():
         used_in = json.dumps([])
         if os.path.isfile(current_app.config["LIB"]):
             libs = pd.read_csv(current_app.config["LIB"])
-        prev_entry = libs.loc[libs["library_name"] == library_name]
-        if not prev_entry.empty:
-            used_in = prev_entry["used_in"].iloc[0]
-            libs = libs.loc[libs["library_name"] != library_name]
+            prev_entry = libs.loc[libs["library_name"] == library_name]
+            if not prev_entry.empty:
+                used_in = prev_entry["used_in"].iloc[0]
+                libs = libs.loc[libs["library_name"] != library_name]
 
         new_entry = pd.DataFrame({
             'library_name': [library_name],
@@ -609,7 +622,7 @@ def save_files():
                 "size": size,
                 "hash": file_hash,
                 "comment": comment,
-                "used_in": "{}"
+                "used_in": "[]"
             })
             new_filenames.append(new_filename)
 
@@ -683,11 +696,14 @@ def delete_file():
 def register_files():
     data = request.get_json()
     locals = data.get('local')
-    filenames = [segment.strip().strip('"')
-                 for segment in locals.split(';') if segment.strip()]
+    pattern = r'\".*?\"|\S+'
+    filenames: List[str] = re.findall(pattern, locals)
+
+    # Clean up the filenames: remove quotation marks
     success_message = ""
     warning_message = ""
     for local in filenames:
+        local = local.strip('"')
         if not os.path.isfile(local):
             warning_message += f"File {local} is not found on the server.\n"
             continue
@@ -706,7 +722,7 @@ def register_files():
                      "size": size,
                      "comment": comment,
                      "dir": directory,
-                     "used_in": "{}"}
+                     "used_in": "[]"}
 
         df = pd.concat([df, pd.DataFrame([new_entry])], ignore_index=True)
         df.to_csv(csv_path, index=False)

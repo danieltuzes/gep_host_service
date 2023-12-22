@@ -68,6 +68,7 @@ if __name__ == "__main__":
     def inject_config():
         return dict(service_name=app.config["service_name"],
                     email_placeholder=app.config["email_placeholder"],
+                    email_pattern=app.config["email_pattern"],
                     host_name=app.config["host_name"],
                     lib_def_path=app.config["lib_def_path"],
                     git_example=app.config['git_example'],

@@ -1,33 +1,44 @@
 {% extends 'base.html' %}
+{% block header %}
+<title>{{ service_name }} index</title>
+{% endblock header %}
 {% block content %}
-    <div class="container mt-3">
-        <h2>Welcome to {{ service_name }}</h2>
-        <p class="mb-5">Choose from the navigation menu above.</p>
-        <!-- System Information Card -->
-        <div class="card mb-4">
-            <div class="card-header bg-secondary text-white">
-                <h4>System Information</h4>
-            </div>
-            <ul class="list-group list-group-flush">
-                {% for key, value in data.items() %}
+<div class="container mt-3">
+    <h2>Welcome to {{ service_name }}</h2>
+    <p>This is an instance of the service of "general executable program hosting", GEP host.</p>
+    <div class="row">
+        <div class="col">
+            {{ md_template|safe }}
+        </div>
+        <div class="col">
+            <!-- System Information Card -->
+            <div class="card mb-4">
+                <div class="card-header bg-secondary text-white">
+                    <h4>System Information</h4>
+                </div>
+                <ul class="list-group list-group-flush">
+                    {% for key, value in data.items() %}
                     <li class="list-group-item">
                         <strong>{{ key }}:</strong> {{ value }}
                     </li>
-                {% endfor %}
-            </ul>
-        </div>
-        <!-- Webservice Information Card -->
-        <div class="card mb-4">
-            <div class="card-header bg-primary text-white">
-                <h4>Webservice Information</h4>
+                    {% endfor %}
+                </ul>
             </div>
-            <ul class="list-group list-group-flush">
-                {% for key, value in service_config.items() %}
+            <!-- Webservice Information Card -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h4>Webservice Information</h4>
+                </div>
+                <ul class="list-group list-group-flush">
+                    {% for key, value in service_config.items() %}
                     <li class="list-group-item">
                         <strong>{{ key }}:</strong> {{ value }}
                     </li>
-                {% endfor %}
-            </ul>
+                    {% endfor %}
+                </ul>
+            </div>
         </div>
+
     </div>
+</div>
 {% endblock %}
