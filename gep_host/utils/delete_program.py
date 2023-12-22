@@ -3,8 +3,6 @@ import subprocess
 import shutil
 import sys
 import traceback
-import json
-
 import pandas as pd
 
 
@@ -24,12 +22,6 @@ def init_del(program_name: str):
     return proc.returncode, proc.stdout
 
 
-def remove_val_from_json(json_str, val_2_remove):
-    mylist = json.loads(json_str)
-    new_list = [val for val in mylist if val != val_2_remove]
-    return json.dumps(new_list)
-
-
 def delete_program(program_name):
     """Delete a program.
 
@@ -42,6 +34,7 @@ def delete_program(program_name):
     # the price of using the same file where the deletion is initiated from python
     # and where the console script's deletion is implemented
     from set_conf import set_conf
+    from helpers import remove_readonly, remove_val_from_json
     config = {}
     set_conf(config)
 
@@ -66,6 +59,7 @@ def delete_program(program_name):
                 print("The package zip file has been already deleted.")
 
         if os.path.isdir(masterfolder):
+            remove_readonly(masterfolder)
             shutil.rmtree(masterfolder)
         else:
             print("The program folder has been already deleted.")
@@ -79,7 +73,7 @@ def delete_program(program_name):
             libs = pd.read_csv(config["LIB"])
             libs["used_in"] = libs["used_in"].apply(remove_val_from_json,
                                                     val_2_remove=program_name)
-            libs.to_csv(config["LIB"])
+            libs.to_csv(config["LIB"], index=False)
 
         return code
 
@@ -94,7 +88,7 @@ def delete_program(program_name):
         print(f"Error deleting program {program_name}: {e}")
         print(traceback.format_exc())
         put_back = pd.DataFrame({"program_name": [program_name],
-                                 "status": ["program uninstall error"]})
+                                 "status": ["Installed (deleting with error)"]})
         df = pd.concat([df, put_back])
         df.to_csv(config["PRG"], index=False)
         if os.path.isdir(masterfolder):

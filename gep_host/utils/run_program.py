@@ -28,7 +28,7 @@ def id_row(details: pd.DataFrame, prg_name: str, purp: str):
 
 
 def extract_emails(emails_input: str) -> List[str]:
-    email_pattern = current_app.config["email_patter"]
+    email_pattern = current_app.config["email_pattern"]
     return re.findall(email_pattern, emails_input)
 
 
@@ -80,6 +80,7 @@ def init_run(request: Request) -> Union[int, str]:
                                  "inputs"].iloc[0])
     inherits = {}
     uploads = {}
+    reg_files = {}
     undefineds = []
     if masterinput.filename != "":
         masterinput_path = os.path.join(setup_folder, "masterinput")
@@ -115,8 +116,8 @@ def init_run(request: Request) -> Union[int, str]:
         for input_name, path in inputs.items():
             # if inheritable and checked, inherit, and don't save
             if path is not None:
-                checkbox_value = request.form.get(f'check{input_name}')
-                if checkbox_value:
+                selected_option = request.form.get(f'{input_name}_option')
+                if selected_option == "inherit":
                     inherits[input_name] = path
                     continue
 
@@ -129,7 +130,28 @@ def init_run(request: Request) -> Union[int, str]:
                 uploads[input_name] = path
                 continue
 
+            reg_file = request.form.get(f'{input_name}_text')
+            if reg_file is not None and reg_file != "":
+                files_path = os.path.join(current_app.config["ROOT"],
+                                          "file_data.csv")
+                files = pd.read_csv(files_path)
+                matches = files.loc[files["filename"] == reg_file]
+                if not matches.empty:
+                    if pd.isna(matches["hash"].iloc[0]):
+                        directory = matches["dir"].iloc[0]
+                    else:
+                        directory = current_app.config["FLSR"]
+                    path = os.path.join(directory, reg_file)
+                    reg_files[input_name] = path
+                    used_in: List[str] = json.loads(matches["used_in"].iloc[0])
+                    used_in.append(prg_name + "__" + purp)
+                    files.loc[files["filename"] == reg_file,
+                              "used_in"] = json.dumps(used_in)
+                    continue
+
             undefineds.append(input_name)
+        if "files" in locals():
+            files.to_csv(files_path, index=False)
 
     # update the config
     # update the input fields
@@ -142,15 +164,18 @@ def init_run(request: Request) -> Union[int, str]:
     for upload, path in uploads.items():
         uploaded_path = os.path.join(setup_folder, path)
         config.set('inputs', upload, uploaded_path)
+    for regf, path in reg_files.items():
+        config.set('inputs', regf, path)
     for undefined in undefineds:
         config.set('inputs', undefined, "")
 
     # get output paths
     outputs = {}
-    for ofile in config.options("outputs"):
-        ofilepath = os.path.relpath(config.get("outputs", ofile),
-                                    setup_folder)
-        outputs[ofile] = ofilepath
+    if config.has_section("outputs"):
+        for ofile in config.options("outputs"):
+            ofilepath = os.path.relpath(config.get("outputs", ofile),
+                                        setup_folder)
+            outputs[ofile] = ofilepath
     with open(config_file, 'w') as configfile:
         config.write(configfile)
 
@@ -164,6 +189,7 @@ def init_run(request: Request) -> Union[int, str]:
         'status': ['set up'],
         'uploaded_files': [json.dumps(uploads)],
         'inherited_files': [json.dumps(inherits)],
+        'registered_files': [json.dumps(reg_files)],
         'undefineds': [json.dumps(undefineds)],
         'outputs': [json.dumps(outputs)],
         'comment': request.form["comment"],
@@ -187,8 +213,9 @@ def init_run(request: Request) -> Union[int, str]:
 
     body = (f"A run of program {prg_name} with purpose {purp} "
             "is successfully triggered. Emails regardless of the outcome "
-            "will be sent. Visit <a href='localhost:5000/runs'>the run page</a> "
-            "for further details.")
+            "will be sent. Visit "
+            f"http://{conf['host_name']}:{conf['port']}/runs#{prg_name}__{purp}"
+            " for the run page for further details.")
     send_email("gep_host run trigger", body, notifications)
     return 0
 
@@ -208,9 +235,9 @@ def run_program(prg_name, purp):
         runs.to_csv(conf["RUN"], index=False)
 
         # Activate the conda environment and run the program
-        activate_env_command = f'conda activate {prg_name}'
+        activate_env_command = f'{conf["activate"]}{prg_name}'
         args = runs.loc[id_row(runs, prg_name, purp), 'python_args'].iloc[0]
-        i_cmd = f'{activate_env_command} && python -m {args}'
+        i_cmd = f'{activate_env_command} && python {args}'
         setup_folder = os.path.join(conf["RUNR"], prg_name, purp)
         proc = subprocess.run(i_cmd, shell=True, cwd=setup_folder, text=True,
                               stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
@@ -249,7 +276,7 @@ def run_program(prg_name, purp):
     finally:
         runs.to_csv(conf["RUN"], index=False)
         body += (" See more details on "
-                 f"<a href='{socket.gethostname()}'>the run page.</a>")
+                 f"http://{conf['host_name']}:{conf['port']}/runs#{prg_name}__{purp} ")
         notifs = runs.loc[id_row(runs, prg_name, purp),
                           'notifications'].iloc[0]
         receiver_emails = json.loads(notifs)

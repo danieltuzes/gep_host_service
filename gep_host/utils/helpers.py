@@ -2,7 +2,7 @@ import os
 import re
 import subprocess
 from datetime import datetime
-import zipfile
+import json
 
 import pandas as pd
 
@@ -92,3 +92,18 @@ def concat_to(new_entry: pd.DataFrame, filename: pd.DataFrame) -> None:
 
     runs = pd.concat([old_entries, new_entry], ignore_index=True)
     runs.to_csv(filename, index=False)
+
+
+def remove_readonly(path):
+    """Recursively remove read-only attributes from files and directories."""
+    for root, dirs, files in os.walk(path):
+        for name in files:
+            os.chmod(os.path.join(root, name), 0o666)
+        for name in dirs:
+            os.chmod(os.path.join(root, name), 0o777)
+
+
+def remove_val_from_json(json_str, val_2_remove):
+    mylist = json.loads(json_str)
+    new_list = [val for val in mylist if val != val_2_remove]
+    return json.dumps(new_list)

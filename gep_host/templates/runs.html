@@ -1,287 +1,349 @@
 {% extends "base.html" %}
-
+{% block header %}
+<title>{{ service_name }} runs</title>
+{% endblock header %}
 {% block content %}
 <div class="container mt-3">
     <h2>Runs</h2>
-    <p>Select a program from the <a href="{{ url_for('main_routes.programs')}}">installed ones</a>
-        and choose action "run" to initatie a new run.<br>
-        Ongoing and previous runs are shown below.</p>
+    <p>
+        Select a program from the <a href='{{ url_for("main_routes.programs") }}'>installed ones</a>
+        and choose action "run" to initatie a new run.
+        <br>
+        Ongoing and previous runs are shown below.
+    </p>
     {% if prg_to_run is not none %}
-    <div class="card">
-        <div class="card-header pt-3" id="headingAddProgram">
-            <h5>Setup and run {{program_name}}</h5>
-        </div>
-        <div class="card-body">
-            <form action="{{ url_for('main_routes.trigger_run') }}" method="post" enctype="multipart/form-data">
-                <div class="row">
-                    <div class="mb-3 col-md-6">
-                        <label for="program_name">Program Name:</label>
-                        <input type="text" name="program_name" class="form-control" disabled value="{{ program_name }}">
-                        <input type="hidden" name="program_name" value="{{ program_name }}">
-                    </div>
-                    <div class="mb-3 col-md-6">
-                        <label for="purpose">Purpose <span class="tooltip-text" data-bs-toggle="tooltip"
-                                data-bs-placement="top"
-                                title="It can contain only alphanumeric chars and _.- Space is not allowed.">(info)</span><span
-                                style="color: red;">*</span>:</label>
-                        <input type="text" name="purpose" class="form-control" required
-                            placeholder="Enter a unique name for the run">
-                    </div>
-                </div>
-                <div class="mb-3">
-                    <label for="args">
-                        Python call's argument string
-                        <span class="tooltip-text" data-bs-toggle="tooltip" data-bs-placement="top"
-                            title="Enter the string that follows python -m. It can contain only alphanumeric chars and &quot;-&#039;_\^/(,)[.]">
-                            (info)</span><span style="color: red;">*</span>:
-                    </label>
-                    <input type="text" name="args" class="form-control" value="{{ prg_to_run.def_args }}" required>
-                </div>
-                <div class="accordion mb-3" id="runInputAccordion">
-                    <div class="accordion-item">
-                        <h2 class="accordion-header" id="headingOne">
-                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-                                data-bs-target="#collapseOne" data-bs-toggle="tooltip" data-bs-placement="top"
-                                title="Upload all the files and optionally even more by sending a zip file that contains all the files and a MasterInput.cfg for the mapping. Inputs in the 1-by-1 tab are ignored if you select a file here. Inheritable files are all inherited if not defined in the MasterInput.cfg in the zip file.">
-                                Input files in 1 go - masterinput
-                            </button>
-                        </h2>
-                        <div id="collapseOne" class="accordion-collapse collapse" data-bs-parent="#runInputAccordion">
-                            <div class="accordion-body">
-                                <div class="mb-3 row">
-                                    <label for="masterinput" class="col-sm-2 col-form-label">Masterinput:</label>
-                                    <div class="col-sm-6">
-                                        <input type="file" class="form-control" id="masterinput" name="masterinput">
-                                    </div>
-                                    <div class="col-sm-4 col-form-label">
-                                        <a href="{{ url_for('main_routes.get_template', program_name=program_name) }}">
-                                            Get the MasterInput.cfg template
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
+    <!-- run configuration -->
+    <div class="accordion mb-3 shadow" id="installProgramAccordion">
+        <div class="accordion-item">
+            <h5 class="accordion-header border-primary border" id="headingMain">
+                <button class="accordion-button" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#collapseMain">Setup and run {{ program_name }}</button>
+            </h5>
+            <div id="collapseMain" class="accordion-collapse m-3 collapse show">
+                <form action='{{ url_for("main_routes.trigger_run") }}' method="post" enctype="multipart/form-data">
+                    <div class="row">
+                        <div class="mb-3 col-md-6">
+                            <label for="program_name">Program Name</label>
+                            <input type="text" name="program_name" class="form-control" disabled
+                                value="{{ program_name }}">
+                            <input type="hidden" name="program_name" value="{{ program_name }}">
+                        </div>
+                        <div class="mb-3 col-md-6">
+                            <label for="purpose">
+                                Purpose <span class="tooltip-text" data-bs-toggle="tooltip" data-bs-placement="top"
+                                    title="It can contain only alphanumeric chars and _.- Space is not allowed.">(info)</span><span
+                                    style="color: red;">*</span>
+                            </label>
+                            <input type="text" name="purpose" class="form-control" required
+                                placeholder="Enter a unique name for the run">
                         </div>
                     </div>
-                    <div class="accordion-item">
-                        <h2 class="accordion-header" id="headingTwo">
-                            <button class="accordion-button" type="button" data-bs-toggle="collapse"
-                                data-bs-target="#collapseTwo" data-bs-toggle="tooltip" data-bs-placement="top"
-                                title="Upload files defined in the masterconfig or inherit them from the uploaded package. These files are neglected if you choose to upload the masterinput file in the previous tab. If no file is uploaded or inherited, the option is kept in the config file, but its value is set to None.">
-                                Input files 1-by-1
-                            </button>
-                        </h2>
-                        <div id="collapseTwo" class="accordion-collapse collapse show"
-                            data-bs-parent="#runInputAccordion">
-                            <div class="accordion-body">
-                                {% set inputs = prg_to_run.inputs|parse_json %}
-                                {% if not inputs %}
-                                <span class="text-muted">No inputs are associated with this program.</span>
-                                {% endif %}
-                                {% for input_name, input_path in inputs.items() %}
-                                {% if input_path is not none %}
-                                <div class="mb-3 row">
-                                    <label for="{{ input_name }}" class="col-sm-2 col-form-label">{{ input_name
-                                        }}:</label>
-                                    <div class="col-sm-6">
-                                        <input type="file" class="form-control" id="{{ input_name }}" disabled
-                                            name="{{ input_name }}">
-                                    </div>
-                                    <div class="col-form-label col-sm-4">
-                                        <input class="form-check-input" type="checkbox" name="check{{ input_name }}"
-                                            id="check{{ input_name }}" checked>
-                                        <label class="form-check-label" for="check{{ input_name }}">Inherit
+                    <div class="mb-3">
+                        <label for="args">
+                            Python call's argument string
+                            <span class="tooltip-text" data-bs-toggle="tooltip" data-bs-placement="top"
+                                title="Enter the string that follows python. It can contain only alphanumeric chars and &quot;-&#039;_\^/(,)[.]">
+                                (info)</span><span style="color: red;">*</span>
+                        </label>
+                        <input type="text" name="args" class="form-control" value="{{ prg_to_run.def_args }}" required>
+                    </div>
+                    <div class="accordion mb-3" id="runInputAccordion">
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingOne">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                    data-bs-target="#collapseOne" data-bs-toggle="tooltip" data-bs-placement="top"
+                                    title="Upload all the files and optionally even more by sending a zip file that contains all the files and a MasterInput.cfg for the mapping. Inputs in the 1-by-1 tab are ignored if you select a file here. Inheritable files are all inherited if not defined in the MasterInput.cfg in the zip file.">
+                                    Input files in 1 go - masterinput
+                                </button>
+                            </h2>
+                            <div id="collapseOne" class="accordion-collapse collapse"
+                                data-bs-parent="#runInputAccordion">
+                                <div class="accordion-body">
+                                    <p>
+                                        Upload all the files and optionally even more by sending a zip file that
+                                        contains
+                                        all
+                                        the files and a MasterInput.cfg for the mapping. Inputs in the 1-by-1 tab are
+                                        ignored if you select a file here. Inheritable files are all inherited if not
+                                        defined in the MasterInput.cfg in the zip file.
+                                    </p>
+                                    <div class="mb-3 row">
+                                        <label for="masterinput" class="col-sm-2 col-form-label">Masterinput</label>
+                                        <div class="col-sm-6">
+                                            <input type="file" class="form-control" id="masterinput" name="masterinput">
+                                        </div>
+                                        <div class="col-sm-4 col-form-label">
                                             <a
-                                                href="{{ url_for('main_routes.get_program_input', program_name=program_name, input_value=input_path) }}">{{input_path}}</a></label>
+                                                href="{{ url_for('main_routes.get_template', program_name=program_name) }}">Get
+                                                the MasterInput.cfg template</a>
+                                        </div>
                                     </div>
                                 </div>
-                                {% else %}
-                                <div class="mb-3 row">
-                                    <label for="{{ input_name }}" class="col-sm-2 col-form-label">{{ input_name
-                                        }}:</label>
-                                    <div class="col-sm-6">
-                                        <input type="file" class="form-control" id="{{ input_name }}"
-                                            name="{{ input_name }}">
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingTwo">
+                                <button class="accordion-button" type="button" data-bs-toggle="collapse"
+                                    data-bs-target="#collapseTwo" data-bs-toggle="tooltip" data-bs-placement="top"
+                                    title="Upload files defined in the masterconfig or inherit them from the uploaded package. These files are neglected if you choose to upload the masterinput file in the previous tab. If no file is uploaded or inherited, the option is kept in the config file, but its value is set to None.">
+                                    Input files 1-by-1
+                                </button>
+                            </h2>
+                            <div id="collapseTwo" class="accordion-collapse collapse show"
+                                data-bs-parent="#runInputAccordion">
+                                <div class="accordion-body">
+                                    <p>
+                                        Upload files defined in the masterconfig or inherit them from the uploaded
+                                        package.
+                                        These files are neglected if you choose to upload the masterinput file in the
+                                        previous tab. If no file is uploaded or inherited, the option is kept in the
+                                        config
+                                        file, but its value is set to None.
+                                    </p>
+                                    {% set inputs = prg_to_run.inputs|parse_json %}
+                                    {% if not inputs %}<span class="text-muted">No inputs are associated with this
+                                        program.</span>{% endif %}
+                                    {% for input_name, input_path in inputs.items() %}
+                                    <div class="mb-3 row">
+                                        <label for="{{ input_name }}" class="col-sm-3 col-form-label text-end">{{
+                                            input_name }}</label>
+                                        <div class="col-sm-3">
+                                            <select class="form-select input-selector" data-input-id="{{ input_name }}"
+                                                name="{{ input_name }}_option">
+                                                {% if input_path is not none %}
+                                                <option value="inherit" selected>Inherit from package</option>
+                                                <option value="upload">Upload a new file</option>
+                                                {% else %}
+                                                <option value="upload" selected>Upload a new file</option>
+                                                {% endif %}
+                                                <option value="use">Use a registered file</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-6">
+                                            <input type="file" class="form-control file-input" id="{{ input_name }}"
+                                                name="{{ input_name }}" style="display: none">
+                                            <input type="text" class="form-control text-input"
+                                                placeholder="Enter registered file name"
+                                                data-input-id="text-{{ input_name }}" style="display: none"
+                                                name="{{ input_name }}_text">
+                                        </div>
                                     </div>
-                                    <div class="col-sm-4 col-form-label"><small>Not found in package</small></div>
+                                    {% endfor %}
+                                    </fieldset>
                                 </div>
-                                {% endif %}
-                                {% endfor %}
-                                </fieldset>
                             </div>
                         </div>
                     </div>
-                </div>
-                <div class="mb-3">
-                    <label for="comment">
-                        Comment:
-                    </label>
-                    <input type="text" name="comment" class="form-control">
-                </div>
-                <div class="mb-3">
-                    <label for="notifications">
-                        Notify in email:
-                    </label>
-                    <input type="text" name="notifications" class="form-control" id="emailInput"
-                        placeholder="{{ email_placeholder }}">
-                </div>
-                <button type="submit" class="btn btn-primary" id="submitButton" disabled>Start run</button>
-            </form>
+                    <div class="mb-3">
+                        <label for="comment">Comment</label>
+                        <input type="text" name="comment" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label for="notifications">Notify in email</label>
+                        <input type="text" name="notifications" class="form-control" id="emailInput"
+                            placeholder="{{ email_placeholder }}">
+                    </div>
+                    <button type="submit" class="btn btn-primary" id="submitButton" disabled>Start run</button>
+                </form>
+            </div>
         </div>
-
     </div>
     {% endif %}
-
-
-    <div class="container my-4">
-        <div class="row mb-2">
-            <div class="col">
-                {% if program_name is not none %}Program Name{% else %}
-                <a
-                    href="{{ url_for('main_routes.runs', column='program_name', program_name=program_name, direction='desc' if direction == 'asc' and column == 'program_name' else 'asc') }}">
-                    Program Name
-                    {{'↑' if direction == 'asc' and column == 'program_name'}}
-                    {{'↓' if direction == 'desc' and column == 'program_name'}}
-                </a>
-                {% endif %}
-            </div>
-            <div class="col">
-                <a
-                    href="{{ url_for('main_routes.runs', column='purpose', program_name=program_name, direction='desc' if direction == 'asc' and column == 'purpose' else 'asc') }}">
-                    Purpose
-                    {{'↑' if direction == 'asc' and column == 'purpose'}}
-                    {{'↓' if direction == 'desc' and column == 'purpose'}}
-                </a>
-            </div>
-            <div class="col">
-                <a
-                    href="{{ url_for('main_routes.runs', column='setup_date', program_name=program_name, direction='desc' if direction == 'asc' and column == 'setup_date' else 'asc') }}">
-                    Start Date
-                    {{'↑' if direction == 'asc' and column == 'setup_date'}}
-                    {{'↓' if direction == 'desc' and column == 'setup_date'}}
-                </a>
-            </div>
-            <div class="col text-end">Actions</div>
+</div>
+<!-- previous runs -->
+<div class="container my-4">
+    <!-- header -->
+    <div class="row mb-2">
+        <div class="col">
+            {% if program_name is not none %}
+            Program Name
+            {% else %}
+            <a
+                href="{{ url_for('main_routes.runs', column='program_name', program_name=program_name, direction='desc' if direction == 'asc' and column == 'program_name' else 'asc') }}">
+                Program Name
+                {{'↑' if direction == 'asc' and column == 'program_name'}}
+                {{'↓' if direction == 'desc' and column == 'program_name'}}
+            </a>
+            {% endif %}
         </div>
-        {% for run in runs.itertuples() %}
-        <div class="row toggle-row">
-            <div class="col">
-                <span data-bs-toggle="tooltip" data-bs-placement="top" title="{{run.status}}">
-                    {% if run.status == "Completed" %}
-                    <span class="badge rounded-pill bg-success">✓</span>
-                    {% elif "error" in run.status or "terminated" in run.status %}
-                    <span class="badge rounded-pill bg-danger">X</span>
-                    {% else %}
-                    <span class="badge rounded-pill bg-info">↺</span>
-                    {% endif %}
-                </span>
-                {{ run.program_name}}
-            </div>
-            <div class="col">{{ run.purpose }}</div>
-            <div class="col">{{ run.setup_date }}</div>
-            <div class="col text-end">
-                {% if run.status in ["running","set up"] %}
-                <a href="{{ url_for('main_routes.stop_run', program_name=run.program_name, purpose=run.purpose) }}"
-                    class="btn btn-warning btn-sm me-1 mb-1">Stop</a>
-                {% endif %}
-                {% if "Completed" in run.status %}
-                <a class="btn btn-primary btn-sm me-1 mb-1"
-                    href="{{ url_for('main_routes.get_run_file', program_name=run.program_name, purpose=run.purpose, file=run.program_name + '__' + run.purpose + '.zip') }}">
-                    Download</a>
-                {% endif %}
-            </div>
+        <div class="col">
+            <a
+                href="{{ url_for('main_routes.runs', column='purpose', program_name=program_name, direction='desc' if direction == 'asc' and column == 'purpose' else 'asc') }}">
+                Purpose
+                {{'↑' if direction == 'asc' and column == 'purpose'}}
+                {{'↓' if direction == 'desc' and column == 'purpose'}}
+            </a>
         </div>
-        <div class="row additional pt-0" style="display: none;">
-            <hr>
-            <div class="my-2"><strong>Status: </strong>
-                {{ run.status }}
-                <a href="{{ url_for('main_routes.run_log', program_name=run.program_name, purpose=run.purpose) }}">
-                    Download the run log file
-                </a>
+        <div class="col">
+            <a
+                href="{{ url_for('main_routes.runs', column='setup_date', program_name=program_name, direction='desc' if direction == 'asc' and column == 'setup_date' else 'asc') }}">
+                Start Date
+                {{'↑' if direction == 'asc' and column == 'setup_date'}}
+                {{'↓' if direction == 'desc' and column == 'setup_date'}}
+            </a>
+        </div>
+        <div class="col text-end">Actions</div>
+    </div>
+    <!-- content -->
+    {% for run in runs.itertuples() %}
+    <div class="row toggle-row" id="{{ run.program_name }}__{{ run.purpose }}">
+        <div class="col">
+            <span data-bs-toggle="tooltip" data-bs-placement="top" title="{{ run.status }}">
+                {% if run.status == "Completed" %}
+                <span class="badge rounded-pill bg-success">✓</span>
+                {% elif "error" in run.status or "terminated" in run.status %}
+                <span class="badge rounded-pill bg-danger">X</span>
+                {% else %}
+                <span class="badge rounded-pill bg-info">↺</span>
+                {% endif %}
+            </span>
+            <a href='{{ url_for("main_routes.programs") }}#{{ run.program_name }}'>{{ run.program_name }}</a>
+        </div>
+        <div class="col">{{ run.purpose }}</div>
+        <div class="col">{{ run.setup_date }}</div>
+        <div class="col text-end">
+            {% if run.status in ["running","set up"] %}
+            <a href="{{ url_for('main_routes.stop_run', program_name=run.program_name, purpose=run.purpose) }}"
+                class="btn btn-warning btn-sm me-1 mb-1">Stop</a>
+            {% endif %}
+            {% if "Completed" in run.status %}
+            <a class="btn btn-primary btn-sm me-1 mb-1" title="Download the whole code, inputs and outputs"
+                href="{{ url_for('main_routes.get_run_file', program_name=run.program_name, purpose=run.purpose, file=run.program_name + '__' + run.purpose + '.zip') }}">
+                Download</a>
+            {% endif %}
+            <button class="btn btn-secondary btn-sm me-1 mb-1 copy-id-link" title="Copy the deeplink to this element">
+                <i class="bi bi-clipboard"></i> Copy Link
+            </button>
+        </div>
+    </div>
+    <div class="row additional pt-0" style="display: none;">
+        <hr>
+        <div class="my-2">
+            <strong>Status:</strong>
+            {{ run.status }}
+            <a href="{{ url_for('main_routes.run_log', program_name=run.program_name, purpose=run.purpose) }}">
+                Download the run log file
+            </a>
+        </div>
+        <div class="my-2">
+            <strong>Python call:</strong>
+            <code>python {{ run.python_args }}</code>
+        </div>
+        <div class="row my-2">
+            <div class="col-6">
+                <strong>Uploaded files:</strong>
+                <br>
+                {% set uploads = run.uploaded_files|parse_json %}
+                {% if uploads == {} %}
+                <span class="text-muted">(None)</span>
+                {% else %}
+                {% for input_name, input_value in uploads.items() %}
+                {{ input_name }}:
+                {% if input_value is not none %}
+                <a
+                    href="{{ url_for('main_routes.get_run_file', program_name=run.program_name, purpose=run.purpose, file=input_value) }}">
+                    {{ input_value }}</a>
+                <br>
+                {% else %}
+                <span class="text-muted">(None)</span>
+                {% endif %}
+                {% endfor %}
+                {% endif %}
             </div>
-            <div class="my-2"><strong>Python call:</strong>
-                <code>python -m {{ run.python_args }}</code>
+            <div class="col-6">
+                <strong>Inherited files:</strong>
+                <br>
+                {% set inherits = run.inherited_files|parse_json %}
+                {% if inherits == {} %}
+                <span class="text-muted">(None)</span>
+                {% else %}
+                {% for input_name, input_value in inherits.items() %}
+                {{ input_name }}:
+                {% if input_value is not none %}
+                <a
+                    href="{{ url_for('main_routes.get_run_file', program_name=run.program_name, purpose=run.purpose, file=input_value) }}">
+                    {{ input_value }}</a>
+                <br>
+                {% endif %}
+                {% endfor %}
+                {% endif %}
             </div>
-            <div class="row my-2">
-                <div class="col-5"><strong>Uploaded files:</strong><br>
-                    {% set uploads = run.uploaded_files|parse_json %}
-                    {% if uploads == {} %}<span class='text-muted'>(None)</span>
-                    {% else %}
-                    {% for input_name, input_value in uploads.items() %}
-                    {{ input_name }}: {% if input_value is not none %}
-                    <a
-                        href="{{ url_for('main_routes.get_run_file', program_name=run.program_name, purpose=run.purpose, file=input_value) }}">
-                        {{ input_value }}</a>
-                    <br>
-                    {% else %}
-                    <span class='text-muted'>(None)</span>
-                    {% endif %}
-                    {% endfor %}
-                    {% endif %}
-                </div>
-                <div class="col-5"><strong>Inherited files:</strong><br>
-                    {% set inherits = run.inherited_files|parse_json %}
-                    {% if inherits == {} %}<span class='text-muted'>(None)</span>
-                    {% else %}
-                    {% for input_name, input_value in inherits.items() %}
-                    {{ input_name }}: {% if input_value is not none %}<a
-                        href="{{ url_for('main_routes.get_run_file', program_name=run.program_name, purpose=run.purpose, file=input_value) }}">
-                        {{ input_value }}</a>
-                    <br>
-                    {% endif %}
-                    {% endfor %}
-                    {% endif %}
-                </div>
-                <div class="col-2"><strong>Undefined files:</strong><br>
-                    {% set undefineds = run.undefineds|parse_json %}
-                    {% if undefineds == [] %}<span class='text-muted'>(None)</span>
-                    {% else %}
-                    {% for undefined in undefineds %}
-                    {{ undefined }}
-                    <br>
-                    {% endfor %}
-                    {% endif %}
-                </div>
+            <div class="col-8">
+                <strong>Loaded local files:</strong>
+                <br>
+                {% set reg_files = run.registered_files|parse_json %}
+                {% if reg_files == {} %}
+                <span class="text-muted">(None)</span>
+                {% else %}
+                {% for input_name, input_value in reg_files.items() %}
+                {{ input_name }}:
+                {% if input_value is not none %}
+                <a href="{{ url_for('main_routes.get_file', filename=input_value) }}">{{ input_value }}</a>
+                <br>
+                {% endif %}
+                {% endfor %}
+                {% endif %}
+            </div>
+            <div class="col-2">
+                <strong>Undefined files:</strong>
+                <br>
+                {% set undefineds = run.undefineds|parse_json %}
+                {% if undefineds == [] %}
+                <span class="text-muted">(None)</span>
+                {% else %}
+                {% for undefined in undefineds %}
+                {{ undefined }}
+                <br>
+                {% endfor %}
+                {% endif %}
             </div>
             <hr class="my-3 text-center border-secondary">
-            <div class="my-2"><strong>Expected output files</strong>
+            <div class="my-2">
+                <strong>Expected output files</strong>
                 <a
                     href="{{ url_for('main_routes.get_run_file', program_name=run.program_name, purpose=run.purpose, file=run.program_name + '__' + run.purpose + '.zip') }}">(zipped
                     run folder)</a>:
                 <br>
                 {% set outputs = run.outputs|parse_json %}
-                {% if outputs == {} %}<span class='text-muted'>(None)</span>
+                {% if outputs == {} %}<span class="text-muted">(None)</span>
                 {% else %}
                 {% for output_name, output_path in outputs.items() %}
                 {{ output_name }}: <a
-                    href="{{ url_for('main_routes.get_run_file', program_name=run.program_name, purpose=run.purpose, file=output_path) }}">{{output_path}}</a><br>
+                    href="{{ url_for('main_routes.get_run_file', program_name=run.program_name, purpose=run.purpose, file=output_path) }}">{{
+                    output_path }}</a>
+                <br>
                 {% endfor %}
                 {% endif %}
             </div>
-            <div class="my-2"><strong>Comment:</strong>
-                {% if run.comment == "" %}<span class='text-muted'>(None)</span>
+            <div class="my-2">
+                <strong>Comment</strong>
+                {% if run.comment == "" %}
+                <span class="text-muted">(None)</span>
                 {% else %}
                 {{ run.comment }}
                 {% endif %}
             </div>
-            <div><strong>Notifications:</strong>
-                {% if run.notifications == "[]" %}<span class='text-muted'>(None)</span>
+            <div>
+                <strong>Notifications:</strong>
+                {% if run.notifications == "[]" %}
+                <span class="text-muted">(None)</span>
                 {% else %}
                 {% set notifications = run.notifications|parse_json %}
-                {{ notifications|join(", ")}}
+                {{ notifications|join(", ") }}
                 {% endif %}
             </div>
-            <div class="my-2"><a class="btn btn-danger btn-sm"
+            <div class="my-2">
+                <a class="btn btn-danger btn-sm"
                     href="{{ url_for('main_routes.del_run', program_name=run.program_name, purpose=run.purpose) }}">Delete</a>
             </div>
         </div>
-        {% endfor %}
     </div>
-
-    {% if runs.empty %}
-    No runs {% if program_name is not none%}with program name {{ program_name }}{% endif %}
-    {% endif %}
+    {% endfor %}
 </div>
-
+{% if runs.empty %}
+No runs
+{% if program_name is not none %}with program name {{ program_name }}{% endif %}
+{% endif %}
 <!-- invalid email notifier -->
 {% if program_name is not none %}
 <div class="modal fade" id="errorModal" tabindex="-1">
@@ -291,9 +353,7 @@
                 <h5 class="modal-title" id="errorModalLabel">Validation Error</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body">
-                Invalid email(s) entered.
-            </div>
+            <div class="modal-body">Invalid email(s) entered.</div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">OK</button>
             </div>
@@ -301,31 +361,35 @@
     </div>
 </div>
 {% endif %}
-
-<!-- disable input field if inherited is selected -->
+<!-- input type selection -->
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        // Handle checkbox toggles for all inputs
-        {% if prg_to_run is not none %}
-        {% set inputs = prg_to_run.inputs | parse_json %}
-        {% for input_name, input_path in inputs.items() %}
-        {% if input_path is not none %}
-        document.getElementById('check{{ input_name }}').addEventListener('change', function () {
-            handleCheckboxToggle('{{ input_name }}', 'check{{ input_name }}');
+        // select the selected file input so that the associated field is shown
+        const selects = document.querySelectorAll('.input-selector');
+
+        selects.forEach(select => {
+            const inputId = select.getAttribute('data-input-id');
+            const fileInput = document.getElementById(inputId);
+
+            if (select.value === 'upload' && !select.querySelector('option[value="inherit"]')) {
+                fileInput.style.display = 'block';
+            }
         });
-        {% endif %}
-        {% endfor %}
-        {% endif %}
+    });
 
-        function handleCheckboxToggle(inputId, checkId) {
-            const input = document.getElementById(inputId);
-            const checkbox = document.getElementById(checkId);
+    document.addEventListener('change', function (e) {
+        if (e.target && e.target.classList.contains('input-selector')) {
+            const inputId = e.target.getAttribute('data-input-id');
+            const fileInput = document.getElementById(inputId);
+            const textInput = document.querySelector(`[data-input-id="text-${inputId}"]`);
 
-            if (checkbox.checked) {
-                input.value = ''; // Clear the file input
-                input.setAttribute('disabled', true); // Disable the file input
-            } else {
-                input.removeAttribute('disabled'); // Enable the file input
+            fileInput.style.display = 'none';
+            textInput.style.display = 'none';
+
+            if (e.target.value === 'upload') {
+                fileInput.style.display = 'block';
+            } else if (e.target.value === 'use') {
+                textInput.style.display = 'block';
             }
         }
     });
