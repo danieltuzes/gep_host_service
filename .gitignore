@@ -1,2 +1,4 @@
 **/*.pyc
 hosting*/*
+**egg-info/*
+**/dist/*.tar.gz

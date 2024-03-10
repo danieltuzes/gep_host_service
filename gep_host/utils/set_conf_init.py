@@ -2,6 +2,16 @@ import os
 from configparser import ConfigParser, ExtendedInterpolation
 from pathlib import Path
 
+from typing import List
+
+import pandas as pd
+
+
+def create_csv_if_not_exists(colnames: List[str], fname: str) -> None:
+    if not os.path.isfile(fname):
+        df = pd.DataFrame(columns=colnames)
+        df.to_csv(fname, index=False)
+
 
 def set_conf(config: dict):
     pgk_root = Path(os.path.dirname(__file__)).parent.parent
@@ -37,6 +47,21 @@ def set_conf(config: dict):
     config["RUN"] = os.path.join(root, 'runs/run_details.csv')
     config["LIB"] = os.path.join(root, 'libs/lib_details.csv')
     config["FLE"] = os.path.join(root, 'file_data.csv')
+    create_csv_if_not_exists(["program_name", "upload_date", "python_version",
+                              "status", "PID", "zip_fname", "selected_libs",
+                              "def_args", "source", "inputs", "outputs",
+                              "version"], config["PRG"])
+    create_csv_if_not_exists(["program_name", "purpose", "python_args",
+                              "setup_date", "status", "uploaded_files",
+                             "inherited_files", "registered_files",
+                              "undefineds", "outputs", "comment",
+                              "notifications", "PID"], config["RUN"])
+    create_csv_if_not_exists(["lib_name", "upload_date", "python_version",
+                              "status", "PID", "zip_fname", "selected_libs",
+                              "def_args", "source", "inputs", "outputs",
+                              "version"], config["LIB"])
+    create_csv_if_not_exists(["filename", "upload_date", "size",
+                              "hash", "comment", "used_in"], config["FLE"])
 
     # other settings from the host.cfg
     config["port"] = int(prg_config.get("settings", "port",

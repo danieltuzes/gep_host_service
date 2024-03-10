@@ -47,8 +47,8 @@ Install the library from source code by issuing `pip install .` in the root. For
 - For debugging, run `python -m gep_host --debug`,
 
 <!--
-- show files from package when the user decides to keep it
-- support tar.gz library files
+- allow multiple input sections: inputs are listed by sections and stored by folders
+- make table font smaller
 - when adding libraries, list them by date, and newest on top
 - add queue management
 - don't copy over inheritable files, rather, use the original one

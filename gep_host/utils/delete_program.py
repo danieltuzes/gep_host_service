@@ -33,7 +33,7 @@ def delete_program(program_name):
     """
     # the price of using the same file where the deletion is initiated from python
     # and where the console script's deletion is implemented
-    from set_conf import set_conf
+    from set_conf_init import set_conf
     from helpers import remove_readonly, remove_val_from_json
     config = {}
     set_conf(config)
@@ -69,11 +69,10 @@ def delete_program(program_name):
         cmd = f'conda env remove -n {program_name}'
         run_and_verify(cmd)
 
-        if os.path.isfile(config["LIB"]):
-            libs = pd.read_csv(config["LIB"])
-            libs["used_in"] = libs["used_in"].apply(remove_val_from_json,
-                                                    val_2_remove=program_name)
-            libs.to_csv(config["LIB"], index=False)
+        libs = pd.read_csv(config["LIB"])
+        libs["used_in"] = libs["used_in"].apply(remove_val_from_json,
+                                                val_2_remove=program_name)
+        libs.to_csv(config["LIB"], index=False)
 
         return code
 

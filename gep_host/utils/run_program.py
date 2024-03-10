@@ -7,7 +7,6 @@ import sys
 from configparser import ConfigParser, ExtendedInterpolation
 import json
 import traceback
-import zipfile
 import shutil
 from typing import Union, Dict, List
 import io
@@ -54,7 +53,7 @@ def send_email(subject: str, body: str, receiver_emails: List[str]) -> None:
 
 def init_run(request: Request) -> Union[int, str]:
     """Process the run request, and create detached run."""
-    from .helpers import alnum, safer_call, concat_to
+    from .helpers import alnum, safer_call, concat_to, extract_file
     conf = current_app.config
 
     # check if the purpose is unique
@@ -63,7 +62,7 @@ def init_run(request: Request) -> Union[int, str]:
     setup_folder = os.path.join(conf["ROOT"], "runs", prg_name, purp)
     if os.path.isdir(setup_folder):
         return ("Run setup is unsuccessful. "
-                "Cannot save the run files to a new folder."
+                "Cannot save the run files to a new folder. "
                 "Is the purpose name unique?")
 
     # copy the program to a new location
@@ -82,16 +81,14 @@ def init_run(request: Request) -> Union[int, str]:
     uploads = {}
     reg_files = {}
     undefineds = []
+    outputs = {}
     if masterinput.filename != "":
         masterinput_path = os.path.join(setup_folder, "masterinput")
         os.makedirs(masterinput_path, exist_ok=True)
         file_data = io.BytesIO(masterinput.read())
-        if zipfile.is_zipfile(file_data):
-            with zipfile.ZipFile(file_data) as zf:
-                zf.extractall(masterinput_path)
-        else:
-            # shutil.rmtree(setup_folder)
-            return "Uploaded masterinput is not a zip file."
+        if not extract_file(file_data, masterinput_path):
+            # shutil.rmtree(setup_folder)  # turned off for debugging
+            return "Uploaded masterinput is not a zip or tar.gz file."
         master_confpath = os.path.join(masterinput_path, "MasterInput.cfg")
         if not os.path.isfile(master_confpath):
             # shutil.rmtree(setup_folder)
@@ -157,27 +154,27 @@ def init_run(request: Request) -> Union[int, str]:
     # update the input fields
     config_file = os.path.join(setup_folder, 'config', 'MasterConfig.cfg')
     config = ConfigParser(interpolation=ExtendedInterpolation())
-    config.read(config_file)
-    if 'Root' in config and 'RootDir' in config['Root']:
-        config.set('Root', 'RootDir', setup_folder)
-        config["DEFAULT"] = {}
-    for upload, path in uploads.items():
-        uploaded_path = os.path.join(setup_folder, path)
-        config.set('inputs', upload, uploaded_path)
-    for regf, path in reg_files.items():
-        config.set('inputs', regf, path)
-    for undefined in undefineds:
-        config.set('inputs', undefined, "")
+    if os.path.isfile(config_file):
+        config.read(config_file)
+        if 'Root' in config and 'RootDir' in config['Root']:
+            config.set('Root', 'RootDir', setup_folder)
+            config["DEFAULT"] = {}
+        for upload, path in uploads.items():
+            uploaded_path = os.path.join(setup_folder, path)
+            config.set('inputs', upload, uploaded_path)
+        for regf, path in reg_files.items():
+            config.set('inputs', regf, path)
+        for undefined in undefineds:
+            config.set('inputs', undefined, "")
 
-    # get output paths
-    outputs = {}
-    if config.has_section("outputs"):
-        for ofile in config.options("outputs"):
-            ofilepath = os.path.relpath(config.get("outputs", ofile),
-                                        setup_folder)
-            outputs[ofile] = ofilepath
-    with open(config_file, 'w') as configfile:
-        config.write(configfile)
+        # get output paths
+        if config.has_section("outputs"):
+            for ofile in config.options("outputs"):
+                ofilepath = os.path.relpath(config.get("outputs", ofile),
+                                            setup_folder)
+                outputs[ofile] = ofilepath
+        with open(config_file, 'w') as configfile:
+            config.write(configfile)
 
     python_args = safer_call(request.form["args"])
     notifications = extract_emails(request.form["notifications"])
@@ -221,7 +218,7 @@ def init_run(request: Request) -> Union[int, str]:
 
 
 def run_program(prg_name, purp):
-    from set_conf import set_conf
+    from set_conf_init import set_conf
     conf = {}
     set_conf(conf)
 

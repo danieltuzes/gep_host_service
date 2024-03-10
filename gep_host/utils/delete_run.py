@@ -28,7 +28,7 @@ def delete_run(program_name: str, purpose: str):
     """
     # the price of using the same file where the deletion is initiated from python
     # and where the console script's deletion is implemented
-    from set_conf import set_conf
+    from set_conf_init import set_conf
     config = {}
     set_conf(config)
 
@@ -52,6 +52,11 @@ def delete_run(program_name: str, purpose: str):
                                     purpose)
         remove_readonly(setup_folder)
         shutil.rmtree(setup_folder)
+
+        # Check if the parent folder (program folder) is empty
+        program_folder = os.path.join(config["RUNR"], program_name)
+        if not os.listdir(program_folder):  # Check if the folder is empty
+            os.rmdir(program_folder)  # Remove the empty folder
         return 0
 
     except FileNotFoundError as e:

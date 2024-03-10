@@ -1,7 +1,6 @@
 import argparse
 import os
 import subprocess
-import zipfile
 import json
 import sys
 from datetime import datetime
@@ -56,12 +55,10 @@ def init_install(program_name,
         'outputs': json.dumps({}),
         'version': json.dumps({})
     })
-    if os.path.exists(current_app.config["PRG"]):
-        df = pd.read_csv(current_app.config["PRG"], dtype=str)
+    df = pd.read_csv(current_app.config["PRG"], dtype=str)
+    if len(df[df['program_name'] == program_name]) == 0:
         df = pd.concat([df, new_entry], ignore_index=True)
-    else:
-        df = new_entry
-    df.to_csv(current_app.config["PRG"], index=False)
+        df.to_csv(current_app.config["PRG"], index=False)
 
     return 0
 
@@ -78,7 +75,6 @@ def run_and_verify(cmd: str, cwd=None):
 
 
 def get_version_from_init(init_path):
-
     with open(init_path, 'r') as f:
         contents = f.read()
         version_match = re.search(
@@ -137,16 +133,15 @@ def install_program(program_name: str,
                     required_python_version: str,
                     required_libs: List[str],
                     source_specifier: str):
-    from set_conf import set_conf
+    from set_conf_init import set_conf
+    from helpers import extract_file
     app_conf = {}
     set_conf(app_conf)
 
     code = 0
     try:
         # 1. Update status in program_details.csv
-        df = pd.DataFrame()
-        if os.path.exists(app_conf["PRG"]):
-            df = pd.read_csv(app_conf["PRG"], dtype=str)
+        df = pd.read_csv(app_conf["PRG"], dtype=str)
         if len(df[df['program_name'] == program_name]) == 0:
             selected_libs_str = ""
             if required_libs:
@@ -182,8 +177,8 @@ def install_program(program_name: str,
         # Extract zip to the masterfolder
         if source_specifier is None:
             zipf = os.path.join(app_conf["PRGR"], program_source)
-            with zipfile.ZipFile(zipf, 'r') as zip_ref:
-                zip_ref.extractall(masterfolder)
+            if not extract_file(zipf, masterfolder):
+                print(f"Error: failed to extract the file {zipf}")
 
         # or git clone and checkout
         else:
@@ -280,7 +275,7 @@ def install_program(program_name: str,
         run_and_verify(i_cmd, cwd=masterfolder)
 
         # 5. add the libraries
-        if len(required_libs) > 0 and os.path.isfile(app_conf["LIB"]):
+        if len(required_libs) > 0:
             libs = pd.read_csv(app_conf["LIB"])
             conda_devs = [f'{app_conf["activate"]}{program_name}']
             for lib in libs.itertuples():

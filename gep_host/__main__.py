@@ -11,7 +11,7 @@ from flask import Flask
 from gevent.pywsgi import WSGIServer
 
 from .routes import main_routes
-from .utils.set_conf import set_conf
+from .utils.set_conf_init import set_conf
 from . import __version__
 
 

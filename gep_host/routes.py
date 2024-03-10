@@ -5,6 +5,7 @@ import shutil
 from configparser import ConfigParser, ExtendedInterpolation
 import traceback
 import zipfile
+import tarfile
 import platform
 import multiprocessing
 import logging
@@ -51,7 +52,7 @@ def activity(data: pd.DataFrame, type: str) -> str:
 
 
 def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() == 'zip'
+    return '.' in filename and (filename.endswith('.zip') or filename.endswith('.tar.gz'))
 
 
 @main_routes.route('/')
@@ -99,16 +100,10 @@ def programs():
     """Show programs, confirm successful installation."""
     column = request.args.get('column', 'upload_date')
     direction = request.args.get('direction', 'desc')
-    if os.path.exists(current_app.config["PRG"]):
-        prgs = pd.read_csv(current_app.config["PRG"], dtype=str).fillna("")
-        ascending = True if direction == "asc" else False
-        prgs.sort_values(by=column, ascending=ascending, inplace=True)
-    else:
-        prgs = pd.DataFrame()
-
-    libs = pd.DataFrame()
-    if os.path.isfile(current_app.config["LIB"]):
-        libs = pd.read_csv(current_app.config["LIB"])
+    prgs = pd.read_csv(current_app.config["PRG"], dtype=str).fillna("")
+    ascending = True if direction == "asc" else False
+    prgs.sort_values(by=column, ascending=ascending, inplace=True)
+    libs = pd.read_csv(current_app.config["LIB"])
 
     return render_template('programs.html',
                            programs=prgs,
@@ -128,7 +123,7 @@ def program_install():
     # Logic for handling the file upload
     file = request.files['program_package']
     if file.filename == "" and "git-source-url" not in request.form:
-        flash('No selected zip file or git source', 'warning')
+        flash('No selected package file or git source', 'warning')
         return redirect(url_for("main_routes.programs"))
 
     if file.filename != "":
@@ -163,6 +158,9 @@ def program_install():
     else:
         filename = secure_filename(file.filename)
     base, ext = os.path.splitext(filename)
+    if ext == '.gz' and base.endswith('.tar'):
+        ext = '.tar.gz'
+        base = base[:-4]
     nowstr = datetime.now().strftime('%Y%m%d%H%M%S')
     t_filename = f"{base}_{nowstr}{ext}"
     program_zip_path = os.path.join(current_app.config['PRGR'], t_filename)
@@ -213,7 +211,7 @@ def get_prg(program_name: str):
     zip_fname = prgs.loc[prgs["program_name"]
                          == program_name, "zip_fname"].iloc[0]
     f_path = os.path.join(current_app.config["PRGR"], zip_fname)
-    orig_fname = zip_fname[:-19] + zip_fname[-4:]  # remove timestamp
+    orig_fname = get_orig_fname(zip_fname)
 
     return send_file(f_path,
                      mimetype='main_routeslication/zip',
@@ -228,21 +226,17 @@ def runs():
     program_name = request.args.get('program_name')
 
     # Read the content of run_details.csv, filter and order it
-    runs = pd.DataFrame()
-    if os.path.exists(current_app.config["RUN"]):
-        runs = pd.read_csv(current_app.config["RUN"], dtype=str).fillna("")
+    runs = pd.read_csv(current_app.config["RUN"], dtype=str).fillna("")
 
-        # order
-        ascending = True if direction == "asc" else False
-        runs.sort_values(by=column, ascending=ascending, inplace=True)
+    # order
+    ascending = True if direction == "asc" else False
+    runs.sort_values(by=column, ascending=ascending, inplace=True)
 
-        # filter
-        if program_name is not None:
-            runs = runs[runs["program_name"] == program_name]
+    # filter
+    if program_name is not None:
+        runs = runs[runs["program_name"] == program_name]
 
-    prgs = pd.DataFrame()
-    if os.path.exists(current_app.config["PRG"]):
-        prgs = pd.read_csv(current_app.config["PRG"], dtype=str).fillna("")
+    prgs = pd.read_csv(current_app.config["PRG"], dtype=str).fillna("")
 
     prg_to_run = None
     if program_name is not None:
@@ -442,8 +436,8 @@ def libraries():
         # extract the file
         try:
             os.makedirs(masterfolder)
-            with zipfile.ZipFile(program_zip_path, 'r') as zip_ref:
-                zip_ref.extractall(masterfolder)
+            if not extract_file(program_zip_path, masterfolder):
+                raise Exception("The library is not a zip of tar.gz file.")
         except Exception as err:
             msg = f"Error in unzipping the library: {err}"
             msg += f"Details:<br><pre>{traceback.format_exc()}</pre>"
@@ -460,12 +454,11 @@ def libraries():
 
         libs = pd.DataFrame()
         used_in = json.dumps([])
-        if os.path.isfile(current_app.config["LIB"]):
-            libs = pd.read_csv(current_app.config["LIB"])
-            prev_entry = libs.loc[libs["library_name"] == library_name]
-            if not prev_entry.empty:
-                used_in = prev_entry["used_in"].iloc[0]
-                libs = libs.loc[libs["library_name"] != library_name]
+        libs = pd.read_csv(current_app.config["LIB"])
+        prev_entry = libs.loc[libs["library_name"] == library_name]
+        if not prev_entry.empty:
+            used_in = prev_entry["used_in"].iloc[0]
+            libs = libs.loc[libs["library_name"] != library_name]
 
         new_entry = pd.DataFrame({
             'library_name': [library_name],
@@ -488,10 +481,8 @@ def libraries():
     direction = request.args.get('direction', 'desc')
     ascending = True if direction == "asc" else False
 
-    libs = pd.DataFrame()
-    if os.path.isfile(current_app.config["LIB"]):
-        libs = pd.read_csv(current_app.config["LIB"]).fillna("")
-        libs.sort_values(by=column, ascending=ascending, inplace=True)
+    libs = pd.read_csv(current_app.config["LIB"]).fillna("")
+    libs.sort_values(by=column, ascending=ascending, inplace=True)
 
     return render_template("libraries.html", libs=libs, column=column, direction=direction)
 
@@ -562,16 +553,12 @@ def upload_form():
     column = request.args.get('column', 'upload_date')
     direction = request.args.get('direction', 'desc')
 
-    csv_path = current_app.config['FLE']
-    if os.path.exists(csv_path):
-        df = pd.read_csv(csv_path)
+    df = pd.read_csv(current_app.config['FLE'])
 
-        if direction == 'desc':
-            df = df.sort_values(by=column, ascending=False)
-        else:
-            df = df.sort_values(by=column, ascending=True)
+    if direction == 'desc':
+        df = df.sort_values(by=column, ascending=False)
     else:
-        df = pd.DataFrame()
+        df = df.sort_values(by=column, ascending=True)
 
     return render_template('upload.html', files=df, column=column, direction=direction)
 
@@ -583,11 +570,7 @@ def save_files():
     new_filenames = []
 
     csv_path = current_app.config['FLE']
-    if os.path.exists(csv_path):
-        df = pd.read_csv(csv_path)
-    else:
-        df = pd.DataFrame(
-            columns=["filename", "upload_date", "size", "hash", "comment", "used_in"])
+    df = pd.read_csv(csv_path)
 
     comment = request.form.get("comment")
     for file in uploaded_files:
@@ -634,12 +617,6 @@ def save_files():
     df.to_csv(csv_path, index=False)
 
     return jsonify({"success": True, "message": "Files uploaded successfully"})
-
-
-def get_orig_fname(filename: str):
-    name, ext = os.path.splitext(filename)
-    orig_fname = name[:-8] + ext
-    return orig_fname
 
 
 @main_routes.route('/get_file', methods=['GET'])
@@ -746,10 +723,10 @@ def check_status():
     activity_msg = data_received.get('status', ' ')
     prev_count = activity_msg.split()[0]
     # You can log or use this as required
-    if "program" in activity_msg and os.path.isfile(current_app.config["PRG"]):
+    if "program" in activity_msg:
         data = pd.read_csv(current_app.config["PRG"])
         msg = activity(data, "programs")
-    elif "run" in activity_msg and os.path.isfile(current_app.config["RUN"]):
+    elif "run" in activity_msg:
         data = pd.read_csv(current_app.config["RUN"])
         msg = activity(data, "runs")
     else:

@@ -120,6 +120,10 @@
                                             </select>
                                         </div>
                                         <div class="col-6">
+                                            {% if input_path is not none %}
+                                            <a href="{{ url_for('main_routes.get_program_input', program_name=program_name, input_path=input_path) }}" id="input-path-link">{{input_path}}</a>
+                                            {% endif %}
+                                            <span style="display: none;"><a href="">{{ input_name }}</a></span>
                                             <input type="file" class="form-control file-input" id="{{ input_name }}"
                                                 name="{{ input_name }}" style="display: none">
                                             <input type="text" class="form-control text-input"
@@ -129,7 +133,6 @@
                                         </div>
                                     </div>
                                     {% endfor %}
-                                    </fieldset>
                                 </div>
                             </div>
                         </div>
@@ -143,7 +146,7 @@
                         <input type="text" name="notifications" class="form-control" id="emailInput"
                             placeholder="{{ email_placeholder }}">
                     </div>
-                    <button type="submit" class="btn btn-primary" id="submitButton" disabled>Start run</button>
+                    <button type="submit" class="btn btn-primary" id="submitButton">Start run</button>
                 </form>
             </div>
         </div>
@@ -363,35 +366,42 @@ No runs
 {% endif %}
 <!-- input type selection -->
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        // select the selected file input so that the associated field is shown
-        const selects = document.querySelectorAll('.input-selector');
-
-        selects.forEach(select => {
-            const inputId = select.getAttribute('data-input-id');
-            const fileInput = document.getElementById(inputId);
-
-            if (select.value === 'upload' && !select.querySelector('option[value="inherit"]')) {
-                fileInput.style.display = 'block';
-            }
-        });
+document.addEventListener('DOMContentLoaded', function () {
+    const selects = document.querySelectorAll('.input-selector');
+    selects.forEach(select => {
+        updateDisplay(select);
     });
+});
 
-    document.addEventListener('change', function (e) {
-        if (e.target && e.target.classList.contains('input-selector')) {
-            const inputId = e.target.getAttribute('data-input-id');
-            const fileInput = document.getElementById(inputId);
-            const textInput = document.querySelector(`[data-input-id="text-${inputId}"]`);
+document.addEventListener('change', function (e) {
+    if (e.target && e.target.classList.contains('input-selector')) {
+        updateDisplay(e.target);
+    }
+});
 
-            fileInput.style.display = 'none';
-            textInput.style.display = 'none';
+function updateDisplay(selectElement) {
+    const inputId = selectElement.getAttribute('data-input-id');
+    const fileInput = document.getElementById(inputId);
+    const textInput = document.querySelector(`[data-input-id="text-${inputId}"]`);
+    const link = document.getElementById('input-path-link');
 
-            if (e.target.value === 'upload') {
-                fileInput.style.display = 'block';
-            } else if (e.target.value === 'use') {
-                textInput.style.display = 'block';
-            }
-        }
-    });
+    fileInput.style.display = 'none';
+    textInput.style.display = 'none';
+    link.style.display = 'none';
+
+    switch (selectElement.value) {
+        case 'upload':
+            fileInput.style.display = 'block';
+            break;
+        case 'use':
+            textInput.style.display = 'block';
+            break;
+        case 'inherit':
+            link.style.display = 'block';
+            break;
+    }
+}
+
+
 </script>
 {% endblock %}

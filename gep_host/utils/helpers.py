@@ -3,6 +3,8 @@ import re
 import subprocess
 from datetime import datetime
 import json
+import zipfile
+import tarfile
 
 import pandas as pd
 
@@ -86,10 +88,7 @@ def safer_call(name):
 
 def concat_to(new_entry: pd.DataFrame, filename: pd.DataFrame) -> None:
     """Add new entry/entries to file, create if doesn't exist."""
-    old_entries = pd.DataFrame()
-    if os.path.isfile(filename):
-        old_entries = pd.read_csv(filename)
-
+    old_entries = pd.read_csv(filename)
     runs = pd.concat([old_entries, new_entry], ignore_index=True)
     runs.to_csv(filename, index=False)
 
@@ -107,3 +106,62 @@ def remove_val_from_json(json_str, val_2_remove):
     mylist = json.loads(json_str)
     new_list = [val for val in mylist if val != val_2_remove]
     return json.dumps(new_list)
+
+
+def extract_file(file_data, masterinput_path) -> bool:
+    """
+    Extracts the contents of a zip or tar file to the specified directory.
+
+    Parameters
+    ----------
+    file_data : str
+        The path to the zip or tar file.
+    masterinput_path : str
+        The directory where the contents will be extracted.
+
+    Returns
+    -------
+    bool
+        True if the extraction is successful, False otherwise.
+    """
+    if zipfile.is_zipfile(file_data):
+        with zipfile.ZipFile(file_data) as zf:
+            zf.extractall(masterinput_path)
+    elif tarfile.is_tarfile(file_data):
+        with tarfile.open(file_data, 'r:*') as tf:
+            members = tf.getmembers()
+            # Check if there is only one root directory
+            root_dirs = {m.name.split('/')[0]
+                         for m in members if '/' in m.name}
+            if len(root_dirs) == 1:
+                root_dir = root_dirs.pop() + '/'
+                for member in members:
+                    if member.name.startswith(root_dir):
+                        # Remove the root directory from the path
+                        member.name = member.name[len(root_dir):]
+                        tf.extract(member, masterinput_path)
+            else:
+                tf.extractall(masterinput_path)
+    else:
+        return False
+
+
+def get_orig_fname(zip_fname: str) -> str:
+    """
+    Return the original filename from a zip filename.
+
+    Parameters
+    ----------
+    zip_fname : str
+        The zip filename.
+
+    Returns
+    -------
+    str
+        The original filename without the timestamp.
+    """
+    if zip_fname.endswith(".zip"):
+        orig_fname = zip_fname[:-19] + zip_fname[-4:]  # remove timestamp
+    else:
+        orig_fname = zip_fname[:-22] + zip_fname[-7:]
+    return orig_fname
