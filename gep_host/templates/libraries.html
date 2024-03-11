@@ -107,10 +107,10 @@
                 {{ library.status }}
             </div>
             <div class="my-2">
-                <strong>Path to the executables:</strong>{{ library.path_to_exec }}
+                <strong>Path to the executables: </strong>{{ library.path_to_exec }}
             </div>
             <div class="my-2">
-                <strong>Comment</strong>
+                <strong>Comment: </strong>
                 {% if library.comment == "" %}
                 <span class="text-muted">(None)</span>
                 {% else %}
@@ -118,10 +118,10 @@
                 {% endif %}
             </div>
             <div class="my-2">
-                <strong>Original filename:</strong> {{ library.orig_filename }}
+                <strong>Original filename: </strong> {{ library.orig_filename }}
             </div>
             <div class="my-2">
-                <strong>Used in the programs:</strong>
+                <strong>Used in the programs: </strong>
                 {% if library.used_in == "[]" %}
                 <span class="text-muted">(None)</span>
                 {% else %}

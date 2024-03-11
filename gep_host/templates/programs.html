@@ -125,11 +125,10 @@
                     {{'↓' if direction == 'desc' and column == 'upload_date'}}
                 </a>
             </div>
-            <div class="col">Python Version, Libs</div>
             <div class="col text-end">Actions</div>
         </div>
         {% for program in programs.itertuples() %}
-        <div class="row toggle-row" id="{{ program.program_name }}">
+        <div class="row toggle-row" id="{{ program.program_name | filename_to_html_id }}">
             <div class="col">
                 <span data-bs-toggle="tooltip" data-bs-placement="top" title="{{ program.status }}">
                     {% if program.status == "Installed" %}
@@ -143,14 +142,6 @@
                 {{ program.program_name }}
             </div>
             <div class="col">{{ program.upload_date }}</div>
-            <div class="col">
-                py={{ program.python_version }},
-                {% if program.selected_libs == "" %}
-                <span class="text-muted">(None)</span>
-                {% else %}
-                {{ program.selected_libs }}
-                {% endif %}
-            </div>
             <div class="col text-end">
                 {% if program.source == "file upload" %}
                 <a href="{{ url_for('main_routes.get_prg', program_name=program.program_name) }}"
@@ -181,9 +172,14 @@
             <hr>
             <div class="my-3">
                 <strong>Modules and version:</strong>
-                {% if not program.version.startswith("Module") %}<span class="text-muted">(root module)</span>{% endif
-                %}
                 {{ program.version }}
+            </div>
+            <div class="my-3">
+                <strong>Python Version, Libs:</strong>
+                {{ program.python_version }},
+                {% if program.selected_libs == "" %}<span class="text-muted">(None)</span>{% else %}
+                {{ program.selected_libs }}
+                {% endif %}
             </div>
             <div class="my-3">
                 <strong>Program status:</strong>

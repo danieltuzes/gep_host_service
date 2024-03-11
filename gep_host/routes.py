@@ -101,7 +101,8 @@ def programs():
     prgs = pd.read_csv(current_app.config["PRG"], dtype=str).fillna("")
     ascending = True if direction == "asc" else False
     prgs.sort_values(by=column, ascending=ascending, inplace=True)
-    libs = pd.read_csv(current_app.config["LIB"])
+    libs = pd.read_csv(current_app.config["LIB"]).sort_values(
+        by="upload_date", ascending=False)
 
     return render_template('programs.html',
                            programs=prgs,

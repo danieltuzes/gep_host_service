@@ -232,114 +232,116 @@
             <strong>Python call:</strong>
             <code>python {{ run.python_args }}</code>
         </div>
-        <div class="row my-2">
-            <div class="col-6">
-                <strong>Uploaded files:</strong>
-                <br>
-                {% set uploads = run.uploaded_files|parse_json %}
-                {% if uploads == {} %}
-                <span class="text-muted">(None)</span>
-                {% else %}
-                {% for input_name, input_value in uploads.items() %}
-                {{ input_name }}:
-                {% if input_value is not none %}
-                <a
-                    href="{{ url_for('main_routes.get_run_file', program_name=run.program_name, purpose=run.purpose, file=input_value) }}">
-                    {{ input_value }}</a>
-                <br>
-                {% else %}
-                <span class="text-muted">(None)</span>
-                {% endif %}
-                {% endfor %}
-                {% endif %}
-            </div>
-            <div class="col-6">
-                <strong>Inherited files:</strong>
-                <br>
-                {% set inherits = run.inherited_files|parse_json %}
-                {% if inherits == {} %}
-                <span class="text-muted">(None)</span>
-                {% else %}
-                {% for input_name, input_value in inherits.items() %}
-                {{ input_name }}:
-                {% if input_value is not none %}
-                <a
-                    href="{{ url_for('main_routes.get_run_file', program_name=run.program_name, purpose=run.purpose, file=input_value) }}">
-                    {{ input_value }}</a>
-                <br>
-                {% endif %}
-                {% endfor %}
-                {% endif %}
-            </div>
-            <div class="col-8">
-                <strong>Loaded local files:</strong>
-                <br>
-                {% set reg_files = run.registered_files|parse_json %}
-                {% if reg_files == {} %}
-                <span class="text-muted">(None)</span>
-                {% else %}
-                {% for input_name, input_value in reg_files.items() %}
-                {{ input_name }}:
-                {% if input_value is not none %}
-                <a href="{{ url_for('main_routes.get_file', filename=input_value) }}">{{ input_value }}</a>
-                <br>
-                {% endif %}
-                {% endfor %}
-                {% endif %}
-            </div>
-            <div class="col-2">
-                <strong>Undefined files:</strong>
-                <br>
-                {% set undefineds = run.undefineds|parse_json %}
-                {% if undefineds == [] %}
-                <span class="text-muted">(None)</span>
-                {% else %}
-                {% for undefined in undefineds %}
-                {{ undefined }}
-                <br>
-                {% endfor %}
-                {% endif %}
-            </div>
-            <hr class="my-3 text-center border-secondary">
-            <div class="my-2">
-                <strong>Expected output files</strong>
-                <a
-                    href="{{ url_for('main_routes.get_run_file', program_name=run.program_name, purpose=run.purpose, file=run.program_name + '__' + run.purpose + '.zip') }}">(zipped
-                    run folder)</a>:
-                <br>
-                {% set outputs = run.outputs|parse_json %}
-                {% if outputs == {} %}<span class="text-muted">(None)</span>
-                {% else %}
-                {% for output_name, output_path in outputs.items() %}
-                {{ output_name }}: <a
-                    href="{{ url_for('main_routes.get_run_file', program_name=run.program_name, purpose=run.purpose, file=output_path) }}">{{
-                    output_path }}</a>
-                <br>
-                {% endfor %}
-                {% endif %}
-            </div>
-            <div class="my-2">
-                <strong>Comment</strong>
-                {% if run.comment == "" %}
-                <span class="text-muted">(None)</span>
-                {% else %}
-                {{ run.comment }}
-                {% endif %}
-            </div>
-            <div>
-                <strong>Notifications:</strong>
-                {% if run.notifications == "[]" %}
-                <span class="text-muted">(None)</span>
-                {% else %}
-                {% set notifications = run.notifications|parse_json %}
-                {{ notifications|join(", ") }}
-                {% endif %}
-            </div>
-            <div class="my-2">
-                <a class="btn btn-danger btn-sm"
-                    href="{{ url_for('main_routes.del_run', program_name=run.program_name, purpose=run.purpose) }}">Delete</a>
-            </div>
+        <hr class="my-3 text-center border-secondary">
+        <div class="my-2">
+            <strong>Uploaded files:</strong>
+            <br>
+            {% set uploads = run.uploaded_files|parse_json %}
+            {% if uploads == {} %}
+            <span class="text-muted">(None)</span>
+            {% else %}
+            {% for input_name, input_value in uploads.items() %}
+            {{ input_name }}:
+            {% if input_value is not none %}
+            <a
+                href="{{ url_for('main_routes.get_run_file', program_name=run.program_name, purpose=run.purpose, file=input_value) }}">
+                {{ input_value }}</a>
+            <br>
+            {% else %}
+            <span class="text-muted">(None)</span>
+            {% endif %}
+            {% endfor %}
+            {% endif %}
         </div>
+        <div class="my-2">
+            <strong>Inherited files:</strong>
+            <br>
+            {% set inherits = run.inherited_files|parse_json %}
+            {% if inherits == {} %}
+            <span class="text-muted">(None)</span>
+            {% else %}
+            {% for input_name, input_value in inherits.items() %}
+            {{ input_name }}:
+            {% if input_value is not none %}
+            <a
+                href="{{ url_for('main_routes.get_run_file', program_name=run.program_name, purpose=run.purpose, file=input_value) }}">
+                {{ input_value }}</a>
+            <br>
+            {% endif %}
+            {% endfor %}
+            {% endif %}
+        </div>
+        <div class="my-2">
+            <strong>Registered files (local files from the server):</strong>
+            <br>
+            {% set reg_files = run.registered_files|parse_json %}
+            {% if reg_files == {} %}
+            <span class="text-muted">(None)</span>
+            {% else %}
+            {% for input_name, input_value in reg_files.items() %}
+            {{ input_name }}:
+            {% if input_value is not none %}
+            <a href="{{ url_for('main_routes.get_file', filename=input_value) }}">{{ input_value }}</a>
+            <br>
+            {% endif %}
+            {% endfor %}
+            {% endif %}
+        </div>
+        <div class="my-2">
+            <strong>Undefined files:</strong>
+            <br>
+            {% set undefineds = run.undefineds|parse_json %}
+            {% if undefineds == [] %}
+            <span class="text-muted">(None)</span>
+            {% else %}
+            {% for undefined in undefineds %}
+            {{ undefined }}
+            <br>
+            {% endfor %}
+            {% endif %}
+        </div>
+        <hr class="my-3 text-center border-secondary">
+        <div class="my-2">
+            <strong>Expected output files</strong>
+            (<a
+                href="{{ url_for('main_routes.get_run_file', program_name=run.program_name, purpose=run.purpose, file=run.program_name + '__' + run.purpose + '.zip') }}">zipped
+                run folder</a>):
+            <br>
+            {% set outputs = run.outputs|parse_json %}
+            {% if outputs == {} %}<span class="text-muted">(None)</span>
+            {% else %}
+            {% for output_name, output_path in outputs.items() %}
+            {{ output_name }}: <a
+                href="{{ url_for('main_routes.get_run_file', program_name=run.program_name, purpose=run.purpose, file=output_path) }}">{{
+                output_path }}</a>
+            <br>
+            {% endfor %}
+            {% endif %}
+        </div>        
+        <hr class="my-3 text-center border-secondary">
+        <div class="my-2">
+            <strong>Comment</strong>
+            {% if run.comment == "" %}
+            <span class="text-muted">(None)</span>
+            {% else %}
+            {{ run.comment }}
+            {% endif %}
+        </div>
+        <div>
+            <strong>Notifications:</strong>
+            {% if run.notifications == "[]" %}
+            <span class="text-muted">(None)</span>
+            {% else %}
+            {% set notifications = run.notifications|parse_json %}
+            {{ notifications|join(", ") }}
+            {% endif %}
+        </div>
+        <div class="my-2">
+            <a class="btn btn-danger btn-sm"
+                href="{{ url_for('main_routes.del_run', program_name=run.program_name, purpose=run.purpose) }}" data-bs-toggle="tooltip" data-bs-placement="top"
+                title="Deleting a run removes all the files uploaded for this run and the run log. Registered input files are not deleted.">Delete</a>
+        </div>
+    
     </div>
     {% endfor %}
 </div>
