@@ -2,3 +2,4 @@
 hosting*/*
 **egg-info/*
 **/dist/*.tar.gz
+.vscode/*

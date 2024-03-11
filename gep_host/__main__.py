@@ -49,7 +49,7 @@ def filename_to_html_id(filename):
     return sanitized_id
 
 
-if __name__ == "__main__":
+def define_args():
     descr = ("GEP host service: "
              "host your data-oriented python programs from a webpage, "
              "execute it, store and download inputs and outputs")
@@ -58,11 +58,16 @@ if __name__ == "__main__":
                         version='%(prog)s ' + __version__)
     parser.add_argument('--debug', action='store_true',
                         help="Enable debug mode for flask")
-    args = parser.parse_args()
-    mimetypes.add_type('font/woff2', '.woff2')
-    app = Flask(__name__)
+    parser.add_argument('--master_config', help=('Required: path to the master config file. '
+                                                 'This file contains the paths for the service.'),
+                        default="config/MasterConfig.cfg",
+                        metavar="path/to/MasterConfig.cfg")
+    return parser.parse_args()
 
-    prg_conf_path = set_conf(app.config)
+
+def configure_app(app: Flask, args: argparse.Namespace):
+    mimetypes.add_type('font/woff2', '.woff2')
+    prg_conf_path = set_conf(app.config, args)
     load_pages(app.config, prg_conf_path)
 
     @app.context_processor
@@ -81,6 +86,14 @@ if __name__ == "__main__":
     app.jinja_env.filters['parse_json'] = parse_json
     app.jinja_env.filters['filesize'] = format_file_size
     app.jinja_env.filters['filename_to_html_id'] = filename_to_html_id
+
+    return app
+
+
+if __name__ == "__main__":
+    args = define_args()
+    app = Flask(__name__)
+    configure_app(app, args)
 
     # Setup logger
     logger = logging.getLogger()

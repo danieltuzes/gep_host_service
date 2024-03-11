@@ -1,27 +1,27 @@
 import json
-from datetime import datetime
-import os
-import shutil
-from configparser import ConfigParser, ExtendedInterpolation
-import traceback
-import platform
-import multiprocessing
 import logging
 import hashlib
+import multiprocessing
+import os
+import platform
+import psutil
+import shutil
+import sys
+from configparser import ConfigParser, ExtendedInterpolation
+from datetime import datetime
 from io import StringIO
 from typing import List
 
-from flask import render_template, request, redirect, flash, \
-    url_for, send_from_directory, send_file, Response, jsonify, Blueprint, current_app
+import markdown
 import pandas as pd
+import psutil
+from flask import Blueprint, Response, current_app, flash, jsonify, redirect, render_template, request, send_file, send_from_directory, url_for
 from markupsafe import Markup
 from werkzeug.utils import secure_filename
-import psutil
-import markdown
 
-from .utils import install_program, delete_program, delete_run, run_program
-from .utils.helpers import *
 from . import __version__
+from .utils import delete_program, delete_run, install_program, run_program
+from .utils.helpers import *
 
 
 main_routes = Blueprint('main_routes', __name__)
@@ -80,7 +80,11 @@ def index():
         except AttributeError:
             data['Distribution'] = "N/A"
 
-    readme_path = os.path.join(os.path.dirname(__file__), '..', 'README.md')
+    readme_path = os.path.join(sys.exec_prefix, 'gep_host', 'README.md')
+    if not os.path.isfile(readme_path):  # fallback to the local README
+        readme_path = os.path.join(os.path.dirname(__file__), '..',
+                                   'README.md')
+
     with open(readme_path, 'r') as f:
         content = f.read()
 
