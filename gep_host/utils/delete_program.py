@@ -5,6 +5,8 @@ import sys
 import traceback
 import pandas as pd
 
+from flask import current_app
+
 
 def run_and_verify(cmd: str, cwd=None):
     proc = subprocess.run(cmd, cwd=cwd, shell=True, text=True,
@@ -16,18 +18,22 @@ def run_and_verify(cmd: str, cwd=None):
 
 
 def init_del(program_name: str):
-    cmd = f"python {__file__} {program_name}"
+
+    cmd = f"python {__file__} {current_app.config['masterconf_path']} {program_name}"
     proc = subprocess.run(cmd, shell=True, text=True,
                           stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     return proc.returncode, proc.stdout
 
 
-def delete_program(program_name):
+def delete_program(masterconf_path: str, program_name: str):
     """Delete a program.
 
     Parameters
     ----------
-    program_name : _type_
+    masterconf_path : str
+        Path to the master configuration file.
+        Needed 
+    program_name : str
         Delete this program and its zip file.
 
     """
@@ -36,7 +42,7 @@ def delete_program(program_name):
     from set_conf_init import set_conf
     from helpers import remove_readonly, remove_val_from_json
     config = {}
-    set_conf(config)
+    set_conf(config, masterconf_path)
 
     code = 0
     try:
@@ -101,11 +107,11 @@ def delete_program(program_name):
 
 
 if __name__ == '__main__':
-    # The script expects 3 command-line arguments: program_name, path_to_zip, python_version
-    if len(sys.argv) != 2:
-        print("Usage: python delete_program.py <program_name>")
+    if len(sys.argv) != 3:
+        print("Usage: python delete_program.py <masterconf_path> <program_name>")
         sys.exit(1)
 
-    program_name = sys.argv[1]
+    masterconf_path = sys.argv[1]
+    program_name = sys.argv[2]
 
-    sys.exit(delete_program(program_name))
+    sys.exit(delete_program(masterconf_path, program_name))

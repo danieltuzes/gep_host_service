@@ -1,5 +1,5 @@
 """Run the program from webservice or from cmd line."""
-
+import argparse
 import datetime
 import os
 import subprocess
@@ -198,7 +198,8 @@ def init_run(request: Request) -> Union[int, str]:
 
     # start the execution in a detached process
     setup_folder = os.path.join(conf["ROOT"], 'runs', prg_name, purp)
-    cmd = f"python {__file__} {prg_name} {purp}"
+    cmd = (f"python {__file__} {current_app.config['masterconf_path']} "
+           f"{prg_name} {purp}")
     with open(os.path.join(setup_folder, "run_output_and_error.log"), 'w') as logf:
         proc = subprocess.Popen(cmd, shell=True,
                                 cwd=os.path.dirname(__file__),
@@ -254,13 +255,14 @@ def wait_in_queue(prg_name: str, purp: str, conf: dict, body: str) -> bool:
             break
 
 
-def run_program(prg_name, purp):
+def run_program(masterconf_path: str, prg_name: str, purp: str):
     from set_conf_init import set_conf
     conf = {}
-    set_conf(conf)
+    set_conf(conf, masterconf_path)
 
     code = 0
-    body = f"The program {prg_name} with purpose {purp} "
+    body = (f"The program {prg_name} with purpose {purp} "
+            f"using master conf at {masterconf_path} ")
 
     try:
         # Update status in run_details.csv
@@ -319,12 +321,20 @@ def run_program(prg_name, purp):
 
 
 if __name__ == '__main__':
-    if len(sys.argv) != 3:
-        print("Usage: python run_program.py <program_name> <purpose>")
-        sys.exit(1)
+    parser = argparse.ArgumentParser(
+        description='Run a specific program with configurations.')
+    parser.add_argument('master_config',
+                        metavar='path/to/MasterConfig.cfg',
+                        help=('Required: path to the master config file. '
+                              'This file contains the paths for the service.'))
+    parser.add_argument('program_name',
+                        help='Name unique of the program.')
+    parser.add_argument('purpose',
+                        help='The unique purpose within the program name.')
 
-    program_name = sys.argv[1]
-    purpose = sys.argv[2]
-
-    run_program(program_name, purpose)
+    args = parser.parse_args()
+    masterconf_path = args.master_config
+    program_name = args.program_name
+    purpose = args.purpose
+    run_program(masterconf_path, program_name, purpose)
     sys.exit(0)

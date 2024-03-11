@@ -9,18 +9,20 @@ from flask import current_app
 
 
 def init_del(program_name: str, purpose: str):
-    cmd = f"python {__file__} {program_name} {purpose}"
+    cmd = f"python {__file__} {current_app.config['masterconf_path']} {program_name} {purpose}"
     proc = subprocess.run(cmd, shell=True,
                           stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
     return proc.returncode, proc.stdout
 
 
-def delete_run(program_name: str, purpose: str):
+def delete_run(masterconf_path: str, program_name: str, purpose: str):
     from helpers import remove_readonly, remove_val_from_json
     """Deletes a run.
 
     Parameters
     ----------
+    masterconf_path : str
+        Path to the master configuration file.
     program_name : str
         The program name for which the run was made.
     purpose : str
@@ -30,7 +32,7 @@ def delete_run(program_name: str, purpose: str):
     # and where the console script's deletion is implemented
     from set_conf_init import set_conf
     config = {}
-    set_conf(config)
+    set_conf(config, masterconf_path)
 
     try:
         files = pd.read_csv(config["FLE"], dtype=str)
@@ -78,12 +80,12 @@ def delete_run(program_name: str, purpose: str):
 
 
 if __name__ == '__main__':
-    # The script expects 3 command-line arguments: program_name, path_to_zip, python_version
-    if len(sys.argv) != 3:
-        print("Usage: python delete_run.py <program_name> <purpose>")
+    if len(sys.argv) != 4:
+        print("Usage: python delete_run.py <masterconf_path> <program_name> <purpose>")
         sys.exit(1)
 
-    program_name = sys.argv[1]
-    purpose = sys.argv[2]
+    masterconf_path = sys.argv[1]
+    program_name = sys.argv[2]
+    purpose = sys.argv[3]
 
-    sys.exit(delete_run(program_name, purpose))
+    sys.exit(delete_run(masterconf_path, program_name, purpose))

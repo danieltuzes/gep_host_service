@@ -5,7 +5,7 @@ import json
 import sys
 from datetime import datetime
 from configparser import ConfigParser, ExtendedInterpolation
-from typing import Union, List, Dict
+from typing import Union, List, Dict, Tuple
 import traceback
 import shutil
 import re
@@ -30,15 +30,20 @@ def init_install(program_name,
     masterfolder = os.path.join(current_app.config["PRGR"], program_name)
     os.makedirs(masterfolder)
     if git_source == {}:
-        cmd = (f"python {__file__} {program_name} {program_zip_path} "
-               f'{python_version} {selected_libs_str}')
+        source = program_zip_path
+        s_extra = ""
         source = "file upload"
     else:
-        cmd = (f'python {__file__} {program_name} {git_source["git-source-url"]} '
-               f'{python_version} {selected_libs_str} -s {git_source["git-source-ref"]}')
-        source = " ".join(git_source.values())
-    with open(os.path.join(masterfolder, "install_output_and_error.log"), 'w') as logf:
-        proc = subprocess.Popen(cmd, shell=True,  stdout=logf, stderr=logf)
+        source = git_source["git-source-url"]
+        s_extra = f' -s {git_source["git-source-ref"]}'
+        source_rep = " ".join(git_source.values())
+
+    cmd = (f'python {__file__} {current_app.config["masterconf_path"]} {program_name} {source} '
+           f'{python_version} {selected_libs_str} {s_extra}')
+    with open(os.path.join(masterfolder,
+                           "install_output_and_error.log"), 'w') as logf:
+        proc = subprocess.Popen(cmd, shell=True,
+                                stdout=logf, stderr=logf)
 
     # Update program details CSV
     new_entry = pd.DataFrame({
@@ -50,7 +55,7 @@ def init_install(program_name,
         'zip_fname': [program_zip_path],
         'selected_libs': [" ".join(selected_libs)],
         'def_args': [def_args],
-        'source': [source],
+        'source': [source_rep],
         'inputs': json.dumps({}),
         'outputs': json.dumps({}),
         'version': json.dumps({})
@@ -139,15 +144,15 @@ def get_versions(root) -> str:
     return "No valid modules with version info found in the root."
 
 
-def install_program(program_name: str,
-                    program_source: str,
+def install_program(masterconf_path: str,
+                    program_name: str,
+                    program_source: Union[str, Tuple[str, str]],
                     required_python_version: str,
-                    required_libs: List[str],
-                    source_specifier: str):
+                    required_libs: List[str]):
     from set_conf_init import set_conf
-    from helpers import extract_file
+    from helpers import extract_file, get_orig_fname
     app_conf = {}
-    set_conf(app_conf)
+    set_conf(app_conf, masterconf_path)
 
     code = 0
     try:
@@ -157,13 +162,13 @@ def install_program(program_name: str,
             selected_libs_str = ""
             if required_libs:
                 selected_libs_str = "--list-of-libs " + " ".join(required_libs)
-            if source_specifier is None:
+            if isinstance(program_source, str):
                 program_zip_path = program_source
-                source = "file upload"
+                source_rep = get_orig_fname(program_source)
             else:
                 nowstr = datetime.now().strftime('%Y%m%d%H%M%S')
                 program_zip_path = f"{program_name}_{nowstr}.zip"
-                source = " ".join([program_source, source_specifier])
+                source_rep = " ".join(program_source)
             new_entry = pd.DataFrame({
                 'program_name': [program_name],
                 'upload_date': [datetime.now().strftime('%Y-%m-%d %H:%M:%S')],
@@ -173,7 +178,7 @@ def install_program(program_name: str,
                 'zip_fname': [program_zip_path],
                 'selected_libs': [selected_libs_str],
                 'def_args': [""],
-                'source': [source],
+                'source': [source_rep],
                 'inputs': json.dumps({}),
                 'outputs': json.dumps({}),
                 'version': json.dumps({})
@@ -186,7 +191,7 @@ def install_program(program_name: str,
         # 2. get the files and version info
         masterfolder = os.path.join(app_conf["PRGR"], program_name)
         # Extract zip to the masterfolder
-        if source_specifier is None:
+        if isinstance(program_source, str):
             zipf = os.path.join(app_conf["PRGR"], program_source)
             if not extract_file(zipf, masterfolder):
                 print(f"Error: failed to extract the file {zipf}")
@@ -195,14 +200,14 @@ def install_program(program_name: str,
         else:
             tmpdir = tempfile.mkdtemp()
             try:
-                repo = git.Repo.clone_from(program_source, tmpdir)
+                repo = git.Repo.clone_from(program_source[0], tmpdir)
 
                 # Initialize and update all submodules
                 for submodule in repo.submodules:
                     submodule.update(init=True)
 
                 # Checkout to the desired state
-                repo.git.checkout(source_specifier)
+                repo.git.checkout(program_source[1])
 
                 # Copy contents of the temporary directory into masterfolder
                 for item in os.listdir(tmpdir):
@@ -308,7 +313,7 @@ def install_program(program_name: str,
             run_and_verify(cmd, cwd=masterfolder)
 
         # 6. compress the folder if it was git
-        if source_specifier is not None:
+        if isinstance(program_source, str) is not None:
             df = pd.read_csv(app_conf["PRG"], dtype=str)
             df.loc[df['program_name'] == program_name,
                    'status'] = 'creating the zip from repo'
@@ -343,34 +348,41 @@ if __name__ == '__main__':
         description="Install a program into GEP Host")
 
     # Required arguments
-    parser.add_argument("program_name", type=str, help="Name of the program")
-    parser.add_argument("program_source", type=str,
+    parser.add_argument("master_config",
+                        help=('Required: path to the master config file. '
+                              'This file contains the paths for the service.'),
+                        metavar="path/to/MasterConfig.cfg")
+    parser.add_argument("program_name", help="Name of the program")
+    parser.add_argument("program_source",
                         help=("Source of the program. "
                               "Zip file location or git repo URL"))
-    parser.add_argument("required_python_version", type=str,
+    parser.add_argument("required_python_version",
                         help="Python version for the program")
 
     # Optional arguments
-    parser.add_argument("-s", "--source-specifier", type=str,
+    parser.add_argument("-s", "--source-specifier",
                         default=None,
                         help=("If program_source is git, "
                               "this defines the commit hash, "
                               "branch or version tag"))
-    parser.add_argument("-l", "--list-of-libs", type=str, nargs='*',
+    parser.add_argument("-l", "--list-of-libs", nargs='*',
                         default=[],
                         help="List of libraries for the program")
     args = parser.parse_args()
 
+    master_config = args.master_config
     program_name = args.program_name
-    program_source = args.program_source
     required_python_version = args.required_python_version
-    source_specifier = args.source_specifier
+    if args.source_specifier is not None:
+        program_source = (args.program_source, args.source_specifier)
+    else:
+        program_source = args.program_source
     list_of_libs = args.list_of_libs
 
-    install_program(program_name,
+    install_program(master_config,
+                    program_name,
                     program_source,
                     required_python_version,
-                    list_of_libs,
-                    source_specifier)
+                    list_of_libs)
     print(sys.argv)
     sys.exit(0)

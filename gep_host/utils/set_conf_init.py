@@ -41,7 +41,7 @@ def set_csv_files(host_root, config):
                               "inherited_files", "registered_files",
                               "undefineds", "outputs", "comment",
                               "notifications", "PID"], config["RUN"])
-    create_csv_if_not_exists(["lib_name", "upload_date", "python_version",
+    create_csv_if_not_exists(["library_name", "upload_date", "python_version",
                               "status", "PID", "zip_fname", "selected_libs",
                               "def_args", "source", "inputs", "outputs",
                               "version"], config["LIB"])
@@ -80,15 +80,15 @@ def set_other_settings(host_settings, config):
                                                fallback="#eceef0")
 
 
-def set_conf(config: dict, args: argparse.Namespace) -> str:
+def set_conf(config: dict, masterconf_path: str) -> str:
     """Set the configuration for the host service.
 
     Parameters
     ----------
     config : dict
         This is populated with the configuration settings.
-    args : argparse.Namespace
-        The command line arguments that tells the master config file path.
+    masterconf_path : str
+        The master config file path.
 
     Returns
     -------
@@ -102,8 +102,8 @@ def set_conf(config: dict, args: argparse.Namespace) -> str:
     """
     config['SECRET_KEY'] = 'your_secret_key'
 
-    # set up folders and csv files
-    masterconf_path = os.path.abspath(args.master_config)
+    masterconf_path = os.path.abspath(masterconf_path)
+    config["masterconf_path"] = masterconf_path
     if not os.path.isfile(masterconf_path):
         logging.error("MasterConfig.cfg not found at %s", masterconf_path)
         raise FileNotFoundError(
@@ -111,13 +111,20 @@ def set_conf(config: dict, args: argparse.Namespace) -> str:
 
     masterconf = ConfigParser(interpolation=ExtendedInterpolation())
     masterconf.read(masterconf_path)
-    host_root = os.path.abspath(masterconf.get("Outputs", "HostRoot"))
+    host_root = masterconf.get("Outputs", "HostRoot")
+    if not os.path.isabs(host_root):
+        host_root = os.path.join(os.path.dirname(masterconf_path), host_root)
+        host_root = os.path.abspath(host_root)  # simplify
 
     set_folders(host_root, config)
     set_csv_files(host_root, config)
 
     # set other settings
     host_settings_path = masterconf.get("Inputs", "Settings")
+    if not os.path.isabs(host_settings_path):
+        host_settings_path = os.path.join(os.path.dirname(masterconf_path),
+                                          host_settings_path)
+        host_seetings_path = os.path.abspath(host_settings_path)
     if not os.path.isfile(host_settings_path):
         logging.error("Host settings not found at %s", host_settings_path)
         raise FileNotFoundError(

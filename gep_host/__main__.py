@@ -67,7 +67,7 @@ def define_args():
 
 def configure_app(app: Flask, args: argparse.Namespace):
     mimetypes.add_type('font/woff2', '.woff2')
-    prg_conf_path = set_conf(app.config, args)
+    prg_conf_path = set_conf(app.config, args.master_config)
     load_pages(app.config, prg_conf_path)
 
     @app.context_processor
