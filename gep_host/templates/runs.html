@@ -205,7 +205,7 @@
         <div class="col">{{ run.purpose }}</div>
         <div class="col">{{ run.setup_date }}</div>
         <div class="col text-end">
-            {% if run.status in ["running","set up"] %}
+            {% if run.status in ["running"] %}
             <a href="{{ url_for('main_routes.stop_run', program_name=run.program_name, purpose=run.purpose) }}"
                 class="btn btn-warning btn-sm me-1 mb-1">Stop</a>
             {% endif %}

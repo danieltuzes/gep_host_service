@@ -13,6 +13,8 @@ import io
 import re
 import smtplib
 import socket
+import psutil
+import time
 
 import pandas as pd
 from werkzeug.utils import secure_filename
@@ -217,6 +219,41 @@ def init_run(request: Request) -> Union[int, str]:
     return 0
 
 
+def wait_in_queue(prg_name: str, purp: str, conf: dict, body: str) -> bool:
+    while True:
+        runs = pd.read_csv(conf["RUN"], dtype=str).fillna("")
+        row_condition = id_row(runs, prg_name, purp)
+        row_id = runs[row_condition].index
+
+        row_id = row_id[0]
+        current_status = runs.at[row_id, 'status']
+        cpu_usage = psutil.cpu_percent(interval=0.5)
+
+        if cpu_usage > 50:
+            body += (f"Waiting for CPU, time: {datetime.datetime.now()}.\n")
+            if not current_status.startswith('queue'):
+                # Assign the next available priority
+                queue_count = runs['status'].str.startswith('queue').sum()
+                priority = queue_count + 1
+                runs.at[row_id, 'status'] = f'queue {priority}'
+                runs.to_csv(conf["RUN"], index=False)
+
+            time.sleep(2 ** priority)
+
+        else:
+            # Set the current run to 'running'
+            runs.at[row_id, 'status'] = 'running'
+
+            # Reorganize the queue to fill any gaps
+            queued_runs = runs[runs['status'].str.startswith(
+                'queue')].sort_values(by='status')
+            for new_priority, idx in enumerate(queued_runs.index, start=1):
+                runs.at[idx, 'status'] = f'queue {new_priority}'
+
+            runs.to_csv(conf["RUN"], index=False)
+            break
+
+
 def run_program(prg_name, purp):
     from set_conf_init import set_conf
     conf = {}
@@ -227,12 +264,11 @@ def run_program(prg_name, purp):
 
     try:
         # Update status in run_details.csv
-        runs = pd.read_csv(conf["RUN"], dtype=str).fillna("")
-        runs.loc[id_row(runs, prg_name, purp), 'status'] = 'running'
-        runs.to_csv(conf["RUN"], index=False)
+        wait_in_queue(prg_name, purp, conf, body)
 
         # Activate the conda environment and run the program
         activate_env_command = f'{conf["activate"]}{prg_name}'
+        runs = pd.read_csv(conf["RUN"], dtype=str).fillna("")
         args = runs.loc[id_row(runs, prg_name, purp), 'python_args'].iloc[0]
         i_cmd = f'{activate_env_command} && python {args}'
         setup_folder = os.path.join(conf["RUNR"], prg_name, purp)
