@@ -4,8 +4,6 @@ import os
 import shutil
 from configparser import ConfigParser, ExtendedInterpolation
 import traceback
-import zipfile
-import tarfile
 import platform
 import multiprocessing
 import logging
@@ -267,9 +265,17 @@ def trigger_run():
     return redirect(url_for("main_routes.runs"))
 
 
-@main_routes.route('/users_tokens')
-def users_tokens():
-    return render_template('users_tokens.html')
+def setup_dynamic_routes(config):
+    for page_key, page_name in config.items():
+        create_dynamic_route(page_key)
+
+
+def create_dynamic_route(page_key):
+    @main_routes.route(f'/{page_key}', endpoint=page_key)
+    def dynamic_route():
+        return render_template(f'{page_key}.html')
+
+    dynamic_route.__name__ = page_key  # Ensures the function name is unique
 
 
 @main_routes.route('/program/<program_name>/<path:input_path>')

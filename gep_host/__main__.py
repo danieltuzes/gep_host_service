@@ -10,8 +10,8 @@ import mimetypes
 from flask import Flask
 from gevent.pywsgi import WSGIServer
 
-from .routes import main_routes
-from .utils.set_conf_init import set_conf
+from .routes import main_routes, setup_dynamic_routes
+from .utils.set_conf_init import set_conf, load_pages
 from . import __version__
 
 
@@ -62,7 +62,8 @@ if __name__ == "__main__":
     mimetypes.add_type('font/woff2', '.woff2')
     app = Flask(__name__)
 
-    set_conf(app.config)
+    prg_conf_path = set_conf(app.config)
+    load_pages(app.config, prg_conf_path)
 
     @app.context_processor
     def inject_config():
@@ -75,6 +76,7 @@ if __name__ == "__main__":
                     git_branch=app.config['git_branch'],
                     stripe_color=app.config['stripe_color'])
 
+    setup_dynamic_routes(app.config.get("static pages", {}))
     app.register_blueprint(main_routes)
     app.jinja_env.filters['parse_json'] = parse_json
     app.jinja_env.filters['filesize'] = format_file_size

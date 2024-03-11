@@ -3,7 +3,10 @@ from configparser import ConfigParser, ExtendedInterpolation
 from pathlib import Path
 
 from typing import List
-
+import os
+from configparser import ConfigParser, ExtendedInterpolation
+from pathlib import Path
+from typing import List
 import pandas as pd
 
 
@@ -13,20 +16,7 @@ def create_csv_if_not_exists(colnames: List[str], fname: str) -> None:
         df.to_csv(fname, index=False)
 
 
-def set_conf(config: dict):
-    pgk_root = Path(os.path.dirname(__file__)).parent.parent
-    masterconf_path = os.path.join(pgk_root, "config", "MasterConfig.cfg")
-
-    masterconf = ConfigParser(interpolation=ExtendedInterpolation())
-    masterconf.read(masterconf_path)
-
-    # setting folders
-    prg_conf_path = os.path.join(
-        pgk_root, masterconf.get("inputs", "settings"))
-    prg_config = ConfigParser(interpolation=ExtendedInterpolation())
-    prg_config.read(prg_conf_path)
-
-    root_rel = prg_config.get("settings", "root", fallback="..")
+def set_folders(pgk_root, prg_config, config):
     root_rel = prg_config.get("settings", "root", fallback="..")
     root = os.path.normpath(os.path.join(pgk_root, root_rel))
     config["ROOT"] = root
@@ -36,13 +26,14 @@ def set_conf(config: dict):
     config["PRGR"] = os.path.join(root, 'programs')
     config["RUNR"] = os.path.join(root, 'runs')
     config["LIBR"] = os.path.join(root, 'libs')
-    config["LIBR"] = os.path.join(root, 'libs')
     config['FLSR'] = os.path.join(root, 'files')
 
     for folder in ["PRGR", "RUNR", "LIBR", "FLSR"]:
         if not os.path.isdir(config[folder]):
             os.makedirs(config[folder])
 
+
+def set_csv_files(root, config):
     config["PRG"] = os.path.join(root, 'programs/program_details.csv')
     config["RUN"] = os.path.join(root, 'runs/run_details.csv')
     config["LIB"] = os.path.join(root, 'libs/lib_details.csv')
@@ -53,7 +44,7 @@ def set_conf(config: dict):
                               "version"], config["PRG"])
     create_csv_if_not_exists(["program_name", "purpose", "python_args",
                               "setup_date", "status", "uploaded_files",
-                             "inherited_files", "registered_files",
+                              "inherited_files", "registered_files",
                               "undefineds", "outputs", "comment",
                               "notifications", "PID"], config["RUN"])
     create_csv_if_not_exists(["lib_name", "upload_date", "python_version",
@@ -63,7 +54,8 @@ def set_conf(config: dict):
     create_csv_if_not_exists(["filename", "upload_date", "size",
                               "hash", "comment", "used_in"], config["FLE"])
 
-    # other settings from the host.cfg
+
+def set_other_settings(prg_config, config):
     config["port"] = int(prg_config.get("settings", "port",
                                         fallback="5000"))
     config["service_name"] = prg_config.get("settings", "service_name",
@@ -92,3 +84,32 @@ def set_conf(config: dict):
                                           fallback="master ")
     config["stripe_color"] = prg_config.get("settings", "stripe_color",
                                             fallback="#eceef0")
+
+
+def set_conf(config: dict) -> str:
+    pgk_root = Path(os.path.dirname(__file__)).parent.parent
+    masterconf_path = os.path.join(pgk_root, "config", "MasterConfig.cfg")
+
+    masterconf = ConfigParser(interpolation=ExtendedInterpolation())
+    masterconf.read(masterconf_path)
+
+    # setting folders
+    prg_conf_path = os.path.join(
+        pgk_root, masterconf.get("inputs", "settings"))
+    prg_config = ConfigParser(interpolation=ExtendedInterpolation())
+    prg_config.read(prg_conf_path)
+
+    set_folders(pgk_root, prg_config, config)
+    root = config["ROOT"]
+    set_csv_files(root, config)
+    set_other_settings(prg_config, config)
+    return prg_conf_path
+
+
+def load_pages(config: dict, prg_conf_path: str) -> None:
+    prg_config = ConfigParser(interpolation=ExtendedInterpolation())
+    prg_config.read(prg_conf_path)
+    config["static pages"] = {}
+    pages_section = prg_config["static pages"]
+    for key in pages_section:
+        config["static pages"][key] = pages_section.get(key)

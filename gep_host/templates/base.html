@@ -78,9 +78,11 @@
             <li class="nav-item">
               <a class="nav-link" href='{{ url_for("main_routes.upload_form") }}'>Files</a>
             </li>
+            {% for page_key, page_name in config['static pages'].items() %}
             <li class="nav-item">
-              <a class="nav-link" href='{{ url_for("main_routes.users_tokens") }}'>Users, Tokens</a>
+                <a class="nav-link" href="{{ url_for('main_routes.' + page_key) }}">{{ page_name }}</a>
             </li>
+            {% endfor %}
           </ul>
         </div>
       </div>

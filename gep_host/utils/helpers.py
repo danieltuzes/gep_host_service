@@ -1,5 +1,4 @@
 import os
-import re
 import subprocess
 from datetime import datetime
 import json
@@ -7,14 +6,6 @@ import zipfile
 import tarfile
 
 import pandas as pd
-
-
-def sanitize_name(name):
-    """
-    Convert the provided name to contain only English letters and underscores.
-    """
-    sanitized_name = re.sub(r'[^a-zA-Z0-9_]', '_', name)
-    return sanitized_name
 
 
 def check_unique_program_name(program_name):
@@ -144,6 +135,7 @@ def extract_file(file_data, masterinput_path) -> bool:
                 tf.extractall(masterinput_path)
     else:
         return False
+    return True
 
 
 def get_orig_fname(zip_fname: str) -> str:

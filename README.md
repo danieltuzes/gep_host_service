@@ -47,9 +47,7 @@ Install the library from source code by issuing `pip install .` in the root. For
 - For debugging, run `python -m gep_host --debug`,
 
 <!--
-- allow multiple input sections: inputs are listed by sections and stored by folders
 - make table font smaller
-- when adding libraries, list them by date, and newest on top
 - add queue management
 - don't copy over inheritable files, rather, use the original one
 - if a package is being installed with a name X, and another package named X is wanted to be installed again, it crashes

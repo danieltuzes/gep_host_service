@@ -84,13 +84,24 @@ def get_version_from_init(init_path):
     return None
 
 
-def get_versions(root):
+def get_versions(root) -> str:
+    """Get the versions of modules in the specified root directory.
+
+    Parameters:
+    -----------
+    root (str): The root directory to search for module versions.
+
+    Returns:
+    --------
+    str: A string containing the versions of the modules found in the root directory.
+         If no valid modules with version info are found, returns "No valid modules with version info found in the root."
+    """
     versionstrs = []
 
     def add_ver_from_file(location, versionstr):
         version = get_version_from_init(location)
         if version:
-            versionstr += f"Version: {version}"
+            versionstr += f"version: {version}"
             versionstrs.append(versionstr)
 
     # Helper function to check for module version in a directory
@@ -99,7 +110,7 @@ def get_versions(root):
 
         versionstr = ""
         if item:
-            versionstr = f"Module: {item} - "
+            versionstr = f"{item}: "
 
         init_loc = os.path.join(rel_root, item, '__init__.py')
         main_loc = os.path.join(rel_root, item, '__main__.py')
