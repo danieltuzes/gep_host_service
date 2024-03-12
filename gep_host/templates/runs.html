@@ -121,7 +121,8 @@
                                         </div>
                                         <div class="col-6">
                                             {% if input_path is not none %}
-                                            <a href="{{ url_for('main_routes.get_program_input', program_name=program_name, input_path=input_path) }}" id="input-path-link">{{input_path}}</a>
+                                            <a href="{{ url_for('main_routes.get_program_input', program_name=program_name, input_path=input_path) }}"
+                                            id="input-path-link-{{ input_name }}">{{input_path}}</a>
                                             {% endif %}
                                             <span style="display: none;"><a href="">{{ input_name }}</a></span>
                                             <input type="file" class="form-control file-input" id="{{ input_name }}"
@@ -385,7 +386,7 @@ function updateDisplay(selectElement) {
     const inputId = selectElement.getAttribute('data-input-id');
     const fileInput = document.getElementById(inputId);
     const textInput = document.querySelector(`[data-input-id="text-${inputId}"]`);
-    const link = document.getElementById('input-path-link');
+    const link = document.getElementById(`input-path-link-${inputId}`);
 
     fileInput.style.display = 'none';
     textInput.style.display = 'none';
