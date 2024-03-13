@@ -78,6 +78,21 @@
                                                 the MasterInput.cfg template</a>
                                         </div>
                                     </div>
+                                    <div class="mb-3 row">
+                                        <label for="remaining_treatment_mi" class="col-sm-2 col-form-label"
+                                            data-bs-toggle="tooltip" data-bs-placement="top"
+                                            title="
+                                        Input files defined in the masterconfig but not in the masterinput need a treatment.">Treat
+                                            missing files:</label>
+                                        <div class="col-sm-6"><select class="form-select input-selector"
+                                                name="missing_mi_option" disabled>
+                                                <option value="inherit" selected>Inherit from package</option>
+                                                <option value="remove">Remove from MasterInput</option>
+                                                <option value="leave_empty">Define with empty value</option>
+                                                <option value="no_value">Define without value</option>
+                                            </select>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -108,7 +123,7 @@
                                         <label for="{{ input_name }}" class="col-sm-3 col-form-label text-end">{{
                                             input_name }}</label>
                                         <div class="col-sm-3">
-                                            <select class="form-select input-selector" data-input-id="{{ input_name }}"
+                                            <select class="form-select input-selector" id="{{ input_name }}"
                                                 name="{{ input_name }}_option">
                                                 {% if input_path is not none %}
                                                 <option value="inherit" selected>Inherit from package</option>
@@ -117,19 +132,18 @@
                                                 <option value="upload" selected>Upload a new file</option>
                                                 {% endif %}
                                                 <option value="use">Use a registered file</option>
+                                                <option value="skip">Do not define</option>
                                             </select>
                                         </div>
                                         <div class="col-6">
                                             {% if input_path is not none %}
                                             <a href="{{ url_for('main_routes.get_program_input', program_name=program_name, input_path=input_path) }}"
-                                            id="input-path-link-{{ input_name }}">{{input_path}}</a>
+                                                id="link-{{ input_name }}">{{input_path}}</a>
                                             {% endif %}
-                                            <span style="display: none;"><a href="">{{ input_name }}</a></span>
-                                            <input type="file" class="form-control file-input" id="{{ input_name }}"
-                                                name="{{ input_name }}" style="display: none">
+                                            <input type="file" class="form-control file-input"
+                                                id="file-{{ input_name }}" name="{{ input_name }}">
                                             <input type="text" class="form-control text-input"
-                                                placeholder="Enter registered file name"
-                                                data-input-id="text-{{ input_name }}" style="display: none"
+                                                placeholder="Enter registered file name" id="reg-{{ input_name }}"
                                                 name="{{ input_name }}_text">
                                         </div>
                                     </div>
@@ -318,7 +332,7 @@
             <br>
             {% endfor %}
             {% endif %}
-        </div>        
+        </div>
         <hr class="my-3 text-center border-secondary">
         <div class="my-2">
             <strong>Comment</strong>
@@ -339,10 +353,11 @@
         </div>
         <div class="my-2">
             <a class="btn btn-danger btn-sm"
-                href="{{ url_for('main_routes.del_run', program_name=run.program_name, purpose=run.purpose) }}" data-bs-toggle="tooltip" data-bs-placement="top"
+                href="{{ url_for('main_routes.del_run', program_name=run.program_name, purpose=run.purpose) }}"
+                data-bs-toggle="tooltip" data-bs-placement="top"
                 title="Deleting a run removes all the files uploaded for this run and the run log. Registered input files are not deleted.">Delete</a>
         </div>
-    
+
     </div>
     {% endfor %}
 </div>
@@ -369,41 +384,43 @@ No runs
 {% endif %}
 <!-- input type selection -->
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-    const selects = document.querySelectorAll('.input-selector');
-    selects.forEach(select => {
-        updateDisplay(select);
+    document.addEventListener('DOMContentLoaded', function () {
+        const selects = document.querySelectorAll('.input-selector:not([name="missing_mi_option"])');
+        selects.forEach(select => {
+            updateDisplay(select);
+        });
     });
-});
 
-document.addEventListener('change', function (e) {
-    if (e.target && e.target.classList.contains('input-selector')) {
-        updateDisplay(e.target);
+    document.addEventListener('change', function (e) {
+        if (e.target &&
+            e.target.classList.contains('input-selector') &&
+            e.target.getAttribute('name') !== 'missing_mi_option') {
+            updateDisplay(e.target);
+        }
+    });
+
+    function updateDisplay(selectElement) {
+        const inputId = selectElement.id;
+        const fileInput = document.getElementById(`file-${inputId}`);
+        const textInput = document.getElementById(`reg-${inputId}`);
+        const link = document.getElementById(`link-${inputId}`);
+
+        fileInput.style.display = 'none';
+        textInput.style.display = 'none';
+        if (link) { link.style.display = 'none'; }
+
+        switch (selectElement.value) {
+            case 'upload':
+                fileInput.style.display = 'block';
+                break;
+            case 'use':
+                textInput.style.display = 'block';
+                break;
+            case 'inherit':
+                link.style.display = 'block';
+                break;
+        }
     }
-});
-
-function updateDisplay(selectElement) {
-    const inputId = selectElement.getAttribute('data-input-id');
-    const fileInput = document.getElementById(inputId);
-    const textInput = document.querySelector(`[data-input-id="text-${inputId}"]`);
-    const link = document.getElementById(`input-path-link-${inputId}`);
-
-    fileInput.style.display = 'none';
-    textInput.style.display = 'none';
-    link.style.display = 'none';
-
-    switch (selectElement.value) {
-        case 'upload':
-            fileInput.style.display = 'block';
-            break;
-        case 'use':
-            textInput.style.display = 'block';
-            break;
-        case 'inherit':
-            link.style.display = 'block';
-            break;
-    }
-}
 
 
 </script>

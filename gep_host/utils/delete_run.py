@@ -30,7 +30,7 @@ def delete_run(masterconf_path: str, program_name: str, purpose: str):
     """
     # the price of using the same file where the deletion is initiated from python
     # and where the console script's deletion is implemented
-    from set_conf_init import set_conf
+    from gep_host.utils.set_conf_init import set_conf
     config = {}
     set_conf(config, masterconf_path)
 
@@ -81,7 +81,7 @@ def delete_run(masterconf_path: str, program_name: str, purpose: str):
 
 if __name__ == '__main__':
     if len(sys.argv) != 4:
-        print("Usage: python delete_run.py <masterconf_path> <program_name> <purpose>")
+        print("Usage: python delete_run.py <sys_masterconf_path> <program_name> <purpose>")
         sys.exit(1)
 
     masterconf_path = sys.argv[1]

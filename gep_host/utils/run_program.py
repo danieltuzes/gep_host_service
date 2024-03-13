@@ -18,7 +18,7 @@ import time
 
 import pandas as pd
 from werkzeug.utils import secure_filename
-from flask import Request, current_app
+from flask import Request, current_app, flash
 from unidecode import unidecode
 
 
@@ -56,6 +56,7 @@ def send_email(subject: str, body: str, receiver_emails: List[str]) -> None:
 def init_run(request: Request) -> Union[int, str]:
     """Process the run request, and create detached run."""
     from .helpers import alnum, safer_call, concat_to, extract_file
+    from .replacer import LowerPriorityPopen
     conf = current_app.config
 
     # check if the purpose is unique
@@ -84,23 +85,26 @@ def init_run(request: Request) -> Union[int, str]:
     reg_files = {}
     undefineds = []
     outputs = {}
+
+    # if input is provided as a zip or tar.gz via masterinput
     if masterinput.filename != "":
-        masterinput_path = os.path.join(setup_folder, "masterinput")
-        os.makedirs(masterinput_path, exist_ok=True)
+        masterinput_base_path = os.path.join(setup_folder, "masterinput")
+        os.makedirs(masterinput_base_path, exist_ok=True)
         file_data = io.BytesIO(masterinput.read())
-        if not extract_file(file_data, masterinput_path):
+        if not extract_file(file_data, masterinput_base_path):
             # shutil.rmtree(setup_folder)  # turned off for debugging
             return "Uploaded masterinput is not a zip or tar.gz file."
-        master_confpath = os.path.join(masterinput_path, "MasterInput.cfg")
-        if not os.path.isfile(master_confpath):
-            # shutil.rmtree(setup_folder)
+        masteri_full_path = os.path.join(
+            masterinput_base_path, "MasterInput.cfg")
+        if not os.path.isfile(masteri_full_path):
+            # shutil.rmtree(setup_folder)  # turned off for debugging
             return "Uploaded masterinput has no MasterInput.cfg in the root."
         master_conf = ConfigParser(interpolation=ExtendedInterpolation())
-        with open(master_confpath, 'r', encoding="utf-8") as ifile:
+        with open(masteri_full_path, 'r', encoding="utf-8") as ifile:
             master_conf.read_file(ifile)
         if not master_conf.has_section("inputs"):
-            # shutil.rmtree(setup_folder)
-            return "No input section in MasterInput.cfg"
+            # shutil.rmtree(setup_folder)  # turned off for debugging
+            return "No inputs section in MasterInput.cfg"
         for master_input in master_conf.options("inputs"):
             relpath = master_conf.get("inputs", master_input)
             path = os.path.join("masterinput", relpath)
@@ -111,44 +115,59 @@ def init_run(request: Request) -> Union[int, str]:
                     inherits[input_name] = inputs[input_name]
                 else:
                     undefineds.append(input_name)
-    else:
+
+    else:  # if input is provided as individual files
         for input_name, path in inputs.items():
             # if inheritable and checked, inherit, and don't save
-            if path is not None:
-                selected_option = request.form.get(f'{input_name}_option')
-                if selected_option == "inherit":
-                    inherits[input_name] = path
-                    continue
+            selected_option = request.form.get(f'{input_name}_option')
+            if path is not None and selected_option == "inherit":
+                inherits[input_name] = path
+                continue
 
             # save the file only if provided
-            file = request.files[input_name]
-            fname = secure_filename(file.filename)
-            if fname != "":
+            elif selected_option == "upload":
+                file = request.files[input_name]
+                fname = secure_filename(file.filename)
+                if fname == "":
+                    flash(f"No file is selected for {input_name}. This input is skipped.",
+                          "warning")
+                    undefineds.append(input_name)
+                    continue
                 file.save(os.path.join(input_folder, fname))
                 path = os.path.join("inputs", fname)
                 uploads[input_name] = path
                 continue
 
-            reg_file = request.form.get(f'{input_name}_text')
-            if reg_file is not None and reg_file != "":
+            elif selected_option == "register":
+                reg_file = request.form.get(f'{input_name}_text')
+                if reg_file is None or reg_file != "":
+                    flash(f"Registered file {reg_file} for {input_name} is not valid.",
+                          "warning")
+                    undefineds.append(input_name)
+                    continue
                 files_path = os.path.join(current_app.config["ROOT"],
                                           "file_data.csv")
                 files = pd.read_csv(files_path)
                 matches = files.loc[files["filename"] == reg_file]
-                if not matches.empty:
-                    if pd.isna(matches["hash"].iloc[0]):
-                        directory = matches["dir"].iloc[0]
-                    else:
-                        directory = current_app.config["FLSR"]
-                    path = os.path.join(directory, reg_file)
-                    reg_files[input_name] = path
-                    used_in: List[str] = json.loads(matches["used_in"].iloc[0])
-                    used_in.append(prg_name + "__" + purp)
-                    files.loc[files["filename"] == reg_file,
-                              "used_in"] = json.dumps(used_in)
+                if matches.empty:
+                    flash(f"Registered file {reg_file} for {input_name} is not found.",
+                          "warning")
+                    undefineds.append(input_name)
                     continue
+                if pd.isna(matches["hash"].iloc[0]):
+                    directory = matches["dir"].iloc[0]
+                else:
+                    directory = current_app.config["FLSR"]
+                path = os.path.join(directory, reg_file)
+                reg_files[input_name] = path
+                used_in: List[str] = json.loads(matches["used_in"].iloc[0])
+                used_in.append(prg_name + "__" + purp)
+                files.loc[files["filename"] == reg_file,
+                          "used_in"] = json.dumps(used_in)
+                continue
 
             undefineds.append(input_name)
+
         if "files" in locals():
             files.to_csv(files_path, index=False)
 
@@ -201,9 +220,9 @@ def init_run(request: Request) -> Union[int, str]:
     cmd = (f"python {__file__} {current_app.config['masterconf_path']} "
            f"{prg_name} {purp}")
     with open(os.path.join(setup_folder, "run_output_and_error.log"), 'w') as logf:
-        proc = subprocess.Popen(cmd, shell=True,
-                                cwd=os.path.dirname(__file__),
-                                stdout=logf, stderr=logf)
+        proc = LowerPriorityPopen(cmd, shell=True,
+                                  cwd=os.path.dirname(__file__),
+                                  stdout=logf, stderr=logf)
 
     # set run information
     runs = pd.read_csv(conf["RUN"], dtype=str)
@@ -256,7 +275,7 @@ def wait_in_queue(prg_name: str, purp: str, conf: dict, body: str) -> bool:
 
 
 def run_program(masterconf_path: str, prg_name: str, purp: str):
-    from set_conf_init import set_conf
+    from gep_host.utils.set_conf_init import set_conf
     conf = {}
     set_conf(conf, masterconf_path)
 

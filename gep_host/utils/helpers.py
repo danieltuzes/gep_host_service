@@ -99,7 +99,7 @@ def remove_val_from_json(json_str, val_2_remove):
     return json.dumps(new_list)
 
 
-def extract_file(file_data, masterinput_path) -> bool:
+def extract_file(file_data, extract_path) -> bool:
     """
     Extracts the contents of a zip or tar file to the specified directory.
 
@@ -107,7 +107,7 @@ def extract_file(file_data, masterinput_path) -> bool:
     ----------
     file_data : str
         The path to the zip or tar file.
-    masterinput_path : str
+    extract_path : str
         The directory where the contents will be extracted.
 
     Returns
@@ -117,7 +117,7 @@ def extract_file(file_data, masterinput_path) -> bool:
     """
     if zipfile.is_zipfile(file_data):
         with zipfile.ZipFile(file_data) as zf:
-            zf.extractall(masterinput_path)
+            zf.extractall(extract_path)
     elif tarfile.is_tarfile(file_data):
         with tarfile.open(file_data, 'r:*') as tf:
             members = tf.getmembers()
@@ -130,9 +130,9 @@ def extract_file(file_data, masterinput_path) -> bool:
                     if member.name.startswith(root_dir):
                         # Remove the root directory from the path
                         member.name = member.name[len(root_dir):]
-                        tf.extract(member, masterinput_path)
+                        tf.extract(member, extract_path)
             else:
-                tf.extractall(masterinput_path)
+                tf.extractall(extract_path)
     else:
         return False
     return True

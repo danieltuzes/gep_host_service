@@ -72,6 +72,9 @@ def configure_app(app: Flask, args: argparse.Namespace):
 
     @app.context_processor
     def inject_config():
+        """This is available in all templates from Jinja
+        without explicitly passing it to the template."""
+
         return dict(service_name=app.config["service_name"],
                     email_placeholder=app.config["email_placeholder"],
                     email_pattern=app.config["email_pattern"],

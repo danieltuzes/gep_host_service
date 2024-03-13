@@ -149,7 +149,7 @@ def install_program(masterconf_path: str,
                     program_source: Union[str, Tuple[str, str]],
                     required_python_version: str,
                     required_libs: List[str]):
-    from set_conf_init import set_conf
+    from gep_host.utils.set_conf_init import set_conf
     from helpers import extract_file, get_orig_fname
     app_conf = {}
     set_conf(app_conf, masterconf_path)

@@ -263,7 +263,8 @@ def trigger_run():
 
     ret = run_program.init_run(request)
     if ret != 0:
-        flash(ret, "warning")
+        flash(f"A warning or error occurred during run initation: {ret}",
+              "warning")
     else:
         flash("Program set up and run initiated successfully.", "success")
 

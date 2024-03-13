@@ -39,7 +39,7 @@ def delete_program(masterconf_path: str, program_name: str):
     """
     # the price of using the same file where the deletion is initiated from python
     # and where the console script's deletion is implemented
-    from set_conf_init import set_conf
+    from gep_host.utils.set_conf_init import set_conf
     from helpers import remove_readonly, remove_val_from_json
     config = {}
     set_conf(config, masterconf_path)
