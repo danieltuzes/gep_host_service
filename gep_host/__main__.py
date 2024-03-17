@@ -1,5 +1,4 @@
 import logging
-from pathlib import Path
 from logging.handlers import RotatingFileHandler
 import argparse
 import os
@@ -12,6 +11,7 @@ from gevent.pywsgi import WSGIServer
 
 from .routes import main_routes, setup_dynamic_routes
 from .utils.set_conf_init import set_conf, load_pages
+from .utils.helpers import filename_to_html_id
 from . import __version__
 
 
@@ -36,17 +36,6 @@ def format_file_size(size):
         return f"{size / MB:.0f}MB"
     else:
         return f"{size / GB:.0f}GB"
-
-
-def filename_to_html_id(filename):
-    # Remove file extension
-    name_without_ext = filename.rsplit('.', 1)[0]
-
-    # Replace special characters with underscores and ensure it doesn't start with a number
-    sanitized_id = ''.join(['_' + char if char.isdigit() and i == 0 else char if char.isascii()
-                           and char.isalnum() else '_' for i, char in enumerate(name_without_ext)])
-
-    return sanitized_id
 
 
 def define_args():

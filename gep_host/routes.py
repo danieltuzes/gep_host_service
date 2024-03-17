@@ -143,8 +143,9 @@ def program_install():
     python_version_raw = request.form['required_python_version']
     python_version = "".join(
         char for char in python_version_raw if char.isdigit or char == ".")
-    selected_libs = request.form.getlist('selected_libs')
-    def_args = safer_call(request.form["def_args"])
+    opt_args = (request.form.getlist('selected_libs'),
+                safer_call(request.form["def_args"]),
+                safer_call(request.form["exe_test"]))
 
     # Check uniqueness of program name
     masterfolder = os.path.join(current_app.config["PRGR"], program_name)
@@ -165,7 +166,7 @@ def program_install():
         ext = '.tar.gz'
         base = base[:-4]
     nowstr = datetime.now().strftime('%Y%m%d%H%M%S')
-    t_filename = f"{base}_{nowstr}{ext}"
+    t_filename = f"{base}_{nowstr}{ext}"  # the target of the install script
     program_zip_path = os.path.join(current_app.config['PRGR'], t_filename)
     if file.filename != "":
         file.save(program_zip_path)
@@ -173,10 +174,9 @@ def program_install():
     # Execute install script in subprocess
     res = install_program.init_install(program_name,
                                        t_filename,
+                                       git,
                                        python_version,
-                                       selected_libs,
-                                       def_args,
-                                       git)
+                                       opt_args)
     if res != 0:
         flash(res, "warning")
     else:
@@ -337,9 +337,11 @@ def stop_run(program_name: str, purpose: str):
         flash(f"No process with PID {pid} found in this OS. Status of the program is updated.",
               "warning")
         runs.loc[filter_criteria, 'status'] = "Completed (terminated)"
-        runs.to_csv(current_app.config["RUN"])
+        runs.to_csv(current_app.config["RUN"], index=False)
+        process_exists = False
     except Exception as e:
         flash(f"An error occurred:<br><pre>{e}</pre>", "warning")
+        process_exists = False
 
     if process_exists:
         try:
@@ -355,14 +357,14 @@ def stop_run(program_name: str, purpose: str):
             process.wait(3)
 
             runs.loc[filter_criteria, 'status'] = "Completed (terminated)"
-            runs.to_csv(current_app.config["RUN"])
+            runs.to_csv(current_app.config["RUN"], index=False)
             flash(f"Process with PID {pid} is terminated.", "success")
 
         except psutil.NoSuchProcess:
             flash(f"Process PID {pid} existed, but died after its children are closed.",
                   "success")
             runs.loc[filter_criteria, 'status'] = "Completed (terminated)"
-            runs.to_csv(current_app.config["RUN"])
+            runs.to_csv(current_app.config["RUN"], index=False)
         except psutil.TimeoutExpired:
             flash(
                 f"Process with PID {pid} did not terminate in time.", "warning")

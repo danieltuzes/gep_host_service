@@ -67,39 +67,60 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="mb-3">
-                            <label for="unique_program_name" class="form-label">
-                                Program Name <span class="tooltip-text" data-bs-toggle="tooltip" data-bs-placement="top"
-                                    title="It can contain only alphanumeric chars and _.- Space and double underscore are not allowed.">(info)<span
-                                        style="color: red;">*</span></span>
-                            </label>
-                            <input type="text" name="unique_program_name" class="form-control" required
-                                placeholder="My_Unique_Program-Name_v1.0.0">
+                        <div class="row mb-3">
+                            <div class="mb-3 col-md-6">
+                                <label for="unique_program_name" class="form-label">
+                                    Program Name <span class="tooltip-text" data-bs-toggle="tooltip" data-bs-placement="top"
+                                        title="It can contain only alphanumeric chars and _.- Space and double underscore are not allowed.">(info)<span
+                                            style="color: red;">*</span></span>
+                                </label>
+                                <input type="text" name="unique_program_name" class="form-control" required
+                                    placeholder="My_Unique_Program-Name_v1.0.0">
+                            </div>
+                            <div class="mb-3 col-md-6">
+                                <label for="required_python_version" class="form-label">
+                                    Required Python Version<span style="color: red;">*</span>
+                                </label>
+                                <input type="text" name="required_python_version" class="form-control" required
+                                    placeholder="explicit single value, e.g. 3.8">
+                            </div>
                         </div>
-                        <div class="mb-3">
-                            <label for="required_python_version" class="form-label">
-                                Required Python Version<span style="color: red;">*</span>
-                            </label>
-                            <input type="text" name="required_python_version" class="form-control" required
-                                placeholder="explicit single value, e.g. 3.8">
-                        </div>
-                        <div class="mb-3">
-                            <label for="selected_libs" class="form-label">
-                                Libraries needed to run this program
-                                (multiple selection)
-                            </label>
-                            <select multiple class="form-select" id="selected_libs" size="4" name="selected_libs">
-                                {% for lib_name in libs['library_name'] %}<option>{{ lib_name }}</option>{% endfor %}
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label for="def_args">
-                                Python call's default argument string
-                                <span class="tooltip-text" data-bs-toggle="tooltip" data-bs-placement="top"
-                                    title="Enter the string that follows python. It can contain only alphanumeric chars and &quot;-&#039;_\^/(,)[.]">(info)</span>
-                            </label>
-                            <input type="text" name="def_args" class="form-control" placeholder="-m my_module">
-                        </div>
+                        <div class="row">
+                            <div class="mb-3 col-md-6">
+                                <label for="def_args" class="form-label">
+                                    Python call's default argument string
+                                    <span class="tooltip-text" data-bs-toggle="tooltip" data-bs-placement="top"
+                                        title="Enter the string that follows python. It can contain only alphanumeric chars and &quot;-&#039;_\^/(,)[.]">(info)</span>
+                                </label>
+                                <textarea name="def_args" class="form-control mb-2" placeholder="-m my_module" rows="2"></textarea>
+
+                                <label for="testing" class="form-label text-end">Testing:</label>
+                                <select class="form-select input-selector" id="exe_test"
+                                    name="exe_test">
+                                    <option value="" selected>Do not run test</option>
+                                    <option value="-m pytest">pytest</option>
+                                    <option value="-m pytest-xdist -n auto"><code>pytest-xdist -n auto</code></option>
+                                </select>
+                            </div>
+                            <div class="mb-3 col-md-6">
+                                {% if libs|length > 0 %}
+                                <label for="selected_libs" class="form-label">
+                                    Libraries needed to run this program
+                                    (multiple selection)
+                                </label>
+                                <select multiple class="form-select" id="selected_libs" size="5" name="selected_libs">
+                                    {% for lib_name in libs['library_name'] %}<option>{{ lib_name }}</option>{% endfor %}
+                                </select>
+                                {% else %}
+                                <label for="selected_libs" class="form-label">
+                                    <span class="text-muted">Libraries needed to run this program
+                                    (<a href='{{ url_for("main_routes.libraries") }}'>install a library</a> first to select one)</span>
+                                </label>
+                                <select multiple class="form-select" id="selected_libs" size="5" name="selected_libs" disabled>
+                                </select>
+                                {% endif %}
+                            </div>
+                        </div> 
                         <button type="submit" class="btn btn-primary" id="submitButton">Install</button>
                     </form>
                 </div>
@@ -222,14 +243,7 @@
                         </code>
             </div>
             <div class="my-3">
-                <strong>Program source:</strong>
-                {% if program.source == "file upload" %}
-                file upload, original filename: {{ program.zip_fname[:-19] + program.zip_fname[-4:] if program.zip_fname.endswith(".zip") else program.zip_fname[:-22] + program.zip_fname[-7:] }}
-                {% else %}
-                {% set git_split = program.source.split(' ') %}
-                <a href="{{ git_split[0] }}">Repository</a>, identifier = <code>{{ git_split[1] }}</code>
-                {% endif %}
-            </div>
+                <strong>Program source:</strong> {{ program.source }}</div>
             <div class="my-2">
                 <span data-bs-toggle="tooltip" data-bs-placement="top"
                     title="Deleting the program does not delete its runs, nor the libraries linked to it.">

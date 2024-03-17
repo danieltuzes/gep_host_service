@@ -1,3 +1,5 @@
 sphinx
 autopep8
 pylint
+
+-e .

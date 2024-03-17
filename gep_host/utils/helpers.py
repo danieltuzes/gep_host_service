@@ -157,3 +157,14 @@ def get_orig_fname(zip_fname: str) -> str:
     else:
         orig_fname = zip_fname[:-22] + zip_fname[-7:]
     return orig_fname
+
+
+def filename_to_html_id(filename):
+    # Remove file extension
+    name_without_ext = filename.rsplit('.', 1)[0]
+
+    # Replace special characters with underscores and ensure it doesn't start with a number
+    sanitized_id = ''.join(['_' + char if char.isdigit() and i == 0 else char if char.isascii()
+                           and char.isalnum() else '_' for i, char in enumerate(name_without_ext)])
+
+    return sanitized_id

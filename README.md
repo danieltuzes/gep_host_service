@@ -47,12 +47,11 @@ Install the library from source code by issuing `pip install .` in the root. For
 - For debugging, run `python -m gep_host --debug`,
 
 <!--
-- make table font smaller
-- add queue management
+- if program is killed, write this to the run log file
+- add feature of executing pytest
 - don't copy over inheritable files, rather, use the original one
 - if a package is being installed with a name X, and another package named X is wanted to be installed again, it crashes
 - Write the comment of a program, run and library into a file, and support markdown. Make it editable.
 - user auth
 - make property public for input and output files, and if a file is not public, ask for token
-- put the files relative to cwd, not relative to `__file__`
 -->

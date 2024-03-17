@@ -8,7 +8,7 @@ from configparser import ConfigParser, ExtendedInterpolation
 import json
 import traceback
 import shutil
-from typing import Union, Dict, List
+from typing import Union, Dict, List, Tuple
 import io
 import re
 import smtplib
@@ -53,24 +53,17 @@ def send_email(subject: str, body: str, receiver_emails: List[str]) -> None:
             return ret
 
 
-def init_run(request: Request) -> Union[int, str]:
-    """Process the run request, and create detached run."""
-    from .helpers import alnum, safer_call, concat_to, extract_file
-    from .replacer import LowerPriorityPopen
+def input_and_config(request: Request,
+                     prg_name: str,
+                     purp: str,
+                     setup_folder: str) -> Tuple[Dict,
+                                                 Dict,
+                                                 Dict,
+                                                 List[str],
+                                                 Dict]:
+    """Save the inputs and update the config file."""
+    from .helpers import extract_file
     conf = current_app.config
-
-    # check if the purpose is unique
-    prg_name = request.form["program_name"]
-    purp = alnum(request.form["purpose"], "_-.")
-    setup_folder = os.path.join(conf["ROOT"], "runs", prg_name, purp)
-    if os.path.isdir(setup_folder):
-        return ("Run setup is unsuccessful. "
-                "Cannot save the run files to a new folder. "
-                "Is the purpose name unique?")
-
-    # copy the program to a new location
-    masterfolder = os.path.join(conf["ROOT"], "programs", prg_name)
-    shutil.copytree(masterfolder, setup_folder)
 
     # save all the inputs
     input_folder = os.path.join(setup_folder, "inputs")
@@ -145,7 +138,7 @@ def init_run(request: Request) -> Union[int, str]:
                           "warning")
                     undefineds.append(input_name)
                     continue
-                files_path = os.path.join(current_app.config["ROOT"],
+                files_path = os.path.join(conf["ROOT"],
                                           "file_data.csv")
                 files = pd.read_csv(files_path)
                 matches = files.loc[files["filename"] == reg_file]
@@ -197,8 +190,55 @@ def init_run(request: Request) -> Union[int, str]:
         with open(config_file, 'w') as configfile:
             config.write(configfile)
 
-    python_args = safer_call(request.form["args"])
-    notifications = extract_emails(request.form["notifications"])
+    return inherits, uploads, reg_files, undefineds, outputs
+
+
+def init_run(request: Union[Request, Dict[str, str]]) -> Union[int, str]:
+    """Process the run request, and create detached run."""
+    from .helpers import alnum, safer_call, concat_to, filename_to_html_id
+    from .replacer import LowerPriorityPopen
+    try:
+        from flask import current_app
+        conf = current_app.config
+    except Exception:
+        from gep_host.utils.set_conf_init import set_conf
+        conf = {}
+        set_conf(conf, request["masterconf_path"])
+
+    # check if the purpose is unique
+    if isinstance(request, Request):
+        prg_name = request.form["program_name"]
+        purp = alnum(request.form["purpose"], "_-.")
+    else:
+        prg_name = request["program_name"]
+        purp = request["purpose"]
+        python_args = request["python_args"]
+
+    setup_folder = os.path.join(conf["ROOT"], "runs", prg_name, purp)
+    if os.path.isdir(setup_folder):
+        return ("Run setup is unsuccessful. "
+                "Cannot save the run files to a new folder. "
+                "Is the purpose name unique?")
+
+    # copy the program to a new location
+    masterfolder = os.path.join(conf["ROOT"], "programs", prg_name)
+    shutil.copytree(masterfolder, setup_folder)
+
+    if isinstance(request, Request):
+        inherits, uploads, reg_files, undefineds, outputs = \
+            input_and_config(request, prg_name, purp, setup_folder)
+        python_args = safer_call(request.form["args"])
+        notifications = extract_emails(request.form["notifications"])
+        comment = request.form["comment"]
+    else:
+        uploads = {}
+        inherits = {}
+        reg_files = {}
+        undefineds = []
+        outputs = {}
+        comment = "automated test run"
+        notifications = []
+
     new_entry = pd.DataFrame({
         'program_name': [prg_name],
         'purpose': [purp],
@@ -210,14 +250,14 @@ def init_run(request: Request) -> Union[int, str]:
         'registered_files': [json.dumps(reg_files)],
         'undefineds': [json.dumps(undefineds)],
         'outputs': [json.dumps(outputs)],
-        'comment': request.form["comment"],
+        'comment': [comment],
         'notifications': [json.dumps(notifications)]
     })
     concat_to(new_entry, conf["RUN"])
 
     # start the execution in a detached process
     setup_folder = os.path.join(conf["ROOT"], 'runs', prg_name, purp)
-    cmd = (f"python {__file__} {current_app.config['masterconf_path']} "
+    cmd = (f"python {__file__} {conf['masterconf_path']} "
            f"{prg_name} {purp}")
     with open(os.path.join(setup_folder, "run_output_and_error.log"), 'w') as logf:
         proc = LowerPriorityPopen(cmd, shell=True,
@@ -229,11 +269,11 @@ def init_run(request: Request) -> Union[int, str]:
     runs.loc[(runs['program_name'] == prg_name) &
              (runs['purpose'] == purp), 'PID'] = proc.pid
     runs.to_csv(conf["RUN"], index=False)
-
+    run_id = f"{filename_to_html_id(prg_name)}__{purp}"
     body = (f"A run of program {prg_name} with purpose {purp} "
             "is successfully triggered. Emails regardless of the outcome "
             "will be sent. Visit "
-            f"http://{conf['host_name']}:{conf['port']}/runs#{prg_name}__{purp}"
+            f"http://{conf['host_name']}:{conf['port']}/runs#{run_id}"
             " for the run page for further details.")
     send_email("gep_host run trigger", body, notifications)
     return 0

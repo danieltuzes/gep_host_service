@@ -204,7 +204,7 @@
     </div>
     <!-- content -->
     {% for run in runs.itertuples() %}
-    <div class="row toggle-row" id="{{ run.program_name }}__{{ run.purpose }}">
+    <div class="row toggle-row" id="{{ run.program_name | filename_to_html_id }}__{{ run.purpose }}">
         <div class="col">
             <span data-bs-toggle="tooltip" data-bs-placement="top" title="{{ run.status }}">
                 {% if run.status == "Completed" %}
