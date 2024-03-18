@@ -70,7 +70,8 @@
                         <div class="row mb-3">
                             <div class="mb-3 col-md-6">
                                 <label for="unique_program_name" class="form-label">
-                                    Program Name <span class="tooltip-text" data-bs-toggle="tooltip" data-bs-placement="top"
+                                    Program Name <span class="tooltip-text" data-bs-toggle="tooltip"
+                                        data-bs-placement="top"
                                         title="It can contain only alphanumeric chars and _.- Space and double underscore are not allowed.">(info)<span
                                             style="color: red;">*</span></span>
                                 </label>
@@ -92,14 +93,14 @@
                                     <span class="tooltip-text" data-bs-toggle="tooltip" data-bs-placement="top"
                                         title="Enter the string that follows python. It can contain only alphanumeric chars and &quot;-&#039;_\^/(,)[.]">(info)</span>
                                 </label>
-                                <textarea name="def_args" class="form-control mb-2" placeholder="-m my_module" rows="2"></textarea>
+                                <textarea name="def_args" class="form-control mb-2" placeholder="-m my_module"
+                                    rows="2"></textarea>
 
                                 <label for="testing" class="form-label text-end">Testing:</label>
-                                <select class="form-select input-selector" id="exe_test"
-                                    name="exe_test">
+                                <select class="form-select input-selector" id="exe_test" name="exe_test">
                                     <option value="" selected>Do not run test</option>
                                     <option value="-m pytest">pytest</option>
-                                    <option value="-m pytest-xdist -n auto"><code>pytest-xdist -n auto</code></option>
+                                    <option value="-m pytest -n auto"><code>pytest-xdist (-n auto)</code></option>
                                 </select>
                             </div>
                             <div class="mb-3 col-md-6">
@@ -109,18 +110,21 @@
                                     (multiple selection)
                                 </label>
                                 <select multiple class="form-select" id="selected_libs" size="5" name="selected_libs">
-                                    {% for lib_name in libs['library_name'] %}<option>{{ lib_name }}</option>{% endfor %}
+                                    {% for lib_name in libs['library_name'] %}<option>{{ lib_name }}</option>{% endfor
+                                    %}
                                 </select>
                                 {% else %}
                                 <label for="selected_libs" class="form-label">
                                     <span class="text-muted">Libraries needed to run this program
-                                    (<a href='{{ url_for("main_routes.libraries") }}'>install a library</a> first to select one)</span>
+                                        (<a href='{{ url_for("main_routes.libraries") }}'>install a library</a> first to
+                                        select one)</span>
                                 </label>
-                                <select multiple class="form-select" id="selected_libs" size="5" name="selected_libs" disabled>
+                                <select multiple class="form-select" id="selected_libs" size="5" name="selected_libs"
+                                    disabled>
                                 </select>
                                 {% endif %}
                             </div>
-                        </div> 
+                        </div>
                         <button type="submit" class="btn btn-primary" id="submitButton">Install</button>
                     </form>
                 </div>
@@ -243,7 +247,8 @@
                         </code>
             </div>
             <div class="my-3">
-                <strong>Program source:</strong> {{ program.source }}</div>
+                <strong>Program source:</strong> {{ program.source }}
+            </div>
             <div class="my-2">
                 <span data-bs-toggle="tooltip" data-bs-placement="top"
                     title="Deleting the program does not delete its runs, nor the libraries linked to it.">
@@ -258,38 +263,38 @@
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         // switch between file upload and git source
-    let zipRadioButton = document.getElementById('zipFile');
-    let gitRadioButton = document.getElementById('gitSource');
-    let zipFileFields = document.getElementById('zipFileFields');
-    let gitSourceFields = document.getElementById('gitSourceFields');
-    let zipFileInput = document.querySelector('[name="program_package"]');
-    let gitUrlInput = document.querySelector('[name="git-source-url"]');
-    let gitRefInput = document.querySelector('[name="git-source-ref"]');
-    let installForm = document.querySelector('form');
+        let zipRadioButton = document.getElementById('zipFile');
+        let gitRadioButton = document.getElementById('gitSource');
+        let zipFileFields = document.getElementById('zipFileFields');
+        let gitSourceFields = document.getElementById('gitSourceFields');
+        let zipFileInput = document.querySelector('[name="program_package"]');
+        let gitUrlInput = document.querySelector('[name="git-source-url"]');
+        let gitRefInput = document.querySelector('[name="git-source-ref"]');
+        let installForm = document.querySelector('form');
 
-    // Function to toggle display and required attributes
-    function toggleFields() {
-        if (zipRadioButton.checked) {
-            zipFileFields.style.display = 'block';
-            gitSourceFields.style.display = 'none';
-            zipFileInput.required = true;
-            gitUrlInput.required = false;
-            gitRefInput.required = false;
-        } else {
-            zipFileFields.style.display = 'none';
-            gitSourceFields.style.display = 'block';
-            zipFileInput.required = false;
-            gitUrlInput.required = true;
-            gitRefInput.required = true;
+        // Function to toggle display and required attributes
+        function toggleFields() {
+            if (zipRadioButton.checked) {
+                zipFileFields.style.display = 'block';
+                gitSourceFields.style.display = 'none';
+                zipFileInput.required = true;
+                gitUrlInput.required = false;
+                gitRefInput.required = false;
+            } else {
+                zipFileFields.style.display = 'none';
+                gitSourceFields.style.display = 'block';
+                zipFileInput.required = false;
+                gitUrlInput.required = true;
+                gitRefInput.required = true;
+            }
         }
-    }
 
-    // Initial toggle on page load
-    toggleFields();
+        // Initial toggle on page load
+        toggleFields();
 
-    // Event listeners for radio buttons
-    zipRadioButton.addEventListener('change', toggleFields);
-    gitRadioButton.addEventListener('change', toggleFields);
+        // Event listeners for radio buttons
+        zipRadioButton.addEventListener('change', toggleFields);
+        gitRadioButton.addEventListener('change', toggleFields);
     });
 </script>
 {% endblock %}
