@@ -60,7 +60,7 @@ def init_install(program_name: str,
         source_rep = " ".join(git_source.values())
     exe_test = ""
     if opt_args[2] != "":
-        exe_test = f" -t '{opt_args[2]}'"
+        exe_test = f' -t "{opt_args[2]}"'
     cmd = (f'python {__file__} {current_app.config["masterconf_path"]} {program_name} {source} '
            f'{python_version} {selected_libs_str} {s_extra} {exe_test}')
     with open(os.path.join(masterfolder,
