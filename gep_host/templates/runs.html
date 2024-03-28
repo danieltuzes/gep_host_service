@@ -3,6 +3,7 @@
 <title>{{ service_name }} runs</title>
 {% endblock header %}
 {% block content %}
+{% set program_name = prg_to_run["program_name"] %}
 <div class="container mt-3">
     <h2>Runs</h2>
     <p>
@@ -17,7 +18,8 @@
         <div class="accordion-item">
             <h5 class="accordion-header border-primary border" id="headingMain">
                 <button class="accordion-button" type="button" data-bs-toggle="collapse"
-                    data-bs-target="#collapseMain">Setup and run {{ program_name }}</button>
+                    data-bs-target="#collapseMain"><i class="bi bi-gear me-2"></i> Setup and run {{ program_name
+                    }}</button>
             </h5>
             <div id="collapseMain" class="accordion-collapse m-3 collapse show">
                 <form action='{{ url_for("main_routes.trigger_run") }}' method="post" enctype="multipart/form-data">
@@ -165,6 +167,22 @@
                 </form>
             </div>
         </div>
+        {% if readme is not none %}
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="headingReadme">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#collapseReadme" data-bs-toggle="tooltip" data-bs-placement="top" title="Readme">
+                    <i class="bi bi-info-circle me-2"></i> Readme of the program
+                </button>
+            </h2>
+            <div id="collapseReadme" class="accordion-collapse collapse" data-bs-parent="#runInputAccordion">
+                <div class="accordion-body">
+                    {{ readme|safe }}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
     </div>
     {% endif %}
 </div>
@@ -225,13 +243,13 @@
                 class="btn btn-warning btn-sm me-1 mb-1">Stop</a>
             {% endif %}
             {% if "Completed" in run.status %}
-            <a class="btn btn-primary btn-sm me-1 mb-1" title="Download the whole code, inputs and outputs"
+            <a class="btn btn-primary btn-sm me-1 mb-1"
+                title="Download the whole run (uploaded inputs, outputs, logs) as a zip file"
                 href="{{ url_for('main_routes.get_run_file', program_name=run.program_name, purpose=run.purpose, file=run.program_name + '__' + run.purpose + '.zip') }}">
-                Download</a>
+                <i class="bi bi-download"></i></a>
             {% endif %}
-            <button class="btn btn-secondary btn-sm me-1 mb-1 copy-id-link" title="Copy the deeplink to this element">
-                <i class="bi bi-clipboard"></i> Copy Link
-            </button>
+            <button class="btn btn-secondary btn-sm me-1 mb-1 copy-id-link" title="Copy the deeplink to this run">
+                <i class="bi bi-clipboard"></i> </button>
         </div>
     </div>
     <div class="row additional pt-0" style="display: none;">
@@ -355,7 +373,8 @@
             <a class="btn btn-danger btn-sm"
                 href="{{ url_for('main_routes.del_run', program_name=run.program_name, purpose=run.purpose) }}"
                 data-bs-toggle="tooltip" data-bs-placement="top"
-                title="Deleting a run removes all the files uploaded for this run and the run log. Registered input files are not deleted.">Delete</a>
+                title="Deleting a run removes all the files uploaded for this run and the run log. Registered input files are not deleted."><i
+                    class="bi bi-trash me-2"></i>Delete</a>
         </div>
 
     </div>

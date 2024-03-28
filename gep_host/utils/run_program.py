@@ -290,6 +290,7 @@ def wait_in_queue(prg_name: str, purp: str, conf: dict, body: str) -> bool:
         cpu_usage = psutil.cpu_percent(interval=0.5)
 
         if cpu_usage > 50:
+            # is body mutable?
             body += (f"Waiting for CPU, time: {datetime.datetime.now()}.\n")
             if not current_status.startswith('queue'):
                 # Assign the next available priority
@@ -347,6 +348,8 @@ def run_program(masterconf_path: str, prg_name: str, purp: str):
         shutil.move(zip_file, setup_folder)
 
         # Update status in run_details.csv to completed
+
+        runs = pd.read_csv(conf["RUN"], dtype=str).fillna("")
         runs.loc[id_row(runs, prg_name, purp), 'status'] = 'Completed'
         runs.loc[id_row(runs, prg_name, purp) == prg_name,
                  'PID'] = ''
@@ -357,6 +360,7 @@ def run_program(masterconf_path: str, prg_name: str, purp: str):
         print(f"Error calling subprocess: {err}")
         print(traceback.format_exc())
         print("Standard error:", err.stdout, sep="\n")
+        runs = pd.read_csv(conf["RUN"], dtype=str).fillna("")
         runs.loc[id_row(runs, prg_name, purp), 'status'] = \
             f'Completed with error 1'
         body += "had an error upon calling the program."
@@ -364,6 +368,7 @@ def run_program(masterconf_path: str, prg_name: str, purp: str):
         code = 2
         print(f"Error in python script: {err}")
         print(traceback.format_exc())
+        runs = pd.read_csv(conf["RUN"], dtype=str).fillna("")
         runs.loc[id_row(runs, prg_name, purp), 'status'] = \
             f'Completed with error 2'
         body += "had an error upon trying to call the program."

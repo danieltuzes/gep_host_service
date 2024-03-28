@@ -82,7 +82,8 @@ def init_install(program_name: str,
         'source': [source_rep],
         'inputs': json.dumps({}),
         'outputs': json.dumps({}),
-        'version': json.dumps({})
+        'version': json.dumps({}),
+        'readme': [""]
     })
     df = pd.read_csv(current_app.config["PRG"], dtype=str)
     if len(df[df['program_name'] == program_name]) == 0:
@@ -266,6 +267,11 @@ def install_program(masterconf_path: str,
                 # Explicitly attempt to delete the temporary directory
                 shutil.rmtree(tmpdir, ignore_errors=True)
 
+        # 2. save location of readme
+        readme_path = os.path.join(app_conf["PRGR"], program_name, 'README.md')
+        if not os.path.isfile(readme_path):
+            readme_path = ""  # put into the table with the config
+
         # 3. Read and update the MasterConfig.cfg file
         config_file = os.path.join(masterfolder, 'config', 'MasterConfig.cfg')
         inputs = {}
@@ -304,6 +310,7 @@ def install_program(masterconf_path: str,
 
         version = get_versions(masterfolder)
         df = pd.read_csv(app_conf["PRG"], dtype=str)
+        df.loc[df['program_name'] == program_name, 'readme'] = readme_path
 
         df.loc[df['program_name'] == program_name,
                'inputs'] = json.dumps(inputs)

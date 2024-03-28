@@ -35,7 +35,7 @@ def set_csv_files(host_root, config):
     create_csv_if_not_exists(["program_name", "upload_date", "python_version",
                               "status", "PID", "zip_fname", "selected_libs",
                               "def_args", "source", "inputs", "outputs",
-                              "version"], config["PRG"])
+                              "version", "readme"], config["PRG"])
     create_csv_if_not_exists(["program_name", "purpose", "python_args",
                               "setup_date", "status", "uploaded_files",
                               "inherited_files", "registered_files",

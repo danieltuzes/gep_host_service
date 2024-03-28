@@ -242,13 +242,20 @@ def runs():
     prgs = pd.read_csv(current_app.config["PRG"], dtype=str).fillna("")
 
     prg_to_run = None
+    md_template = None
     if program_name is not None:
         prg_to_run = prgs.loc[prgs.program_name == program_name].iloc[0]
+        if os.path.isfile(prg_to_run['readme']):
+            with open(prg_to_run['readme'], 'r') as f:
+                content = f.read()
+            md_template = Markup(markdown.markdown(
+                content, extensions=["toc", "tables", "fenced_code",
+                                     "codehilite", "footnotes"]))
 
     return render_template('runs.html',
                            runs=runs,
-                           program_name=program_name,
                            prg_to_run=prg_to_run,
+                           readme=md_template,
                            direction=direction,
                            column=column,
                            activity=activity(runs, "runs"))
@@ -293,6 +300,23 @@ def get_program_input(program_name, input_path):
                                os.path.basename(f_path))
 
 
+@main_routes.route('/readme/<program_name>/')
+def get_program_readme(program_name):
+    prgs = pd.read_csv(current_app.config["PRG"])
+    prg = prgs.loc[prgs["program_name"] == program_name]
+    if prg.empty:
+        return "Program not found", 404
+    readme_path = prg["readme"].iloc[0]
+    if not os.path.isfile(readme_path):
+        return "Readme not found", 404
+
+    with open(readme_path, 'r') as f:
+        content = f.read()
+    md_template = Markup(markdown.markdown(content, extensions=[
+                         'toc', 'tables', 'fenced_code', 'codehilite', 'footnotes']))
+    return md_template
+
+
 @main_routes.route('/run/<program_name>/<purpose>/<path:file>')
 def get_run_file(program_name, purpose, file):
     f_path = os.path.join(current_app.config["RUNR"],
@@ -318,25 +342,27 @@ def del_run(program_name: str, purpose: str):
 @main_routes.route('/stop_run/<program_name>/<purpose>')
 def stop_run(program_name: str, purpose: str):
     runs = pd.read_csv(current_app.config["RUN"], dtype=str).fillna("")
-    pidstr = runs.loc[(runs['program_name'] == program_name) &
-                      (runs['purpose'] == purpose), 'PID'].iloc[0]
-
-    if pidstr == "":
-        flash("Program has been already completed according to this webservice.", "warning")
-        return redirect(url_for("main_routes.runs"))
-
-    pid = int(float(pidstr))
-
-    filter_criteria = (runs['program_name'] == program_name) \
+    match = (runs['program_name'] == program_name) \
         & (runs['purpose'] == purpose)
+
+    if not match.any() or match["PID"].iloc[0] == "":
+        if not match.any():
+            flash(f"No program {program_name} with purpose {purpose} is found",
+                  "warning")
+        else:
+            flash(f"Program {program_name} with purpose {purpose} "
+                  "has been already completed.", "warning")
+        return redirect(url_for("main_routes.runs"))
+    pidstr = match["PID"].iloc[0]
+    pid = int(float(pidstr))
 
     try:
         process = psutil.Process(pid)
         process_exists = True
     except psutil.NoSuchProcess:
-        flash(f"No process with PID {pid} found in this OS. Status of the program is updated.",
-              "warning")
-        runs.loc[filter_criteria, 'status'] = "Completed (terminated)"
+        flash(f"No process with PID {pid} found in this OS. "
+              "Status of the program is updated.", "warning")
+        runs.loc[match, 'status'] = "Completed (terminated)"
         runs.to_csv(current_app.config["RUN"], index=False)
         process_exists = False
     except Exception as e:
@@ -378,7 +404,11 @@ def stop_run(program_name: str, purpose: str):
     shutil.make_archive(zip_file[:-4], 'zip',
                         root_dir=setup_folder, base_dir='.')
     shutil.move(zip_file, setup_folder)
-
+    log_path = os.path.join(current_app.config["RUNR"], program_name, purpose)
+    with open(log_path, "+a", encoding="utf-8") as ofile:
+        nowstr = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        print(f"Program with PID {pid} has been terminated "
+              f"from the webservice at {nowstr}", ofile)
     return redirect(url_for("main_routes.runs"))
 
 

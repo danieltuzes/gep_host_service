@@ -133,7 +133,8 @@
             <div class="col-2">{{ file.size }}</div>
             <div class="col-3 text-end">
                 <a class="btn btn-primary btn-sm mb-1" title="Download file"
-                    href="{{ url_for('main_routes.get_file', filename=file.filename) }}">Download ({{ file.size|filesize
+                    href="{{ url_for('main_routes.get_file', filename=file.filename) }}"><i class="bi bi-download"></i>
+                    ({{ file.size|filesize
                     }})</a>
                 <button class="btn btn-secondary btn-sm me-1 mb-1 copy-id-link"
                     title="Copy the deeplink to this element">

@@ -168,28 +168,49 @@
             </div>
             <div class="col">{{ program.upload_date }}</div>
             <div class="col text-end">
-                {% if program.source == "file upload" %}
-                <a href="{{ url_for('main_routes.get_prg', program_name=program.program_name) }}"
-                    class="btn btn-primary btn-sm me-1 mb-1" title="Download the whole package">Download</a>
-                {% elif program.source.startswith("http") %}
-                {% set git_list = program.source.split(" ") %}
+
                 <div class="btn-group">
+                    {% if program.source.startswith("http") %}
+                    {% set git_list = program.source.split(" ") %}
                     <a href="{{ git_list[0] }}" class="btn btn-secondary btn-sm ms-1 mb-1"
-                        title="copy the link to the repo">🔗</a>
+                        title="Link to the repo">🔗</a>
+                    {% else %}
+                    {% if program.status == "Installed" and not program.readme == "" %}
+                    <a href="{{ url_for('main_routes.get_program_readme', program_name=program.program_name)}}"
+                        class="btn btn-info btn-sm ms-1 mb-1" title="Open README"><i class="bi bi-info-circle"></i></a>
+                    {% else %}
+                    <button disabled class="btn btn-info btn-sm ms-1 mb-1"
+                        title="Program is being installed or README is not found"><i
+                            class="bi bi-info-circle"></i></button>
+                    {% endif %}
+
                     <a href="{{ url_for('main_routes.get_prg', program_name=program.program_name) }}"
-                        class="btn btn-primary btn-sm mb-1" title="Download the whole package">Download</a>
+                        class="btn btn-primary btn-sm me-1 mb-1" title="Download the whole package"><i
+                            class="bi bi-download"></i></a>
                 </div>
-                {% endif %}
                 {% if program.status == "Installed" %}
-                <a href="{{ url_for('main_routes.runs', program_name=program.program_name) }}"
-                    class="btn btn-success btn-sm me-1 mb-1" title="Setup and run on the server">Run</a>
+                {% if not program.readme %}
+                <button class="btn btn-info btn-sm me-1 mb-1" title="README was not found in the package" disabled>
+                    <i class="bi bi-info-circle"></i></button>
                 {% else %}
+                <a class="btn btn-info btn-sm me-1 mb-1" title="Open README"
+                    href="{{ url_for('main_routes.get_program_readme', program_name=program.program_name)}}"
+                    target="_blank">
+                    <i class="bi bi-info-circle"></i></a>
+                {% endif %}
+                <a href="{{ url_for('main_routes.runs', program_name=program.program_name) }}"
+                    class="btn btn-success btn-sm me-1 mb-1" title="Setup and run on the server">
+                    <i class="bi bi-play"></i></a>
+                {% else %}
+                <button class="btn btn-info btn-sm me-1 mb-1" title="README can be shown after installation is complete"
+                    disabled><i class="bi bi-info-circle"></i></button>
                 <button class="btn btn-success btn-sm me-1 mb-1"
-                    title="Run can be triggered after installation is complete" disabled>Run</button>
+                    title="Run can be triggered after installation is complete" disabled>
+                    <i class="bi bi-play"></i></button>
                 {% endif %}
                 <button class="btn btn-secondary btn-sm me-1 mb-1 copy-id-link"
                     title="Copy the deeplink to this element">
-                    <i class="bi bi-clipboard"></i> Copy Link
+                    <i class="bi bi-clipboard"></i>
                 </button>
             </div>
         </div>
@@ -197,16 +218,12 @@
             <hr>
             <div class="my-3">
                 <strong>Modules and version:</strong>
-                {{ program.version }}
-            </div>
-            <div class="my-3">
+                {{ program.version }}<br>
                 <strong>Python Version, Libs:</strong>
                 {{ program.python_version }},
                 {% if program.selected_libs == "" %}<span class="text-muted">(None)</span>{% else %}
                 {{ program.selected_libs }}
-                {% endif %}
-            </div>
-            <div class="my-3">
+                {% endif %}<br>
                 <strong>Program status:</strong>
                 {{ program.status }}
                 <a href="{{ url_for('main_routes.install_log', program_name=program.program_name) }}">Download the
@@ -253,7 +270,7 @@
                 <span data-bs-toggle="tooltip" data-bs-placement="top"
                     title="Deleting the program does not delete its runs, nor the libraries linked to it.">
                     <a href="{{ url_for('main_routes.del_program', program_name=program.program_name) }}"
-                        class="btn btn-danger btn-sm">Delete</a>
+                        class="btn btn-danger btn-sm"><i class="bi bi-trash me-2"></i>Delete</a>
                 </span>
             </div>
         </div>

@@ -92,7 +92,8 @@
             <div class="col-3">{{ library.upload_date }}</div>
             <div class="col-3 text-end">
                 <a class="btn btn-primary btn-sm m-1" title="Download the original zipped library"
-                    href="{{ url_for('main_routes.get_lib', library_name=library.library_name) }}">Download
+                    href="{{ url_for('main_routes.get_lib', library_name=library.library_name) }}"><i
+                        class="bi bi-download"></i>
                     ({{ library.size }})</a>
                 <button class="btn btn-secondary btn-sm me-1 mb-1 copy-id-link"
                     title="Copy the deeplink to this element">
@@ -135,7 +136,8 @@
             </div>
             <div>
                 <a class="btn btn-danger btn-sm"
-                    href="{{ url_for('main_routes.del_library', library_name=library.library_name) }}">Delete</a>
+                    href="{{ url_for('main_routes.del_library', library_name=library.library_name) }}"><i
+                        class="bi bi-trash me-2"></i>Delete</a>
                 {% if library.used_in != "[]" %}
                 <span class="badge bg-warning text-dark ms-2" data-bs-toggle="tooltip" data-bs-placement="top" title="">
                     <i class="bi bi-exclamation-triangle-fill"></i>
