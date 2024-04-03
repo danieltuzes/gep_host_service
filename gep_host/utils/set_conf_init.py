@@ -65,6 +65,8 @@ def set_other_settings(host_settings, config):
                                                     fallback="developer_ID@company.com, manager@company.com")
     config["host_name"] = host_settings.get("settings", "host_name",
                                             fallback="localhost")
+    config["top_line"] = host_settings.get("settings", "top_line",
+                                           fallback="")
     activate = host_settings.get("settings", "activate",
                                  fallback="conda activate ")
     if activate.startswith('"') and activate.endswith('"'):

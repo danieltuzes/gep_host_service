@@ -13,8 +13,9 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='fonts-icons/bootstrap-icons.css') }}">
   <style>
     html {
-    overflow-y: scroll;
+      overflow-y: scroll;
     }
+
     .tooltip-text {
       border-bottom: 1px dotted #007BFF;
       /* Bootstrap primary color */
@@ -25,7 +26,13 @@
     /* Coloring every 4th and 5th rows starting from the 2nd row */
     .container>.row:nth-child(4n+2),
     .container>.row:nth-child(4n+3) {
-      background-color: {{ stripe_color }};
+      background-color: {
+          {
+          stripe_color
+        }
+      }
+
+      ;
       /* Light gray */
     }
 
@@ -83,10 +90,13 @@
             </li>
             {% for page_key, page_name in config['static pages'].items() %}
             <li class="nav-item">
-                <a class="nav-link" href="{{ url_for('main_routes.' + page_key) }}">{{ page_name }}</a>
+              <a class="nav-link" href="{{ url_for('main_routes.' + page_key) }}">{{ page_name }}</a>
             </li>
             {% endfor %}
           </ul>
+        </div>
+        <div>
+          <span class="navbar-text">{{ top_line|safe }}</span>
         </div>
       </div>
     </nav>

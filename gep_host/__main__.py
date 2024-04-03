@@ -71,7 +71,8 @@ def configure_app(app: Flask, args: argparse.Namespace):
                     lib_def_path=app.config["lib_def_path"],
                     git_example=app.config['git_example'],
                     git_branch=app.config['git_branch'],
-                    stripe_color=app.config['stripe_color'])
+                    stripe_color=app.config['stripe_color'],
+                    top_line=app.config['top_line'])
 
     setup_dynamic_routes(app.config.get("static pages", {}))
     app.register_blueprint(main_routes)
