@@ -183,21 +183,13 @@
                         title="Program is being installed or README is not found"><i
                             class="bi bi-info-circle"></i></button>
                     {% endif %}
+                    {% endif %}
 
                     <a href="{{ url_for('main_routes.get_prg', program_name=program.program_name) }}"
                         class="btn btn-primary btn-sm me-1 mb-1" title="Download the whole package"><i
                             class="bi bi-download"></i></a>
                 </div>
                 {% if program.status == "Installed" %}
-                {% if not program.readme %}
-                <button class="btn btn-info btn-sm me-1 mb-1" title="README was not found in the package" disabled>
-                    <i class="bi bi-info-circle"></i></button>
-                {% else %}
-                <a class="btn btn-info btn-sm me-1 mb-1" title="Open README"
-                    href="{{ url_for('main_routes.get_program_readme', program_name=program.program_name)}}"
-                    target="_blank">
-                    <i class="bi bi-info-circle"></i></a>
-                {% endif %}
                 <a href="{{ url_for('main_routes.runs', program_name=program.program_name) }}"
                     class="btn btn-success btn-sm me-1 mb-1" title="Setup and run on the server">
                     <i class="bi bi-play"></i></a>
@@ -237,7 +229,7 @@
                 {% for input_name, input_value in inputs.items() %}
                 {{ input_name }}:
                 {% if input_value is not none %}
-                <!-- TODO this is needed to show ingerited package -->
+                <!-- TODO this is needed to show inherited package -->
                 <a
                     href="{{ url_for('main_routes.get_program_input', program_name=program.program_name, input_path=input_value) }}">
                     {{ input_value }}
