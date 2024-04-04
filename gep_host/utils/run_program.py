@@ -92,7 +92,8 @@ def input_and_config(request: Request,
         if not os.path.isfile(masteri_full_path):
             # shutil.rmtree(setup_folder)  # turned off for debugging
             return "Uploaded masterinput has no MasterInput.cfg in the root."
-        master_conf = ConfigParser(interpolation=ExtendedInterpolation())
+        master_conf = ConfigParser(
+            interpolation=ExtendedInterpolation(), allow_no_value=True)
         with open(masteri_full_path, 'r', encoding="utf-8") as ifile:
             master_conf.read_file(ifile)
         if not master_conf.has_section("inputs"):
@@ -100,10 +101,14 @@ def input_and_config(request: Request,
             return "No inputs section in MasterInput.cfg"
         for master_input in master_conf.options("inputs"):
             relpath = master_conf.get("inputs", master_input)
-            path = os.path.join("masterinput", relpath)
-            uploads[master_input] = path
+            if relpath is not None:
+                path = os.path.join("masterinput", relpath)
+                uploads[master_input] = path
+            else:
+                undefineds.append(master_input)
         for input_name in inputs:
-            if input_name not in uploads:
+            # not uploaded, not defined explicitely as None and can be inherited
+            if input_name not in uploads and input_name not in undefineds:
                 if inputs[input_name] is not None:
                     inherits[input_name] = inputs[input_name]
                 else:
@@ -225,8 +230,11 @@ def init_run(request: Union[Request, Dict[str, str]]) -> Union[int, str]:
     shutil.copytree(masterfolder, setup_folder)
 
     if isinstance(request, Request):
-        inherits, uploads, reg_files, undefineds, outputs = \
-            input_and_config(request, prg_name, purp, setup_folder)
+        ret = input_and_config(request, prg_name, purp, setup_folder)
+        if isinstance(ret, str):
+            return ret
+        else:
+            inherits, uploads, reg_files, undefineds, outputs = ret
         python_args = safer_call(request.form["args"])
         notifications = extract_emails(request.form["notifications"])
         comment = request.form["comment"]

@@ -345,7 +345,7 @@ def stop_run(program_name: str, purpose: str):
     match = (runs['program_name'] == program_name) \
         & (runs['purpose'] == purpose)
 
-    if not match.any() or match["PID"].iloc[0] == "":
+    if not match.any() or runs[match]["PID"].iloc[0] == "":
         if not match.any():
             flash(f"No program {program_name} with purpose {purpose} is found",
                   "warning")
@@ -353,7 +353,7 @@ def stop_run(program_name: str, purpose: str):
             flash(f"Program {program_name} with purpose {purpose} "
                   "has been already completed.", "warning")
         return redirect(url_for("main_routes.runs"))
-    pidstr = match["PID"].iloc[0]
+    pidstr = runs[match]["PID"].iloc[0]
     pid = int(float(pidstr))
 
     try:
@@ -382,7 +382,7 @@ def stop_run(program_name: str, purpose: str):
             process.terminate()
             process.wait(3)
 
-            runs.loc[filter_criteria, 'status'] = "Completed (terminated)"
+            runs.loc[match, 'status'] = "Completed (terminated)"
             runs.to_csv(current_app.config["RUN"], index=False)
             flash(f"Process with PID {pid} is terminated.", "success")
 
@@ -404,11 +404,12 @@ def stop_run(program_name: str, purpose: str):
     shutil.make_archive(zip_file[:-4], 'zip',
                         root_dir=setup_folder, base_dir='.')
     shutil.move(zip_file, setup_folder)
-    log_path = os.path.join(current_app.config["RUNR"], program_name, purpose)
+    log_path = os.path.join(
+        current_app.config["RUNR"], program_name, purpose, "run_output_and_error.log")
     with open(log_path, "+a", encoding="utf-8") as ofile:
         nowstr = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         print(f"Program with PID {pid} has been terminated "
-              f"from the webservice at {nowstr}", ofile)
+              f"from the webservice at {nowstr}", file=ofile)
     return redirect(url_for("main_routes.runs"))
 
 
