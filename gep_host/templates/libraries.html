@@ -59,7 +59,7 @@
     </div>
     <div class="container my-4">
         <div class="row mb-2">
-            <div class="col-3">
+            <div class="col-6">
                 <a
                     href="{{ url_for('main_routes.libraries', column='library_name', direction='desc' if direction == 'asc' and column == 'library_name' else 'asc') }}">
                     Library Name
@@ -75,7 +75,7 @@
                     {{'↓' if direction == 'desc' and column == 'upload_date'}}
                 </a>
             </div>
-            <div class="col-5 text-end">Action</div>
+            <div class="col-3 text-end">Action</div>
         </div>
         {% for library in libs.itertuples() %}
         <div class="row toggle-row" id="{{ library.library_name }}">
