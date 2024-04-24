@@ -40,11 +40,10 @@ def activity(data: pd.DataFrame, type: str) -> str:
     """Generate the message to be displayed."""
     if type == "programs":
         active = count_not_status(data, "Installed")
-        active = active
         ret = f"{active} program installation(s) "
     if type == "runs":
         active = count_not_status(data, "Completed")
-        ret = f"{active} runs(s) "
+        ret = f"Total of {active} runs(s) "
     ret += "are in progress."
     return ret
 
@@ -230,6 +229,7 @@ def runs():
 
     # Read the content of run_details.csv, filter and order it
     runs = pd.read_csv(current_app.config["RUN"], dtype=str).fillna("")
+    act_msg = activity(runs, "runs")
 
     # order
     ascending = True if direction == "asc" else False
@@ -245,8 +245,10 @@ def runs():
     md_template = None
     if program_name is not None:
         prg_to_run = prgs.loc[prgs.program_name == program_name].iloc[0]
-        if os.path.isfile(prg_to_run['readme']):
-            with open(prg_to_run['readme'], 'r') as f:
+        readme_path = os.path.join(current_app.config["PRGR"],
+                                   program_name, prg_to_run['readme'])
+        if os.path.isfile(readme_path):
+            with open(readme_path, 'r') as f:
                 content = f.read()
             md_template = Markup(markdown.markdown(
                 content, extensions=["toc", "tables", "fenced_code",
@@ -258,7 +260,7 @@ def runs():
                            readme=md_template,
                            direction=direction,
                            column=column,
-                           activity=activity(runs, "runs"))
+                           activity=act_msg)
 
 
 @main_routes.route('/trigger_run', methods=['POST'])
@@ -307,10 +309,12 @@ def get_program_readme(program_name):
     if prg.empty:
         return "Program not found", 404
     readme_path = prg["readme"].iloc[0]
-    if not os.path.isfile(readme_path):
+    readme_fpath = os.path.join(current_app.config["PRGR"],
+                                program_name, readme_path)
+    if not os.path.isfile(readme_fpath):
         return "Readme not found", 404
 
-    with open(readme_path, 'r') as f:
+    with open(readme_fpath, 'r') as f:
         content = f.read()
     md_template = Markup(markdown.markdown(content, extensions=[
                          'toc', 'tables', 'fenced_code', 'codehilite', 'footnotes']))
@@ -766,7 +770,7 @@ def check_status():
     # Get the current status sent by the client
     data_received = request.json
     activity_msg = data_received.get('status', ' ')
-    prev_count = activity_msg.split()[0]
+    prev_count = activity_msg.split()[2]
     # You can log or use this as required
     if "program" in activity_msg:
         data = pd.read_csv(current_app.config["PRG"])
@@ -777,7 +781,7 @@ def check_status():
     else:
         return jsonify({'to_reload': False})
 
-    curr_count = msg.split()[0]
+    curr_count = msg.split()[2]
     if prev_count == curr_count:
         return jsonify({'to_reload': False})
 

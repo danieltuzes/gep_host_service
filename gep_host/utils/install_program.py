@@ -267,9 +267,11 @@ def install_program(masterconf_path: str,
                 # Explicitly attempt to delete the temporary directory
                 shutil.rmtree(tmpdir, ignore_errors=True)
 
-        # 2. save location of readme
-        readme_path = os.path.join(app_conf["PRGR"], program_name, 'README.md')
-        if not os.path.isfile(readme_path):
+        # 2. save location of readme, relative to program's root
+        readme_path = "README.md"
+        readme_fpath = os.path.join(
+            app_conf["PRGR"], program_name, readme_path)
+        if not os.path.isfile(readme_fpath):
             readme_path = ""  # put into the table with the config
 
         # 3. Read and update the MasterConfig.cfg file
@@ -381,6 +383,7 @@ def install_program(masterconf_path: str,
         df.loc[df['program_name'] == program_name, 'status'] = 'Installed'
         df.loc[df['program_name'] == program_name, 'PID'] = ''
         df.to_csv(app_conf["PRG"], index=False)
+        return 0
 
     except subprocess.CalledProcessError as err:
         print(f"Error calling subprocess:", traceback.format_exc(), sep="\n")
@@ -388,6 +391,8 @@ def install_program(masterconf_path: str,
     except Exception:
         print(f"Error in python script.", traceback.format_exc(), sep="\n")
         clean_up_install(app_conf, program_name, 1)
+
+    return 1
 
 
 if __name__ == '__main__':
@@ -429,20 +434,22 @@ if __name__ == '__main__':
         program_source = args.program_source
     list_of_libs = args.list_of_libs
 
-    install_program(master_config,
-                    program_name,
-                    program_source,
-                    required_python_version,
-                    list_of_libs,
-                    args.test)
-    if args.test is not None:
+    res = install_program(master_config,
+                          program_name,
+                          program_source,
+                          required_python_version,
+                          list_of_libs,
+                          args.test)
+
+    # Run the tests
+    if res and args.test is not None:
         request = {"masterconf_path": master_config,
                    "program_name": program_name,
                    "purpose": "test",
                    "python_args": args.test,
                    "test": True}
         result = run_program.init_run(request)
-        if not result:
+        if not isinstance(result, int) and not result:
             print(f"Error: failed to run the tests for {program_name}, "
                   f"{result}")
 

@@ -113,7 +113,7 @@
       <div id="toaster" class="toast align-items-center border border-success" role="alert" data-bs-autohide="false">
         <div class="d-flex">
           <div class="toast-body">
-            A task is completed! Click <a href="#" id="reload-link">here</a> to reload.
+            The list has changed. Click <a href="#" id="reload-link">here</a> to reload.
           </div>
           <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast"></button>
         </div>
@@ -331,7 +331,7 @@
     const statusElement = document.getElementById('status');
     const currentStatus = statusElement.innerText.trim();
 
-    if (currentStatus[0] !== '0') {
+    if (currentStatus.split(" ")[2] !== '0') {
       fetch('/check_status', {
         method: 'POST',
         headers: {

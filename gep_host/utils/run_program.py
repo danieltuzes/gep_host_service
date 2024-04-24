@@ -56,11 +56,12 @@ def send_email(subject: str, body: str, receiver_emails: List[str]) -> None:
 def input_and_config(request: Request,
                      prg_name: str,
                      purp: str,
-                     setup_folder: str) -> Tuple[Dict,
-                                                 Dict,
-                                                 Dict,
-                                                 List[str],
-                                                 Dict]:
+                     setup_folder: str) -> Union[Tuple[Dict,
+                                                       Dict,
+                                                       Dict,
+                                                       List[str],
+                                                       Dict],
+                                                 str]:
     """Save the inputs and update the config file."""
     from .helpers import extract_file
     conf = current_app.config
@@ -83,24 +84,27 @@ def input_and_config(request: Request,
     if masterinput.filename != "":
         masterinput_base_path = os.path.join(setup_folder, "masterinput")
         os.makedirs(masterinput_base_path, exist_ok=True)
-        file_data = io.BytesIO(masterinput.read())
-        if not extract_file(file_data, masterinput_base_path):
-            # shutil.rmtree(setup_folder)  # turned off for debugging
-            return "Uploaded masterinput is not a zip or tar.gz file."
+        try:
+            file_data = io.BytesIO(masterinput.read())
+            extract_file(file_data, masterinput_base_path)
+        except Exception as e:
+            return ("Uploaded masterinput is not a proper zip or tar.gz file."
+                    f"Error message from the python extractor: {e}")
         masteri_full_path = os.path.join(
             masterinput_base_path, "MasterInput.cfg")
         if not os.path.isfile(masteri_full_path):
-            # shutil.rmtree(setup_folder)  # turned off for debugging
             return "Uploaded masterinput has no MasterInput.cfg in the root."
-        master_conf = ConfigParser(
-            interpolation=ExtendedInterpolation(), allow_no_value=True)
+        master_conf = ConfigParser(interpolation=ExtendedInterpolation(),
+                                   allow_no_value=True)
         with open(masteri_full_path, 'r', encoding="utf-8") as ifile:
             master_conf.read_file(ifile)
         if not master_conf.has_section("inputs"):
-            # shutil.rmtree(setup_folder)  # turned off for debugging
             return "No inputs section in MasterInput.cfg"
         for master_input in master_conf.options("inputs"):
-            relpath = master_conf.get("inputs", master_input)
+            try:
+                relpath = master_conf.get("inputs", master_input)
+            except Exception as e:
+                return (f"Error in MasterInput.cfg: {e}")
             if relpath is not None:
                 path = os.path.join("masterinput", relpath)
                 uploads[master_input] = path
@@ -210,17 +214,16 @@ def init_run(request: Union[Request, Dict[str, str]]) -> Union[int, str]:
         conf = {}
         set_conf(conf, request["masterconf_path"])
 
-    # check if the purpose is unique
-    if isinstance(request, Request):
+    if isinstance(request, Request):  # if the request is from the web
         prg_name = request.form["program_name"]
         purp = alnum(request.form["purpose"], "_-.")
-    else:
+    else:  # if the request is from the command line to run tests
         prg_name = request["program_name"]
         purp = request["purpose"]
         python_args = request["python_args"]
 
     setup_folder = os.path.join(conf["ROOT"], "runs", prg_name, purp)
-    if os.path.isdir(setup_folder):
+    if os.path.isdir(setup_folder):  # check if the purpose is unique
         return ("Run setup is unsuccessful. "
                 "Cannot save the run files to a new folder. "
                 "Is the purpose name unique?")
@@ -229,16 +232,17 @@ def init_run(request: Union[Request, Dict[str, str]]) -> Union[int, str]:
     masterfolder = os.path.join(conf["ROOT"], "programs", prg_name)
     shutil.copytree(masterfolder, setup_folder)
 
-    if isinstance(request, Request):
+    if isinstance(request, Request):  # if the request is from the web
         ret = input_and_config(request, prg_name, purp, setup_folder)
         if isinstance(ret, str):
+            # shutil.rmtree(setup_folder) # turned off for debugging
             return ret
         else:
             inherits, uploads, reg_files, undefineds, outputs = ret
         python_args = safer_call(request.form["args"])
         notifications = extract_emails(request.form["notifications"])
         comment = request.form["comment"]
-    else:
+    else:  # if the request is from the command line to run tests
         uploads = {}
         inherits = {}
         reg_files = {}
@@ -278,10 +282,11 @@ def init_run(request: Union[Request, Dict[str, str]]) -> Union[int, str]:
              (runs['purpose'] == purp), 'PID'] = proc.pid
     runs.to_csv(conf["RUN"], index=False)
     run_id = f"{filename_to_html_id(prg_name)}__{purp}"
+    port = "" if int(conf['port']) == 80 else f":{conf['port']}"
+    link = f"http://{conf['host_name']}{port}/runs#{run_id}"
     body = (f"A run of program {prg_name} with purpose {purp} "
             "is successfully triggered. Emails regardless of the outcome "
-            "will be sent. Visit "
-            f"http://{conf['host_name']}:{conf['port']}/runs#{run_id}"
+            f"will be sent. Visit {link}"
             " for the run page for further details.")
     send_email("gep_host run trigger", body, notifications)
     return 0
@@ -372,6 +377,13 @@ def run_program(masterconf_path: str, prg_name: str, purp: str):
         runs.loc[id_row(runs, prg_name, purp), 'status'] = \
             f'Completed with error 1'
         body += "had an error upon calling the program."
+    except KeyboardInterrupt as err:
+        code = 3
+        print(f"User pressed Ctrl+C: {err}")
+        runs = pd.read_csv(conf["RUN"], dtype=str).fillna("")
+        runs.loc[id_row(runs, prg_name, purp), 'status'] = \
+            f'Completed with error 3'
+        body += "has been stopped by Ctrl+C."
     except Exception as err:
         code = 2
         print(f"Error in python script: {err}")
