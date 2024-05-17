@@ -91,7 +91,7 @@
             </div>
             <div class="col-3">{{ library.upload_date }}</div>
             <div class="col-3 text-end">
-                <a class="btn btn-primary btn-sm m-1" title="Download the original zipped library"
+                <a class="btn btn-primary btn-sm me-1 mb-1" title="Download the original zipped library"
                     href="{{ url_for('main_routes.get_lib', library_name=library.library_name) }}"><i
                         class="bi bi-download"></i>
                     ({{ library.size }})</a>

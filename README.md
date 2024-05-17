@@ -47,11 +47,20 @@ Install the library from source code by issuing `pip install .` in the root. For
 - For debugging, run `python -m gep_host --debug`,
 
 <!--
-- if program is killed, write this to the run log file
-- add feature of executing pytest
-- don't copy over inheritable files, rather, use the original one
+- check why test run with pytest doesn't start
+- if program is deleted, delete the associated test run
+- stop program is queue
+- add a switch to runs whether to copy over original files
+- show successful test at the programs page
+- add comment to installed program
+- don't copy over inheritable files, rather, use the original one3
 - if a package is being installed with a name X, and another package named X is wanted to be installed again, it crashes
-- Write the comment of a program, run and library into a file, and support markdown. Make it editable.
+- Write the comment of a program, run and library into a file, and support markdown. Make it appendable.
 - user auth
 - make property public for input and output files, and if a file is not public, ask for token
 -->
+
+<!-- 
+- Test stopping feature, especially already stopped running and deleted running
+
+ -->

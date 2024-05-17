@@ -11,7 +11,7 @@ from gevent.pywsgi import WSGIServer
 
 from .routes import main_routes, setup_dynamic_routes
 from .utils.set_conf_init import set_conf, load_pages
-from .utils.helpers import filename_to_html_id
+from .utils.helpers import name_to_html_id
 from . import __version__
 
 
@@ -78,7 +78,7 @@ def configure_app(app: Flask, args: argparse.Namespace):
     app.register_blueprint(main_routes)
     app.jinja_env.filters['parse_json'] = parse_json
     app.jinja_env.filters['filesize'] = format_file_size
-    app.jinja_env.filters['filename_to_html_id'] = filename_to_html_id
+    app.jinja_env.filters['name_to_html_id'] = name_to_html_id
 
     return app
 

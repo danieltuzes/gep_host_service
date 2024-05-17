@@ -40,11 +40,10 @@ def activity(data: pd.DataFrame, type: str) -> str:
     """Generate the message to be displayed."""
     if type == "programs":
         active = count_not_status(data, "Installed")
-        ret = f"{active} program installation(s) "
+        ret = f"There are {active} program installation(s) in progress."
     if type == "runs":
         active = count_not_status(data, "Completed")
-        ret = f"Total of {active} runs(s) "
-    ret += "are in progress."
+        ret = f"Total of {active} runs are in progress."
     return ret
 
 

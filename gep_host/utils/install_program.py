@@ -397,6 +397,9 @@ def install_program(masterconf_path: str,
 
 if __name__ == '__main__':
     from gep_host.utils import run_program
+    print("Program is called as: ")
+    print(sys.argv)
+
     parser = argparse.ArgumentParser(
         description="Install a program into GEP Host")
 
@@ -434,23 +437,44 @@ if __name__ == '__main__':
         program_source = args.program_source
     list_of_libs = args.list_of_libs
 
+    print("Program install is to be requested with the following arguments:",
+          f"master_config: {master_config}",
+          f"program_name: {program_name}",
+          f"program_source: {program_source}",
+          f"required_python_version: {required_python_version}",
+          f"list_of_libs: {list_of_libs}",
+          f"test: {args.test}")
+
     res = install_program(master_config,
                           program_name,
                           program_source,
                           required_python_version,
                           list_of_libs,
                           args.test)
+    print(f"Installation result: {res}")
 
     # Run the tests
     if res and args.test is not None:
+        print("Test run was requested,",
+              "but installation was not successful,",
+              "so tests won't be executed.")
+    if not res and args.test is not None:
+        print("Running the tests with the following arguments:"
+              f"master_config: {master_config}",
+              f"program_name: {program_name}",
+              f"test: {args.test}")
+        print("test logs will be saved in the same folder as the program"
+              "under the name run_output_and_error.log")
         request = {"masterconf_path": master_config,
                    "program_name": program_name,
                    "purpose": "test",
                    "python_args": args.test,
                    "test": True}
         result = run_program.init_run(request)
+        print(f"Tests result: {result}")
         if not isinstance(result, int) and not result:
             print(f"Error: failed to run the tests for {program_name}, "
                   f"{result}")
-
-    print(sys.argv)
+        else:
+            print(f"Tests for {program_name} are successful.")
+    sys.exit(0)

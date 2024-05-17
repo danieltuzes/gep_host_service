@@ -3,7 +3,6 @@ import argparse
 import datetime
 import os
 import subprocess
-import sys
 from configparser import ConfigParser, ExtendedInterpolation
 import json
 import traceback
@@ -11,10 +10,12 @@ import shutil
 from typing import Union, Dict, List, Tuple
 import io
 import re
+import psutil
 import smtplib
 import socket
-import psutil
+import sys
 import time
+
 
 import pandas as pd
 from werkzeug.utils import secure_filename
@@ -140,9 +141,9 @@ def input_and_config(request: Request,
                 uploads[input_name] = path
                 continue
 
-            elif selected_option == "register":
+            elif selected_option == "use":
                 reg_file = request.form.get(f'{input_name}_text')
-                if reg_file is None or reg_file != "":
+                if reg_file is None or reg_file == "":
                     flash(f"Registered file {reg_file} for {input_name} is not valid.",
                           "warning")
                     undefineds.append(input_name)
@@ -204,7 +205,7 @@ def input_and_config(request: Request,
 
 def init_run(request: Union[Request, Dict[str, str]]) -> Union[int, str]:
     """Process the run request, and create detached run."""
-    from .helpers import alnum, safer_call, concat_to, filename_to_html_id
+    from .helpers import alnum, safer_call, concat_to, get_run_link
     from .replacer import LowerPriorityPopen
     try:
         from flask import current_app
@@ -271,7 +272,8 @@ def init_run(request: Union[Request, Dict[str, str]]) -> Union[int, str]:
     setup_folder = os.path.join(conf["ROOT"], 'runs', prg_name, purp)
     cmd = (f"python {__file__} {conf['masterconf_path']} "
            f"{prg_name} {purp}")
-    with open(os.path.join(setup_folder, "run_output_and_error.log"), 'w') as logf:
+    with open(os.path.join(setup_folder,
+                           "run_output_and_error.log"), 'w') as logf:
         proc = LowerPriorityPopen(cmd, shell=True,
                                   cwd=os.path.dirname(__file__),
                                   stdout=logf, stderr=logf)
@@ -281,18 +283,16 @@ def init_run(request: Union[Request, Dict[str, str]]) -> Union[int, str]:
     runs.loc[(runs['program_name'] == prg_name) &
              (runs['purpose'] == purp), 'PID'] = proc.pid
     runs.to_csv(conf["RUN"], index=False)
-    run_id = f"{filename_to_html_id(prg_name)}__{purp}"
-    port = "" if int(conf['port']) == 80 else f":{conf['port']}"
-    link = f"http://{conf['host_name']}{port}/runs#{run_id}"
     body = (f"A run of program {prg_name} with purpose {purp} "
             "is successfully triggered. Emails regardless of the outcome "
-            f"will be sent. Visit {link}"
+            f"will be sent. Visit {get_run_link(prg_name, purp, conf)}"
             " for the run page for further details.")
     send_email("gep_host run trigger", body, notifications)
     return 0
 
 
-def wait_in_queue(prg_name: str, purp: str, conf: dict, body: str) -> bool:
+def wait_in_queue(prg_name: str, purp: str, conf: dict):
+    msg = ""
     while True:
         runs = pd.read_csv(conf["RUN"], dtype=str).fillna("")
         row_condition = id_row(runs, prg_name, purp)
@@ -303,10 +303,10 @@ def wait_in_queue(prg_name: str, purp: str, conf: dict, body: str) -> bool:
         cpu_usage = psutil.cpu_percent(interval=0.5)
 
         if cpu_usage > 50:
-            # is body mutable?
-            body += (f"Waiting for CPU, time: {datetime.datetime.now()}.\n")
             if not current_status.startswith('queue'):
                 # Assign the next available priority
+                now_str = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                print(f"Started waiting for CPU at: {now_str}.", flush=True)
                 queue_count = runs['status'].str.startswith('queue').sum()
                 priority = queue_count + 1
                 runs.at[row_id, 'status'] = f'queue {priority}'
@@ -316,6 +316,9 @@ def wait_in_queue(prg_name: str, purp: str, conf: dict, body: str) -> bool:
 
         else:
             # Set the current run to 'running'
+            if current_status.startswith('queue'):
+                now_str = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                print(f"Finished waiting for CPU at: {now_str}.")
             runs.at[row_id, 'status'] = 'running'
 
             # Reorganize the queue to fill any gaps
@@ -325,21 +328,25 @@ def wait_in_queue(prg_name: str, purp: str, conf: dict, body: str) -> bool:
                 runs.at[idx, 'status'] = f'queue {new_priority}'
 
             runs.to_csv(conf["RUN"], index=False)
-            break
+            return msg
 
 
-def run_program(masterconf_path: str, prg_name: str, purp: str):
+def run_program(masterconf_path: str, prg_name: str, purp: str) -> int:
     from gep_host.utils.set_conf_init import set_conf
+    from gep_host.utils.helpers import get_run_link
     conf = {}
     set_conf(conf, masterconf_path)
 
     code = 0
+    now_str = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     body = (f"The program {prg_name} with purpose {purp} "
-            f"using master conf at {masterconf_path} ")
+            f"using master conf at {masterconf_path} "
+            f"was successfully started at {now_str}. ")
+    print(body, flush=True)
 
     try:
         # Update status in run_details.csv
-        wait_in_queue(prg_name, purp, conf, body)
+        wait_in_queue(prg_name, purp, conf)
 
         # Activate the conda environment and run the program
         activate_env_command = f'{conf["activate"]}{prg_name}'
@@ -347,6 +354,7 @@ def run_program(masterconf_path: str, prg_name: str, purp: str):
         args = runs.loc[id_row(runs, prg_name, purp), 'python_args'].iloc[0]
         i_cmd = f'{activate_env_command} && python {args}'
         setup_folder = os.path.join(conf["RUNR"], prg_name, purp)
+        print(f"Start new subprocess: {i_cmd}", flush=True)
         proc = subprocess.run(i_cmd, shell=True, cwd=setup_folder, text=True,
                               stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                               check=True)
@@ -366,42 +374,41 @@ def run_program(masterconf_path: str, prg_name: str, purp: str):
         runs.loc[id_row(runs, prg_name, purp), 'status'] = 'Completed'
         runs.loc[id_row(runs, prg_name, purp) == prg_name,
                  'PID'] = ''
-        body += "is successfully completed."
+        body += "The run is successfully completed."
 
     except subprocess.CalledProcessError as err:
         code = 1
-        print(f"Error calling subprocess: {err}")
-        print(traceback.format_exc())
-        print("Standard error:", err.stdout, sep="\n")
+        print(f"Error calling subprocess: {err}", flush=True)
+        print(traceback.format_exc(), flush=True)
+        print("Standard error:", err.stdout, sep="\n", flush=True)
         runs = pd.read_csv(conf["RUN"], dtype=str).fillna("")
         runs.loc[id_row(runs, prg_name, purp), 'status'] = \
             f'Completed with error 1'
-        body += "had an error upon calling the program."
+        body += "The run had an error upon calling the program."
     except KeyboardInterrupt as err:
         code = 3
-        print(f"User pressed Ctrl+C: {err}")
+        print(f"User pressed Ctrl+C: {err}", flush=True)
         runs = pd.read_csv(conf["RUN"], dtype=str).fillna("")
         runs.loc[id_row(runs, prg_name, purp), 'status'] = \
             f'Completed with error 3'
-        body += "has been stopped by Ctrl+C."
+        body += "The run has been stopped by Ctrl+C."
     except Exception as err:
         code = 2
-        print(f"Error in python script: {err}")
-        print(traceback.format_exc())
+        print(f"Error in python script: {err}", flush=True)
+        print(traceback.format_exc(), flush=True)
         runs = pd.read_csv(conf["RUN"], dtype=str).fillna("")
         runs.loc[id_row(runs, prg_name, purp), 'status'] = \
             f'Completed with error 2'
-        body += "had an error upon trying to call the program."
+        body += "The run had an error upon trying to call the program."
     finally:
         runs.to_csv(conf["RUN"], index=False)
-        body += (" See more details on "
-                 f"http://{conf['host_name']}:{conf['port']}/runs#{prg_name}__{purp} ")
+        body += (f" Visit {get_run_link(prg_name, purp, conf)}"
+                 " for the run page for further details.")
         notifs = runs.loc[id_row(runs, prg_name, purp),
                           'notifications'].iloc[0]
         receiver_emails = json.loads(notifs)
         send_email("gep_host run trigger", body, receiver_emails)
-        if code != 0:
-            sys.exit(code)
+        return code
 
 
 if __name__ == '__main__':
@@ -420,5 +427,9 @@ if __name__ == '__main__':
     masterconf_path = args.master_config
     program_name = args.program_name
     purpose = args.purpose
-    run_program(masterconf_path, program_name, purpose)
+    try:
+        ret_code = run_program(masterconf_path, program_name, purpose)
+    except Exception as excep:
+        print(f"There was an error calling run_program {excep}", flush=True)
+        sys.exit(1)
     sys.exit(0)

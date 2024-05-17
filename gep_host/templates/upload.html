@@ -95,7 +95,7 @@
     <h3>Upload History:</h3>
     <div class="container my-4">
         <div class="row mb-2">
-            <div class="col-5">
+            <div class="col-7">
                 <a
                     href="{{ url_for('main_routes.upload_form', column='filename', direction='desc' if direction == 'asc' and column == 'filename' else 'asc') }}">
                     Filename
@@ -111,34 +111,28 @@
                     {{'↓' if direction == 'desc' and column == 'upload_date'}}
                 </a>
             </div>
-            <div class="col-2">
-                <a
-                    href="{{ url_for('main_routes.upload_form', column='size', direction='desc' if direction == 'asc' and column == 'size' else 'asc') }}">
-                    Size (bytes)
-                    {{'↑' if direction == 'asc' and column == 'size'}}
-                    {{'↓' if direction == 'desc' and column == 'size'}}
-                </a>
-            </div>
-            <div class="col-3 text-end">Action</div>
+            <div class="col-3 text-end">Download (<a
+                    href="{{ url_for('main_routes.upload_form', column='size', direction='desc' if direction == 'asc' and column == 'size' else 'asc') }}">Size{{'
+                    ↑' if direction == 'asc' and column == 'size'}}{{' ↓' if direction == 'desc' and column ==
+                    'size'}}</a>), get link</div>
         </div>
         {% for file in files.itertuples() %}
-        <div class="row toggle-row" id="{{ file.filename|filename_to_html_id }}">
-            <div class="col-5">
+        <div class="row toggle-row" id="{{ file.filename|name_to_html_id }}">
+            <div class="col-7">
                 <button class="btn btn-secondary btn-sm me-1 mb-1" title="Copy the filename to the clipboard"
                     onclick="copyFilenameToClipboard('{{ file.filename }}')">
                     <i class="bi bi-clipboard"></i></button>
                 {{ file.filename }}
             </div>
             <div class="col-2">{{ file.upload_date }}</div>
-            <div class="col-2">{{ file.size }}</div>
             <div class="col-3 text-end">
                 <a class="btn btn-primary btn-sm mb-1" title="Download file"
                     href="{{ url_for('main_routes.get_file', filename=file.filename) }}"><i class="bi bi-download"></i>
                     ({{ file.size|filesize
                     }})</a>
                 <button class="btn btn-secondary btn-sm me-1 mb-1 copy-id-link"
-                    title="Copy the deeplink to this element">
-                    <i class="bi bi-clipboard"></i> Copy Link
+                    title="Copy a deeplink of this row to the clipboard">
+                    <i class="bi bi-clipboard"></i> Get deeplink
                 </button>
             </div>
         </div>
@@ -150,6 +144,9 @@
                 {% else %}
                 {{ file.comment }}
                 {% endif %}
+            </div>
+            <div class="col-12 my-2">
+                <strong>Size (bytes):</strong> {{ file.size }}
             </div>
             <div class="col-12 my-2">
                 {% if file.hash != "" and file.hash|string != "nan" %}
