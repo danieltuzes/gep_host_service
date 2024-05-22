@@ -190,7 +190,7 @@
 <div class="container my-4">
     <!-- header -->
     <div class="row mb-2">
-        <div class="col">
+        <div class="col-4">
             {% if program_name is not none %}
             Program Name
             {% else %}
@@ -202,7 +202,7 @@
             </a>
             {% endif %}
         </div>
-        <div class="col">
+        <div class="col-4">
             <a
                 href="{{ url_for('main_routes.runs', column='purpose', program_name=program_name, direction='desc' if direction == 'asc' and column == 'purpose' else 'asc') }}">
                 Purpose
@@ -210,7 +210,7 @@
                 {{'↓' if direction == 'desc' and column == 'purpose'}}
             </a>
         </div>
-        <div class="col">
+        <div class="col-2">
             <a
                 href="{{ url_for('main_routes.runs', column='setup_date', program_name=program_name, direction='desc' if direction == 'asc' and column == 'setup_date' else 'asc') }}">
                 Start Date
@@ -218,12 +218,12 @@
                 {{'↓' if direction == 'desc' and column == 'setup_date'}}
             </a>
         </div>
-        <div class="col text-end">Actions</div>
+        <div class="col-2 text-end">Actions</div>
     </div>
     <!-- content -->
     {% for run in runs.itertuples() %}
     <div class="row toggle-row" id="{{ run.program_name | name_to_html_id }}__{{ run.purpose }}">
-        <div class="col">
+        <div class="col-4">
             <span data-bs-toggle="tooltip" data-bs-placement="top" title="{{ run.status }}">
                 {% if run.status == "Completed" %}
                 <span class="badge rounded-pill bg-success">✓</span>
@@ -235,9 +235,9 @@
             </span>
             <a href='{{ url_for("main_routes.programs") }}#{{ run.program_name }}'>{{ run.program_name }}</a>
         </div>
-        <div class="col">{{ run.purpose }}</div>
-        <div class="col">{{ run.setup_date }}</div>
-        <div class="col text-end">
+        <div class="col-4">{{ run.purpose }}</div>
+        <div class="col-2">{{ run.setup_date }}</div>
+        <div class="col-2 text-end">
             {% if run.status in ["running"] %}
             <a href="{{ url_for('main_routes.stop_run', program_name=run.program_name, purpose=run.purpose) }}"
                 class="btn btn-warning btn-sm me-1 mb-1">Stop</a>
