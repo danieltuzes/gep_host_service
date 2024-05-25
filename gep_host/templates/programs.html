@@ -153,7 +153,7 @@
             <div class="col-3 text-end">Actions</div>
         </div>
         {% for program in programs.itertuples() %}
-        <div class="row toggle-row" id="{{ program.program_name | name_to_html_id }}">
+        <div class="row toggle-row" id="{{ program.program_name | name_to_html_id(True) }}">
             <div class="col-6">
                 <span data-bs-toggle="tooltip" data-bs-placement="top" title="{{ program.status }}">
                     {% if program.status == "Installed" %}
