@@ -294,19 +294,20 @@ def init_run(request: Union[Request, Dict[str, str]]) -> Union[int, str]:
 def wait_in_queue(prg_name: str, purp: str, conf: dict):
     msg = ""
     while True:
+        cpu_usage = psutil.cpu_percent(interval=0.5)
         runs = pd.read_csv(conf["RUN"], dtype=str).fillna("")
         row_condition = id_row(runs, prg_name, purp)
         row_id = runs[row_condition].index
 
         row_id = row_id[0]
         current_status = runs.at[row_id, 'status']
-        cpu_usage = psutil.cpu_percent(interval=0.5)
 
         if cpu_usage > 50:
             if not current_status.startswith('queue'):
                 # Assign the next available priority
                 now_str = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                print(f"Started waiting for CPU at: {now_str}.", flush=True)
+                print(
+                    f"{now_str} Started waiting for CPU, usage: {cpu_usage}.", flush=True)
                 queue_count = runs['status'].str.startswith('queue').sum()
                 priority = queue_count + 1
                 runs.at[row_id, 'status'] = f'queue {priority}'
@@ -318,7 +319,7 @@ def wait_in_queue(prg_name: str, purp: str, conf: dict):
             # Set the current run to 'running'
             if current_status.startswith('queue'):
                 now_str = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                print(f"Finished waiting for CPU at: {now_str}.")
+                print(f"{now_str} Finished waiting for CPU, usage: {cpu_usage}.")
             runs.at[row_id, 'status'] = 'running'
 
             # Reorganize the queue to fill any gaps
