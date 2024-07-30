@@ -34,10 +34,11 @@ def extract_emails(emails_input: str) -> List[str]:
     return re.findall(email_pattern, emails_input)
 
 
-def send_email(subject: str, body: str, receiver_emails: List[str]) -> None:
+def send_email(subject: str, body: str, receiver_emails: List[str],
+               username: str = "gep_host_service") -> None:
     """Send an email with the message body to the recipients."""
     hostname = socket.gethostname()
-    sender_email = f"gep_host_service@{hostname}"
+    sender_email = f"{username}@{hostname}"
 
     # Construct the email content
     message = unidecode(f"Subject: {subject}\n\n{body}")
@@ -287,7 +288,8 @@ def init_run(request: Union[Request, Dict[str, str]]) -> Union[int, str]:
             "is successfully triggered. Emails regardless of the outcome "
             f"will be sent. Visit {get_run_link(prg_name, purp, conf)}"
             " for the run page for further details.")
-    send_email("gep_host run trigger", body, notifications)
+    send_email(f"{conf["service_name"]} run trigger", body,
+               notifications, conf["service_name"])
     return 0
 
 
@@ -344,6 +346,7 @@ def run_program(masterconf_path: str, prg_name: str, purp: str) -> int:
             f"using master conf at {masterconf_path} "
             f"was successfully started at {now_str}. ")
     print(body, flush=True)
+    subject = f"{conf["service_name"]} run completed"
 
     try:
         # Update status in run_details.csv
@@ -375,7 +378,10 @@ def run_program(masterconf_path: str, prg_name: str, purp: str) -> int:
         runs.loc[id_row(runs, prg_name, purp), 'status'] = 'Completed'
         runs.loc[id_row(runs, prg_name, purp) == prg_name,
                  'PID'] = ''
-        body += "The run is successfully completed."
+        subject += " successfully"
+        body = (f"The program {prg_name} with purpose {purp} "
+                f"using master conf at {masterconf_path} "
+                f"is completed successfully at {now_str}. ")
 
     except subprocess.CalledProcessError as err:
         code = 1
@@ -386,6 +392,7 @@ def run_program(masterconf_path: str, prg_name: str, purp: str) -> int:
         runs.loc[id_row(runs, prg_name, purp), 'status'] = \
             f'Completed with error 1'
         body += "The run had an error upon calling the program."
+        subject += " with error"
     except KeyboardInterrupt as err:
         code = 3
         print(f"User pressed Ctrl+C: {err}", flush=True)
@@ -393,6 +400,7 @@ def run_program(masterconf_path: str, prg_name: str, purp: str) -> int:
         runs.loc[id_row(runs, prg_name, purp), 'status'] = \
             f'Completed with error 3'
         body += "The run has been stopped by Ctrl+C."
+        subject += " (stopped)"
     except Exception as err:
         code = 2
         print(f"Error in python script: {err}", flush=True)
@@ -401,6 +409,7 @@ def run_program(masterconf_path: str, prg_name: str, purp: str) -> int:
         runs.loc[id_row(runs, prg_name, purp), 'status'] = \
             f'Completed with error 2'
         body += "The run had an error upon trying to call the program."
+        subject += " with error"
     finally:
         runs.to_csv(conf["RUN"], index=False)
         body += (f" Visit {get_run_link(prg_name, purp, conf)}"
@@ -408,7 +417,8 @@ def run_program(masterconf_path: str, prg_name: str, purp: str) -> int:
         notifs = runs.loc[id_row(runs, prg_name, purp),
                           'notifications'].iloc[0]
         receiver_emails = json.loads(notifs)
-        send_email("gep_host run trigger", body, receiver_emails)
+        send_email(subject, body,
+                   receiver_emails, conf["service_name"])
         return code
 
 

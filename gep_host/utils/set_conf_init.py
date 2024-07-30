@@ -126,7 +126,7 @@ def set_conf(config: dict, masterconf_path: str) -> str:
     if not os.path.isabs(host_settings_path):
         host_settings_path = os.path.join(os.path.dirname(masterconf_path),
                                           host_settings_path)
-        host_seetings_path = os.path.abspath(host_settings_path)
+        host_settings_path = os.path.abspath(host_settings_path)
     if not os.path.isfile(host_settings_path):
         logging.error("Host settings not found at %s", host_settings_path)
         raise FileNotFoundError(

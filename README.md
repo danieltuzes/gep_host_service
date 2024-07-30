@@ -1,15 +1,14 @@
 # GEP host service
 
-- [GEP host service](#gep-host-service)
-  - [Features](#features)
-    - [Requirements on the program](#requirements-on-the-program)
-      - [Additional features](#additional-features)
-    - [Library installation](#library-installation)
-    - [File upload and registration](#file-upload-and-registration)
-  - [Installing the webservice](#installing-the-webservice)
-  - [Startin the service](#startin-the-service)
+- [Features](#features)
+  - [Requirements on the program](#requirements-on-the-program)
+    - [Additional features](#additional-features)
+  - [Library installation](#library-installation)
+  - [File upload and registration](#file-upload-and-registration)
+- [Installing the webservice](#installing-the-webservice)
+- [Startin the service](#startin-the-service)
 
-Execute data-orineted python scripts from a web interface. You can store different programs, and multiple execute runs, and all your inputs and outputs will be available for download via a web browser. No more python installation and manual config editing for program executors, saving developers from providing support.
+Execute data-orineted python scripts from a web interface. You can store different programs, and multiple runs of these programs, and all your inputs and outputs will be available for download via a web browser. No more python installation and manual config editing for program executors, saving developers from providing support.
 
 ## Features
 
@@ -19,7 +18,7 @@ You can add a python program, store libraries (provided from zipped file to be u
 
 The programs must meet specific design requirements:
 
-1. The program must be installable with a `pip install .` issued in the root, otherwise, the `requirements.txt` will be installed only.
+1. The program must be directly callable or installable with a `pip install .` issued in the root, otherwise, the `requirements.txt` will be installed only.
 2. The files and their paths are defined in a python ini file at `config/MasterConfig.cfg`, stored under the sections inputs and outputs.
 3. Must be executable with a single command from `python`, e.g. `python -m my_module`.
 4. Outputs must be saved within the root folder.
@@ -47,13 +46,14 @@ Install the library from source code by issuing `pip install .` in the root. For
 - For debugging, run `python -m gep_host --debug`,
 
 <!--
-- check why test run with pytest doesn't start
+- check email notifs containing service name as username
+- if masterinput fails, show the run setup so it can be deleted or delete it
 - if program is deleted, delete the associated test run
-- stop program is queue
+- stop program in queue
 - add a switch to runs whether to copy over original files
 - show successful test at the programs page
 - add comment to installed program
-- don't copy over inheritable files, rather, use the original one3
+- don't copy over inheritable files, rather, use the original one
 - if a package is being installed with a name X, and another package named X is wanted to be installed again, it crashes
 - Write the comment of a program, run and library into a file, and support markdown. Make it appendable.
 - user auth
