@@ -87,7 +87,10 @@ def index():
         content = f.read()
 
     # Convert markdown to HTML
-    md_template = Markup(markdown.markdown(content, extensions=['toc']))
+    md_template = Markup(markdown.markdown(content,
+                                           extensions=['toc',
+                                                       'fenced_code',
+                                                       'codehilite']))
 
     return render_template('index.html',
                            md_template=md_template,

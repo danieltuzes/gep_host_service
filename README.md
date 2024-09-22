@@ -48,6 +48,8 @@ Install the library from source code by issuing `pip install .` in the root. For
 <!--
 - check email notifs containing service name as username
 - if masterinput fails, show the run setup so it can be deleted or delete it
+- if program install fails from git pull like no branch, show error
+- if branch or hash or tag has space, handle it in program install
 - if program is deleted, delete the associated test run
 - stop program in queue
 - add a switch to runs whether to copy over original files
