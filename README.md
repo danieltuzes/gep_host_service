@@ -46,6 +46,9 @@ Install the library from source code by issuing `pip install .` in the root. For
 - For debugging, run `python -m gep_host --debug`,
 
 <!--
+- provide default python version in config, not only default placeholder text
+- make default file input option as not to be uploaded
+- check for output files if exist after successful run
 - check email notifs containing service name as username
 - if masterinput fails, show the run setup so it can be deleted or delete it
 - if program install fails from git pull like no branch, show error
