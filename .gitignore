@@ -4,3 +4,5 @@ hosting*/*
 **/dist/*.tar.gz
 .vscode/*
 build/*
+docs/build/*
+README.html

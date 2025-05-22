@@ -250,7 +250,7 @@ def runs():
         readme_path = os.path.join(current_app.config["PRGR"],
                                    program_name, prg_to_run['readme'])
         if os.path.isfile(readme_path):
-            with open(readme_path, 'r') as f:
+            with open(readme_path, 'r', encoding="utf-8") as f:
                 content = f.read()
             md_template = Markup(markdown.markdown(
                 content, extensions=["toc", "tables", "fenced_code",

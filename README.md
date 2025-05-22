@@ -46,22 +46,25 @@ Install the library from source code by issuing `pip install .` in the root. For
 - For debugging, run `python -m gep_host --debug`,
 
 <!--
+- if masterinput fails, show the run setup so it can be deleted or delete it
+- comments are not saved for registered file
+- re is not imported in routes.py?
+- UX: Problem: users click on program name of a run to get the details, but it takes them to the program details page. Solution: remove the link from run pointing to the program, instead, put the link into the dropdown content or icon with a link or something
+- if program install fails from git pull like no branch, show error
+- git should not only clone but init submodules too
 - provide default python version in config, not only default placeholder text
 - make default file input option as not to be uploaded
 - check for output files if exist after successful run
 - check email notifs containing service name as username
-- if masterinput fails, show the run setup so it can be deleted or delete it
-- if program install fails from git pull like no branch, show error
 - if branch or hash or tag has space, handle it in program install
 - if program is deleted, delete the associated test run
-- stop program in queue
-- add a switch to runs whether to copy over original files
+- make it possible to stop program in queue
+- add a switch to runs whether to a) copy over just the necessary inherited files b) all original files including git (this is the default now but a) should be the default)
 - show successful test at the programs page
 - add comment to installed program
 - don't copy over inheritable files, rather, use the original one
 - if a package is being installed with a name X, and another package named X is wanted to be installed again, it crashes
 - Write the comment of a program, run and library into a file, and support markdown. Make it appendable.
-- user auth
 - make property public for input and output files, and if a file is not public, ask for token
 -->
 

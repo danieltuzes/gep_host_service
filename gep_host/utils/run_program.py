@@ -288,7 +288,7 @@ def init_run(request: Union[Request, Dict[str, str]]) -> Union[int, str]:
             "is successfully triggered. Emails regardless of the outcome "
             f"will be sent. Visit {get_run_link(prg_name, purp, conf)}"
             " for the run page for further details.")
-    send_email(f"{conf["service_name"]} run trigger", body,
+    send_email(f"{conf['service_name']} run trigger", body,
                notifications, conf["service_name"])
     return 0
 
@@ -346,7 +346,7 @@ def run_program(masterconf_path: str, prg_name: str, purp: str) -> int:
             f"using master conf at {masterconf_path} "
             f"was successfully started at {now_str}. ")
     print(body, flush=True)
-    subject = f"{conf["service_name"]} run completed"
+    subject = f"{conf['service_name']} run completed"
 
     try:
         # Update status in run_details.csv
